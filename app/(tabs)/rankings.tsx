@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/Colors';
+import { FONTS } from '../../constants/Fonts';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -388,8 +389,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerIcon: { marginRight: 2 },
-  headerTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text1, letterSpacing: -0.3, flex: 1 },
-  headerSub: { fontSize: 12, color: COLORS.text3, fontWeight: '600' },
+  headerTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text1, letterSpacing: -0.3, flex: 1, fontFamily: FONTS.titleBold },
+  headerSub: { fontSize: 12, color: COLORS.text3, fontWeight: '600', fontFamily: FONTS.body },
 
   // Cuisine chips
   chipsScroll: { flexShrink: 0, maxHeight: 48 },
@@ -411,7 +412,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryDim,
     borderColor: COLORS.borderActive,
   },
-  chipText: { fontSize: 12, fontWeight: '600', color: COLORS.text3 },
+  chipText: { fontSize: 12, fontWeight: '600', color: COLORS.text3, fontFamily: FONTS.body },
   chipTextActive: { color: COLORS.primary },
 
   feedContent: { paddingBottom: 32 },
@@ -453,26 +454,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 4,
   },
-  medalLabel: { fontSize: 11, fontWeight: '800' },
+  medalLabel: { fontSize: 11, fontWeight: '800', fontFamily: FONTS.bodyBold },
 
   podiumAvatar: {
     borderWidth: 2.5,
     alignItems: 'center',
     justifyContent: 'center',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.08,
     shadowRadius: 10,
-    elevation: 6,
+    elevation: 3,
   },
   podiumAvatarCenter: {
-    shadowOpacity: 0.7,
+    shadowOpacity: 0.08,
     shadowRadius: 18,
   },
-  podiumAvatarLetter: { fontWeight: '900' },
+  podiumAvatarLetter: { fontWeight: '900', fontFamily: FONTS.titleBlack },
 
-  podiumName: { fontSize: 13, fontWeight: '800', color: COLORS.text1, marginTop: 2 },
+  podiumName: { fontSize: 13, fontWeight: '800', color: COLORS.text1, marginTop: 2, fontFamily: FONTS.bodyBold },
   podiumNameCenter: { fontSize: 15 },
-  podiumUsername: { fontSize: 11, color: COLORS.text3, marginTop: -2 },
+  podiumUsername: { fontSize: 11, color: COLORS.text3, marginTop: -2, fontFamily: FONTS.body },
 
   podiumBase: {
     alignSelf: 'stretch',
@@ -483,11 +484,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 6,
   },
-  podiumBaseText: { fontSize: 13, fontWeight: '900' },
+  podiumBaseText: { fontSize: 13, fontWeight: '900', fontFamily: FONTS.titleBlack },
 
   // Star rating
   starRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 1 },
-  starText: { fontSize: 12, fontWeight: '700', color: COLORS.star },
+  starText: { fontSize: 12, fontWeight: '700', color: COLORS.star, fontFamily: FONTS.bodyBold },
 
   // Mini recipe card
   miniCard: {
@@ -503,9 +504,9 @@ const styles = StyleSheet.create({
     marginTop: 3,
     maxWidth: 130,
   },
-  miniCardTitle: { flex: 1, fontSize: 10, color: COLORS.text2, fontWeight: '600' },
+  miniCardTitle: { flex: 1, fontSize: 10, color: COLORS.text2, fontWeight: '600', fontFamily: FONTS.body },
   miniDiffDot: { width: 6, height: 6, borderRadius: 3, flexShrink: 0 },
-  miniCardTime: { fontSize: 10, color: COLORS.text3, fontWeight: '600', flexShrink: 0 },
+  miniCardTime: { fontSize: 10, color: COLORS.text3, fontWeight: '600', flexShrink: 0, fontFamily: FONTS.body },
 
   // Partial top (< 3 cooks)
   partialPodium: { paddingHorizontal: 16, paddingTop: 16, gap: 8 },
@@ -519,6 +520,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     textTransform: 'uppercase',
     marginBottom: 2,
+    fontFamily: FONTS.bodyBold,
   },
 
   listCard: {
@@ -539,6 +541,7 @@ const styles = StyleSheet.create({
     width: 28,
     textAlign: 'center',
     flexShrink: 0,
+    fontFamily: FONTS.bodyBold,
   },
   listAvatar: {
     width: 44,
@@ -551,13 +554,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
-  listAvatarLetter: { fontSize: 18, fontWeight: '800', color: COLORS.primary },
+  listAvatarLetter: { fontSize: 18, fontWeight: '800', color: COLORS.primary, fontFamily: FONTS.titleBold },
   listInfo: { flex: 1, gap: 2 },
-  listName: { fontSize: 14, fontWeight: '700', color: COLORS.text1 },
-  listSpecialty: { fontSize: 12, color: COLORS.text3, fontWeight: '500' },
+  listName: { fontSize: 14, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.bodyBold },
+  listSpecialty: { fontSize: 12, color: COLORS.text3, fontWeight: '500', fontFamily: FONTS.body },
 
   listRatingWrap: { alignItems: 'flex-end', gap: 4, flexShrink: 0 },
-  listRatingCount: { fontSize: 10, color: COLORS.text3, fontWeight: '600' },
+  listRatingCount: { fontSize: 10, color: COLORS.text3, fontWeight: '600', fontFamily: FONTS.body },
 
   // Skeleton
   skeletonWrap: { paddingHorizontal: 16, paddingTop: 20, gap: 10 },
@@ -575,6 +578,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 4,
   },
-  emptyTitle: { fontSize: 20, fontWeight: '800', color: COLORS.text1 },
-  emptyText: { fontSize: 14, color: COLORS.text2, textAlign: 'center', lineHeight: 22 },
+  emptyTitle: { fontSize: 20, fontWeight: '800', color: COLORS.text1, fontFamily: FONTS.titleBold },
+  emptyText: { fontSize: 14, color: COLORS.text2, textAlign: 'center', lineHeight: 22, fontFamily: FONTS.body },
 });

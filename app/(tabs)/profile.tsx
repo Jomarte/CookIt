@@ -16,6 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useStore, computeStreak, getLast7Days } from '../../store/useStore';
 import { COLORS } from '../../constants/Colors';
+import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 
 const TABS = ['Receitas', 'Guardadas', 'Cozinhei'];
@@ -457,9 +458,9 @@ const styles = StyleSheet.create({
     position: 'relative',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.08,
     shadowRadius: 12,
-    elevation: 8,
+    elevation: 3,
   },
   settingsBtn: {
     position: 'absolute',
@@ -486,7 +487,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarImg: { width: 84, height: 84, borderRadius: 42 },
-  avatarLetter: { fontSize: 34, fontWeight: '900', color: COLORS.primary },
+  avatarLetter: { fontSize: 34, fontWeight: '900', color: COLORS.primary, fontFamily: FONTS.titleBlack },
   avatarRing: {
     position: 'absolute',
     top: -4,
@@ -498,18 +499,18 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
+    shadowOpacity: 0.08,
     shadowRadius: 10,
   },
 
   statsRow: { flex: 1, flexDirection: 'row', alignItems: 'center' },
   stat: { flex: 1, alignItems: 'center', gap: 2 },
-  statNumber: { fontSize: 24, fontWeight: '900', color: COLORS.primary, letterSpacing: -0.5 },
-  statLabel: { fontSize: 11, color: COLORS.text3, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3 },
+  statNumber: { fontSize: 24, fontWeight: '900', color: COLORS.primary, letterSpacing: -0.5, fontFamily: FONTS.titleBlack },
+  statLabel: { fontSize: 11, color: COLORS.text3, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3, fontFamily: FONTS.body },
   statDivider: { width: 1, height: 30, backgroundColor: COLORS.border },
 
-  name: { fontSize: 21, fontWeight: '900', color: COLORS.text1, marginBottom: 3, letterSpacing: -0.3 },
-  usernameText: { fontSize: 13, color: COLORS.text3, marginBottom: 8, fontWeight: '500' },
+  name: { fontSize: 21, fontWeight: '900', color: COLORS.text1, marginBottom: 3, letterSpacing: -0.3, fontFamily: FONTS.titleBold },
+  usernameText: { fontSize: 13, color: COLORS.text3, marginBottom: 8, fontWeight: '500', fontFamily: FONTS.body },
   cookingTypeBadge: {
     alignSelf: 'flex-start',
     backgroundColor: COLORS.primaryDim,
@@ -520,8 +521,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.borderActive,
   },
-  cookingTypeText: { fontSize: 12, color: COLORS.primary, fontWeight: '700' },
-  bio: { fontSize: 14, color: COLORS.text2, lineHeight: 21, marginBottom: 14 },
+  cookingTypeText: { fontSize: 12, color: COLORS.primary, fontWeight: '700', fontFamily: FONTS.bodyBold },
+  bio: { fontSize: 14, color: COLORS.text2, lineHeight: 21, marginBottom: 14, fontFamily: FONTS.body },
 
   actionsRow: { flexDirection: 'row', gap: 10, marginTop: 6 },
   editBtn: {
@@ -536,7 +537,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.borderActive,
     backgroundColor: COLORS.primaryDim,
   },
-  editBtnText: { fontSize: 14, fontWeight: '700', color: COLORS.primary },
+  editBtnText: { fontSize: 14, fontWeight: '700', color: COLORS.primary, fontFamily: FONTS.bodyBold },
   logoutBtn: {
     width: 46,
     height: 46,
@@ -559,9 +560,9 @@ const styles = StyleSheet.create({
     gap: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.08,
     shadowRadius: 12,
-    elevation: 6,
+    elevation: 3,
   },
   streakTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   streakFireIcon: {
@@ -575,11 +576,11 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,184,0,0.30)',
     shadowColor: COLORS.star,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.08,
     shadowRadius: 8,
   },
-  streakTitle: { fontSize: 15, fontWeight: '700', color: COLORS.text1, letterSpacing: -0.2 },
-  streakSub: { fontSize: 12, color: COLORS.text3, marginTop: 2 },
+  streakTitle: { fontSize: 15, fontWeight: '700', color: COLORS.text1, letterSpacing: -0.2, fontFamily: FONTS.bodyBold },
+  streakSub: { fontSize: 12, color: COLORS.text3, marginTop: 2, fontFamily: FONTS.body },
   streakBigNum: {
     width: 48,
     height: 48,
@@ -590,7 +591,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'rgba(255,184,0,0.30)',
   },
-  streakBigNumText: { fontSize: 22, fontWeight: '900', color: COLORS.star, letterSpacing: -0.5 },
+  streakBigNumText: { fontSize: 22, fontWeight: '900', color: COLORS.star, letterSpacing: -0.5, fontFamily: FONTS.titleBlack },
   streakDays: { flexDirection: 'row', gap: 6 },
   streakDay: {
     flex: 1,
@@ -607,11 +608,11 @@ const styles = StyleSheet.create({
     borderColor: COLORS.star,
     shadowColor: COLORS.star,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.65,
+    shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 5,
+    elevation: 3,
   },
-  streakDayText: { fontSize: 11, fontWeight: '700', color: COLORS.text3 },
+  streakDayText: { fontSize: 11, fontWeight: '700', color: COLORS.text3, fontFamily: FONTS.bodyBold },
   streakDayTextActive: { color: '#150F00' },
 
   // Badges
@@ -627,6 +628,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: 12,
     marginTop: 4,
+    fontFamily: FONTS.bodyBold,
   },
   badgesIconRow: {
     flexDirection: 'row',
@@ -660,14 +662,14 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.08,
     shadowRadius: 16,
-    elevation: 20,
+    elevation: 3,
     gap: 4,
   },
   badgeTooltipRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  badgeTooltipLabel: { fontSize: 14, fontWeight: '700', color: COLORS.text1, flex: 1 },
-  badgeTooltipDesc: { fontSize: 12, color: COLORS.text3, lineHeight: 17 },
+  badgeTooltipLabel: { fontSize: 14, fontWeight: '700', color: COLORS.text1, flex: 1, fontFamily: FONTS.bodyBold },
+  badgeTooltipDesc: { fontSize: 12, color: COLORS.text3, lineHeight: 17, fontFamily: FONTS.body },
   badgeTooltipLockedPill: {
     backgroundColor: COLORS.surface1,
     borderRadius: 6,
@@ -676,7 +678,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  badgeTooltipLockedText: { fontSize: 10, color: COLORS.text3, fontWeight: '600' },
+  badgeTooltipLockedText: { fontSize: 10, color: COLORS.text3, fontWeight: '600', fontFamily: FONTS.body },
 
   // Tabs
   tabs: {
@@ -696,7 +698,7 @@ const styles = StyleSheet.create({
   tabActive: {
     borderBottomColor: COLORS.primary,
   },
-  tabText: { fontSize: 13, fontWeight: '600', color: COLORS.text3 },
+  tabText: { fontSize: 13, fontWeight: '600', color: COLORS.text3, fontFamily: FONTS.bodyBold },
   tabTextActive: { color: COLORS.primary, fontWeight: '800' },
 
   loadingWrap: { paddingVertical: 40, alignItems: 'center' },
@@ -712,13 +714,13 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 5,
+    elevation: 3,
   },
   gridImagePlaceholder: {
     width: '100%',
-    aspectRatio: 1,
+    height: 130,
     backgroundColor: COLORS.surface2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -758,9 +760,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   gridCardContent: { padding: 9 },
-  gridTitle: { fontSize: 12, fontWeight: '700', color: COLORS.text1, lineHeight: 17, marginBottom: 4 },
+  gridTitle: { fontSize: 12, fontWeight: '700', color: COLORS.text1, lineHeight: 17, marginBottom: 4, fontFamily: FONTS.titleBold },
   gridMeta: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  gridMetaText: { fontSize: 11, color: COLORS.text3 },
+  gridMetaText: { fontSize: 11, color: COLORS.text3, fontFamily: FONTS.body },
   gridActions: {
     flexDirection: 'row',
     borderTopWidth: 1,
@@ -792,8 +794,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.08,
     shadowRadius: 12,
   },
-  emptyTabText: { fontSize: 14, color: COLORS.text2, textAlign: 'center', paddingHorizontal: 40 },
+  emptyTabText: { fontSize: 14, color: COLORS.text2, textAlign: 'center', paddingHorizontal: 40, fontFamily: FONTS.body },
 });

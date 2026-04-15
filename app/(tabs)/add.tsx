@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/Colors';
+import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 import { useStore } from '../../store/useStore';
 import { getIngredientSuggestions, type IngredientEntry } from '../../data/ingredients';
@@ -519,7 +520,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  headerTitle: { fontSize: 20, fontWeight: '900', color: COLORS.text1, letterSpacing: -0.3 },
+  headerTitle: { fontSize: 20, fontWeight: '900', color: COLORS.text1, letterSpacing: -0.3, fontFamily: FONTS.titleBold },
   publishBtn: {
     backgroundColor: COLORS.primary,
     paddingHorizontal: 20,
@@ -527,12 +528,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.08,
     shadowRadius: 10,
-    elevation: 6,
+    elevation: 3,
   },
   publishBtnDisabled: { opacity: 0.6 },
-  publishBtnText: { fontSize: 14, fontWeight: '700', color: COLORS.bg },
+  publishBtnText: { fontSize: 14, fontWeight: '700', color: COLORS.bg, fontFamily: FONTS.bodyBold },
 
   content: { padding: 16, gap: 12 },
 
@@ -570,7 +571,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: 'rgba(0,0,0,0.45)',
   },
-  photoChangeText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  photoChangeText: { fontSize: 13, fontWeight: '700', color: '#fff', fontFamily: FONTS.bodyBold },
   photoIcon: {
     width: 60,
     height: 60,
@@ -579,8 +580,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  photoText: { fontSize: 15, fontWeight: '700', color: COLORS.text1 },
-  photoSubtext: { fontSize: 12, color: COLORS.text3 },
+  photoText: { fontSize: 15, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.bodyBold },
+  photoSubtext: { fontSize: 12, color: COLORS.text3, fontFamily: FONTS.body },
 
   section: {
     backgroundColor: COLORS.surface1,
@@ -591,9 +592,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  label: { fontSize: 14, fontWeight: '700', color: COLORS.text1, marginBottom: 12 },
+  label: { fontSize: 14, fontWeight: '700', color: COLORS.text1, marginBottom: 12, fontFamily: FONTS.bodyBold },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  labelHint: { fontSize: 12, color: COLORS.text3, fontStyle: 'italic' },
+  labelHint: { fontSize: 12, color: COLORS.text3, fontStyle: 'italic', fontFamily: FONTS.body },
   labelSelected: {
     fontSize: 12,
     fontWeight: '700',
@@ -605,6 +606,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.borderActive,
     overflow: 'hidden',
+    fontFamily: FONTS.bodyBold,
   },
 
   input: {
@@ -628,7 +630,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface2,
   },
   pillActive: { backgroundColor: COLORS.primaryDim, borderColor: COLORS.borderActive },
-  pillText: { fontSize: 13, fontWeight: '600', color: COLORS.text3 },
+  pillText: { fontSize: 13, fontWeight: '600', color: COLORS.text3, fontFamily: FONTS.body },
   pillTextActive: { color: COLORS.primary, fontWeight: '700' },
 
   diffRow: { flexDirection: 'row', gap: 10 },
@@ -641,7 +643,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.surface2,
   },
-  diffBtnText: { fontSize: 14, fontWeight: '600', color: COLORS.text3 },
+  diffBtnText: { fontSize: 14, fontWeight: '600', color: COLORS.text3, fontFamily: FONTS.bodyBold },
 
   timeRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-end' },
   timeField: { flex: 1 },
@@ -654,6 +656,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     minHeight: 28,
     textAlignVertical: 'bottom',
+    fontFamily: FONTS.body,
   },
   timeInput: {
     borderWidth: 1,
@@ -680,7 +683,7 @@ const styles = StyleSheet.create({
   },
   tagPillGreen: { backgroundColor: COLORS.greenDim, borderColor: COLORS.green },
   tagPillBlue: { backgroundColor: COLORS.primaryDim, borderColor: COLORS.borderActive },
-  tagPillText: { fontSize: 13, fontWeight: '600', color: COLORS.text3 },
+  tagPillText: { fontSize: 13, fontWeight: '600', color: COLORS.text3, fontFamily: FONTS.body },
   tagPillTextGreen: { color: COLORS.green, fontWeight: '700' },
   tagPillTextBlue: { color: COLORS.primary, fontWeight: '700' },
 
@@ -737,11 +740,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  suggestionName: { fontSize: 14, fontWeight: '600', color: COLORS.text1 },
-  suggestionCategory: { fontSize: 11, color: COLORS.text3, fontWeight: '500' },
+  suggestionName: { fontSize: 14, fontWeight: '600', color: COLORS.text1, fontFamily: FONTS.bodyBold },
+  suggestionCategory: { fontSize: 11, color: COLORS.text3, fontWeight: '500', fontFamily: FONTS.body },
 
   addBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 8 },
-  addBtnText: { fontSize: 14, fontWeight: '600', color: COLORS.primary },
+  addBtnText: { fontSize: 14, fontWeight: '600', color: COLORS.primary, fontFamily: FONTS.bodyBold },
 
   stepRow: { flexDirection: 'row', gap: 10, marginBottom: 12, alignItems: 'flex-start' },
   stepNumber: {
@@ -756,7 +759,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     flexShrink: 0,
   },
-  stepNumberText: { fontSize: 13, fontWeight: '800', color: COLORS.primary },
+  stepNumberText: { fontSize: 13, fontWeight: '800', color: COLORS.primary, fontFamily: FONTS.bodyBold },
   stepInput: {
     flex: 1,
     borderWidth: 1,

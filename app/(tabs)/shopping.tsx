@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useStore, ShoppingItem } from '../../store/useStore';
 import { COLORS } from '../../constants/Colors';
+import { FONTS } from '../../constants/Fonts';
 
 export default function ShoppingScreen() {
   const { shoppingList, toggleShoppingItem, removeShoppingItem, removeRecipeFromList } = useStore();
@@ -185,12 +186,12 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 6,
+    elevation: 3,
   },
-  headerTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text1, letterSpacing: -0.4 },
-  headerSub: { fontSize: 12, color: COLORS.text3, fontWeight: '600', letterSpacing: 0.2 },
+  headerTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text1, letterSpacing: -0.4, fontFamily: FONTS.titleBold },
+  headerSub: { fontSize: 12, color: COLORS.text3, fontWeight: '600', letterSpacing: 0.2, fontFamily: FONTS.body },
 
   body: { flex: 1, flexDirection: 'row' },
 
@@ -223,7 +224,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
+    shadowOpacity: 0.08,
     shadowRadius: 4,
   },
   recipeTabDotDone: { backgroundColor: COLORS.green },
@@ -232,9 +233,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text3,
     lineHeight: 15,
+    fontFamily: FONTS.body,
   },
   recipeTabTitleActive: { color: COLORS.text1, fontWeight: '700' },
-  recipeTabCount: { fontSize: 10, fontWeight: '700', color: COLORS.text3 },
+  recipeTabCount: { fontSize: 10, fontWeight: '700', color: COLORS.text3, fontFamily: FONTS.bodyBold },
   recipeTabCountActive: { color: COLORS.primary },
 
   // Detail panel
@@ -246,15 +248,15 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.green,
     shadowColor: COLORS.green,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
+    shadowOpacity: 0.08,
     shadowRadius: 6,
   },
 
   detailContent: { padding: 16, gap: 8 },
 
   detailHeader: { marginBottom: 6 },
-  detailTitle: { fontSize: 17, fontWeight: '800', color: COLORS.text1, letterSpacing: -0.3 },
-  detailSub: { fontSize: 12, color: COLORS.text3, marginTop: 3, fontWeight: '600' },
+  detailTitle: { fontSize: 17, fontWeight: '800', color: COLORS.text1, letterSpacing: -0.3, fontFamily: FONTS.titleBold },
+  detailSub: { fontSize: 12, color: COLORS.text3, marginTop: 3, fontWeight: '600', fontFamily: FONTS.body },
 
   item: {
     backgroundColor: COLORS.surface1,
@@ -268,7 +270,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 3,
   },
@@ -289,14 +291,14 @@ const styles = StyleSheet.create({
     borderColor: COLORS.green,
     shadowColor: COLORS.green,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
+    shadowOpacity: 0.08,
     shadowRadius: 6,
   },
 
   itemContent: { flex: 1 },
-  itemName: { fontSize: 14, fontWeight: '600', color: COLORS.text1 },
+  itemName: { fontSize: 14, fontWeight: '600', color: COLORS.text1, fontFamily: FONTS.bodyBold },
   itemNameChecked: { textDecorationLine: 'line-through', color: COLORS.text3 },
-  itemAmount: { fontSize: 12, color: COLORS.text3, marginTop: 2 },
+  itemAmount: { fontSize: 12, color: COLORS.text3, marginTop: 2, fontFamily: FONTS.body },
 
   removeItemBtn: {
     width: 28,
@@ -320,7 +322,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,45,85,0.25)',
     backgroundColor: 'rgba(255,45,85,0.08)',
   },
-  removeRecipeBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.accent },
+  removeRecipeBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.accent, fontFamily: FONTS.bodyBold },
 
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, paddingHorizontal: 40 },
   emptyIcon: {
@@ -335,9 +337,9 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.08,
     shadowRadius: 16,
   },
-  emptyTitle: { fontSize: 20, fontWeight: '800', color: COLORS.text1, letterSpacing: -0.3 },
-  emptyText: { fontSize: 14, color: COLORS.text2, textAlign: 'center', lineHeight: 22 },
+  emptyTitle: { fontSize: 20, fontWeight: '800', color: COLORS.text1, letterSpacing: -0.3, fontFamily: FONTS.titleBold },
+  emptyText: { fontSize: 14, color: COLORS.text2, textAlign: 'center', lineHeight: 22, fontFamily: FONTS.body },
 });
