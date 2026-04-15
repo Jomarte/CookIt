@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/Colors';
+import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 import { useStore } from '../../store/useStore';
 
@@ -343,7 +344,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  headerTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text1, letterSpacing: -0.3 },
+  headerTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text1, letterSpacing: -0.3, fontFamily: FONTS.titleBlack },
   headerActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
 
   fridgeIconBtn: {
@@ -388,7 +389,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: COLORS.bg,
   },
-  filterBadgeText: { fontSize: 9, fontWeight: '800', color: COLORS.bg },
+  filterBadgeText: { fontSize: 9, fontWeight: '800', color: COLORS.bg, fontFamily: FONTS.bodyBold },
 
   searchContainer: {
     backgroundColor: COLORS.surface1,
@@ -409,7 +410,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     gap: 8,
   },
-  searchInput: { flex: 1, fontSize: 14, color: COLORS.text1 },
+  searchInput: { flex: 1, fontSize: 14, color: COLORS.text1, fontFamily: FONTS.body },
 
   fridgeHint: {
     flexDirection: 'row',
@@ -422,7 +423,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.borderActive,
   },
-  fridgeHintText: { flex: 1, fontSize: 11, color: COLORS.primary, fontWeight: '500' },
+  fridgeHintText: { flex: 1, fontSize: 11, color: COLORS.primary, fontWeight: '500', fontFamily: FONTS.body },
 
   listHeader: { backgroundColor: COLORS.bg },
 
@@ -441,6 +442,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     paddingHorizontal: 16,
     marginBottom: 6,
+    fontFamily: FONTS.bodyBold,
   },
   filterPanelRow: {
     paddingHorizontal: 16,
@@ -462,6 +464,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     paddingHorizontal: 16,
     paddingBottom: 12,
+    fontFamily: FONTS.body,
   },
 
   activeChips: {
@@ -483,7 +486,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.borderActive,
   },
-  activeChipText: { fontSize: 12, fontWeight: '700', color: COLORS.primary },
+  activeChipText: { fontSize: 12, fontWeight: '700', color: COLORS.primary, fontFamily: FONTS.bodyBold },
   clearAllBtn: {
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -492,7 +495,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  clearAllText: { fontSize: 12, fontWeight: '600', color: COLORS.text3 },
+  clearAllText: { fontSize: 12, fontWeight: '600', color: COLORS.text3, fontFamily: FONTS.body },
 
   catPill: {
     paddingHorizontal: 14,
@@ -507,11 +510,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryDim,
     borderColor: COLORS.borderActive,
   },
-  catText: { fontSize: 13, fontWeight: '600', color: COLORS.text3 },
-  catTextActive: { color: COLORS.primary, fontWeight: '700' },
+  catText: { fontSize: 13, fontWeight: '600', color: COLORS.text3, fontFamily: FONTS.body },
+  catTextActive: { color: COLORS.primary, fontWeight: '700', fontFamily: FONTS.bodyBold },
 
   resultsHeader: { paddingHorizontal: 20, paddingVertical: 10 },
-  resultsCount: { fontSize: 12, color: COLORS.text3, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  resultsCount: { fontSize: 12, color: COLORS.text3, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, fontFamily: FONTS.body },
 
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
@@ -527,13 +530,13 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 7,
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    elevation: 3,
   },
   cardImage: {
     width: '100%',
-    height: 170,
+    height: 200,
     backgroundColor: COLORS.surface2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -570,7 +573,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  cardDiffText: { fontSize: 10, color: COLORS.text2, fontWeight: '700' },
+  cardDiffText: { fontSize: 10, color: COLORS.text2, fontWeight: '700', fontFamily: FONTS.body },
   cardCuisineBadge: {
     position: 'absolute',
     bottom: 8,
@@ -581,11 +584,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     maxWidth: '80%',
   },
-  cardCuisineText: { fontSize: 10, color: COLORS.text2, fontWeight: '600' },
+  cardCuisineText: { fontSize: 10, color: COLORS.text2, fontWeight: '600', fontFamily: FONTS.body },
   cardContent: { padding: 10 },
-  cardTitle: { fontSize: 13, fontWeight: '700', color: COLORS.text1, marginBottom: 6, lineHeight: 18 },
+  cardTitle: { fontSize: 13, fontWeight: '700', color: COLORS.text1, marginBottom: 6, lineHeight: 18, fontFamily: FONTS.titleBold },
   cardMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  cardMetaText: { fontSize: 12, color: COLORS.text3, fontWeight: '500', flex: 1 },
+  cardMetaText: { fontSize: 12, color: COLORS.text3, fontWeight: '500', flex: 1, fontFamily: FONTS.body },
   cardAuthor: {
     width: 20,
     height: 20,
@@ -609,6 +612,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text1 },
-  emptyText: { fontSize: 14, color: COLORS.text2, textAlign: 'center' },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.titleBold },
+  emptyText: { fontSize: 14, color: COLORS.text2, textAlign: 'center', fontFamily: FONTS.body },
 });
