@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '../../store/useStore';
 import { COLORS } from '../../constants/Colors';
+import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 
 const TABS = ['Receita', 'Comentários'];
@@ -337,10 +338,10 @@ export default function RecipeDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  notFoundText: { fontSize: 16, color: COLORS.text2 },
+  notFoundText: { fontSize: 16, color: COLORS.text2, fontFamily: FONTS.body },
 
   hero: {
-    height: 280,
+    height: 320,
     position: 'relative',
     backgroundColor: COLORS.surface2,
   },
@@ -399,6 +400,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '900',
+    fontFamily: FONTS.titleBold,
     color: COLORS.text1,
     marginBottom: 12,
     letterSpacing: -0.5,
@@ -417,7 +419,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  metaChipText: { fontSize: 12, color: COLORS.text2, fontWeight: '600' },
+  metaChipText: { fontSize: 12, color: COLORS.text2, fontWeight: '600', fontFamily: FONTS.body },
 
   statsRow: {
     flexDirection: 'row',
@@ -438,8 +440,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 2,
   },
-  statValue: { fontSize: 13, fontWeight: '800', color: COLORS.text1 },
-  statLabel: { fontSize: 10, color: COLORS.text3, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3 },
+  statValue: { fontSize: 13, fontWeight: '800', color: COLORS.text1, fontFamily: FONTS.bodyBold },
+  statLabel: { fontSize: 10, color: COLORS.text3, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3, fontFamily: FONTS.body },
   statDivider: { width: 1, backgroundColor: COLORS.border, alignSelf: 'stretch', marginVertical: 4 },
 
   authorCard: {
@@ -463,10 +465,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  authorAvatarText: { fontSize: 18, fontWeight: '900', color: COLORS.primary },
+  authorAvatarText: { fontSize: 18, fontWeight: '900', color: COLORS.primary, fontFamily: FONTS.bodyBold },
   authorInfo: { flex: 1 },
-  authorName: { fontSize: 14, fontWeight: '700', color: COLORS.text1 },
-  authorUsername: { fontSize: 12, color: COLORS.text3, marginTop: 2 },
+  authorName: { fontSize: 14, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.bodyBold },
+  authorUsername: { fontSize: 12, color: COLORS.text3, marginTop: 2, fontFamily: FONTS.body },
   followBtn: {
     paddingHorizontal: 16,
     paddingVertical: 7,
@@ -475,7 +477,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: COLORS.borderActive,
   },
-  followBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.primary },
+  followBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.primary, fontFamily: FONTS.bodyBold },
 
   dietRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
   dietBadge: {
@@ -486,7 +488,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.green,
   },
-  dietBadgeText: { fontSize: 12, color: COLORS.green, fontWeight: '600' },
+  dietBadgeText: { fontSize: 12, color: COLORS.green, fontWeight: '600', fontFamily: FONTS.body },
 
   tabs: {
     flexDirection: 'row',
@@ -499,8 +501,8 @@ const styles = StyleSheet.create({
   },
   tab: { flex: 1, paddingVertical: 9, alignItems: 'center', borderRadius: 11 },
   tabActive: { backgroundColor: COLORS.primaryDim, borderWidth: 1, borderColor: COLORS.borderActive },
-  tabText: { fontSize: 13, fontWeight: '600', color: COLORS.text3 },
-  tabTextActive: { color: COLORS.primary, fontWeight: '700' },
+  tabText: { fontSize: 13, fontWeight: '600', color: COLORS.text3, fontFamily: FONTS.body },
+  tabTextActive: { color: COLORS.primary, fontWeight: '700', fontFamily: FONTS.bodyBold },
 
   section: {
     backgroundColor: COLORS.surface1,
@@ -511,7 +513,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  sectionTitle: { fontSize: 16, fontWeight: '800', color: COLORS.text1 },
+  sectionTitle: { fontSize: 16, fontWeight: '800', color: COLORS.text1, fontFamily: FONTS.titleBold },
 
   servingsRow: {
     flexDirection: 'row',
@@ -531,7 +533,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  servingsCount: { fontSize: 13, fontWeight: '700', color: COLORS.primary, minWidth: 56, textAlign: 'center' },
+  servingsCount: { fontSize: 13, fontWeight: '700', color: COLORS.primary, minWidth: 56, textAlign: 'center', fontFamily: FONTS.body },
 
   ingredientRow: {
     flexDirection: 'row',
@@ -542,8 +544,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   ingredientDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: COLORS.primary, flexShrink: 0 },
-  ingredientName: { flex: 1, fontSize: 14, color: COLORS.text1, fontWeight: '500' },
-  ingredientAmount: { fontSize: 13, color: COLORS.text2, fontWeight: '600' },
+  ingredientName: { flex: 1, fontSize: 14, color: COLORS.text1, fontWeight: '500', fontFamily: FONTS.bodyBold },
+  ingredientAmount: { fontSize: 13, color: COLORS.text2, fontWeight: '600', fontFamily: FONTS.body },
 
   stepRow: { flexDirection: 'row', gap: 14, marginBottom: 16 },
   stepNum: {
@@ -557,12 +559,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.08,
     shadowRadius: 6,
   },
-  stepNumText: { fontSize: 14, fontWeight: '800', color: COLORS.bg },
+  stepNumText: { fontSize: 14, fontWeight: '800', color: COLORS.bg, fontFamily: FONTS.bodyBold },
   stepContent: { flex: 1 },
-  stepText: { fontSize: 14, color: COLORS.text1, lineHeight: 22 },
+  stepText: { fontSize: 14, color: COLORS.text1, lineHeight: 22, fontFamily: FONTS.body },
   stepTimer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -576,7 +578,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.borderActive,
   },
-  stepTimerText: { fontSize: 12, color: COLORS.primary, fontWeight: '600' },
+  stepTimerText: { fontSize: 12, color: COLORS.primary, fontWeight: '600', fontFamily: FONTS.body },
 
   rateSection: {
     backgroundColor: COLORS.surface1,
@@ -587,12 +589,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  rateSectionTitle: { fontSize: 15, fontWeight: '700', color: COLORS.text1, marginBottom: 12 },
+  rateSectionTitle: { fontSize: 15, fontWeight: '700', color: COLORS.text1, marginBottom: 12, fontFamily: FONTS.titleBold },
   rateAvgRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 14 },
-  rateAvgNum: { fontSize: 18, fontWeight: '900', color: COLORS.star },
-  rateAvgCount: { fontSize: 13, color: COLORS.text3, fontWeight: '500' },
+  rateAvgNum: { fontSize: 18, fontWeight: '900', color: COLORS.star, fontFamily: FONTS.bodyBold },
+  rateAvgCount: { fontSize: 13, color: COLORS.text3, fontWeight: '500', fontFamily: FONTS.body },
   rateStars: { flexDirection: 'row', gap: 8 },
-  ratedText: { fontSize: 14, color: COLORS.star, fontWeight: '700', marginTop: 12 },
+  ratedText: { fontSize: 14, color: COLORS.star, fontWeight: '700', marginTop: 12, fontFamily: FONTS.body },
 
   emptyTab: { alignItems: 'center', padding: 48, gap: 14 },
   emptyTabIcon: {
@@ -605,8 +607,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyTabTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text1 },
-  emptyTabText: { fontSize: 14, color: COLORS.text2, textAlign: 'center' },
+  emptyTabTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.titleBold },
+  emptyTabText: { fontSize: 14, color: COLORS.text2, textAlign: 'center', fontFamily: FONTS.body },
 
   bottomBar: {
     flexDirection: 'row',
@@ -634,10 +636,10 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.08,
     shadowRadius: 10,
   },
-  bottomBtnCookedText: { fontSize: 14, fontWeight: '700', color: COLORS.primary },
+  bottomBtnCookedText: { fontSize: 14, fontWeight: '700', color: COLORS.primary, fontFamily: FONTS.bodyBold },
   bottomBtnCookedTextActive: { color: COLORS.bg },
   bottomBtnList: {
     flex: 1.2,
@@ -650,9 +652,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.08,
     shadowRadius: 10,
-    elevation: 6,
+    elevation: 3,
   },
-  bottomBtnListText: { fontSize: 14, fontWeight: '700', color: COLORS.bg },
+  bottomBtnListText: { fontSize: 14, fontWeight: '700', color: COLORS.bg, fontFamily: FONTS.bodyBold },
 });
