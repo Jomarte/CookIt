@@ -180,69 +180,39 @@ export default function ProfileScreen() {
   }
 
   const renderRecipeCard = ({ item }: { item: any }) => {
-    if (!item) return <View style={[styles.gridCard, { opacity: 0, pointerEvents: 'none' as any }]} />;
-    const id = String(item.id);
-    const isCooked = cookedRecipes.includes(id);
+    if (!item) return <View style={styles.gridCell} />;
     const isDeleting = deletingId === item.id;
     const isOwn = activeTab === 'Receitas';
-    const totalTime = (item.prep_time ?? 0) + (item.cook_time ?? 0);
 
     return (
-      <View style={styles.gridCard}>
-        <TouchableOpacity onPress={() => router.push(`/recipe/${item.id}`)}>
-          <View style={styles.gridImagePlaceholder}>
-            {item.image
-              ? <Image source={{ uri: item.image }} style={styles.gridPhoto} resizeMode="cover" />
-              : <Ionicons name="restaurant-outline" size={24} color={COLORS.text3} />
-            }
-            {isOwn && (
-              <>
-                <TouchableOpacity
-                  style={styles.editBtn2}
-                  onPress={() => router.push(`/recipe/edit/${item.id}`)}
-                >
-                  <Ionicons name="pencil-outline" size={13} color={COLORS.primary} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.deleteBtn}
-                  onPress={() => handleDelete(item.id)}
-                  disabled={isDeleting}
-                >
-                  {isDeleting
-                    ? <ActivityIndicator size="small" color={COLORS.accent} />
-                    : <Ionicons name="trash-outline" size={13} color={COLORS.accent} />
-                  }
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-          <View style={styles.gridCardContent}>
-            <Text style={styles.gridTitle} numberOfLines={2}>{item.title}</Text>
-            <View style={styles.gridMeta}>
-              <Ionicons name="time-outline" size={11} color={COLORS.text3} />
-              <Text style={styles.gridMetaText}>{totalTime}min</Text>
+      <TouchableOpacity style={styles.gridCell} activeOpacity={0.88} onPress={() => router.push(`/recipe/${item.id}`)}>
+        {item.image
+          ? <Image source={{ uri: item.image }} style={styles.gridPhoto} resizeMode="cover" />
+          : <View style={styles.gridPlaceholder}>
+              <Ionicons name="restaurant-outline" size={22} color={COLORS.text3} />
             </View>
+        }
+        {isOwn && (
+          <View style={styles.gridCellOverlay}>
+            <TouchableOpacity
+              style={styles.gridOverlayBtn}
+              onPress={(e) => { (e as any).stopPropagation?.(); router.push(`/recipe/edit/${item.id}`); }}
+            >
+              <Ionicons name="pencil-outline" size={12} color="#fff" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.gridOverlayBtn, styles.gridOverlayBtnDelete]}
+              onPress={(e) => { (e as any).stopPropagation?.(); handleDelete(item.id); }}
+              disabled={isDeleting}
+            >
+              {isDeleting
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Ionicons name="trash-outline" size={12} color="#fff" />
+              }
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
-        <View style={styles.gridActions}>
-          <TouchableOpacity
-            style={[styles.gridActionBtn, styles.gridActionBtnBorder, isCooked && styles.gridActionBtnActive]}
-            onPress={() => toggleCooked(id)}
-          >
-            <Ionicons
-              name={isCooked ? 'checkmark-circle' : 'checkmark-circle-outline'}
-              size={14}
-              color={isCooked ? COLORS.bg : COLORS.primary}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.gridActionBtn}
-            onPress={() => addToShoppingList(id, item.ingredients ?? [], item.title)}
-          >
-            <Ionicons name="cart-outline" size={14} color={COLORS.text2} />
-          </TouchableOpacity>
-        </View>
-      </View>
+        )}
+      </TouchableOpacity>
     );
   };
 
@@ -411,10 +381,10 @@ export default function ProfileScreen() {
           </View>
         ) : (
           <FlatList
-            data={displayList.length % 2 !== 0 ? [...displayList, null] : displayList}
+            data={displayList.length % 3 !== 0 ? [...displayList, ...Array(3 - (displayList.length % 3)).fill(null)] : displayList}
             renderItem={renderRecipeCard}
             keyExtractor={(item, index) => item ? String(item.id) : `spacer-${index}`}
-            numColumns={2}
+            numColumns={3}
             scrollEnabled={false}
             columnWrapperStyle={styles.gridRow}
             contentContainerStyle={styles.gridContent}
@@ -703,83 +673,48 @@ const styles = StyleSheet.create({
 
   loadingWrap: { paddingVertical: 40, alignItems: 'center' },
 
-  gridContent: { padding: 12, gap: 10 },
-  gridRow: { gap: 10 },
-  gridCard: {
+  // Instagram-style grid — no borders, 2 px gaps, square cells
+  gridContent: { gap: 2 },
+  gridRow: { gap: 2 },
+  gridCell: {
     flex: 1,
-    backgroundColor: COLORS.surface1,
-    borderRadius: 16,
+    aspectRatio: 1,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  gridImagePlaceholder: {
-    width: '100%',
-    height: 130,
-    backgroundColor: COLORS.surface2,
-    alignItems: 'center',
-    justifyContent: 'center',
     position: 'relative',
-    overflow: 'hidden',
+    backgroundColor: COLORS.surface2,
   },
   gridPhoto: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
     width: '100%',
     height: '100%',
   },
-  editBtn2: {
-    position: 'absolute',
-    top: 7,
-    left: 7,
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: COLORS.primaryDim,
-    borderWidth: 1,
-    borderColor: COLORS.borderActive,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteBtn: {
-    position: 'absolute',
-    top: 7,
-    right: 7,
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,45,85,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,45,85,0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  gridCardContent: { padding: 9 },
-  gridTitle: { fontSize: 12, fontWeight: '700', color: COLORS.text1, lineHeight: 17, marginBottom: 4, fontFamily: FONTS.titleBold },
-  gridMeta: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  gridMetaText: { fontSize: 11, color: COLORS.text3, fontFamily: FONTS.body },
-  gridActions: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-  gridActionBtn: {
+  gridPlaceholder: {
     flex: 1,
-    paddingVertical: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surface2,
+  },
+  gridCellOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: 5,
+    backgroundColor: 'rgba(0,0,0,0.22)',
+  },
+  gridOverlayBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 7,
+    backgroundColor: 'rgba(0,0,0,0.45)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  gridActionBtnBorder: {
-    borderRightWidth: 1,
-    borderRightColor: COLORS.border,
-  },
-  gridActionBtnActive: {
-    backgroundColor: COLORS.primary,
+  gridOverlayBtnDelete: {
+    backgroundColor: 'rgba(220,38,38,0.7)',
   },
 
   emptyTab: { alignItems: 'center', paddingVertical: 52, gap: 14 },
