@@ -4,6 +4,16 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Platform, StyleSheet, View } from 'react-native';
 import { useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
+import {
+  useFonts,
+  PlayfairDisplay_700Bold,
+  PlayfairDisplay_700Bold_Italic,
+  PlayfairDisplay_900Black,
+} from '@expo-google-fonts/playfair-display';
+import { Lato_400Regular, Lato_700Bold } from '@expo-google-fonts/lato';
+import * as SplashScreen from 'expo-splash-screen';
+
+SplashScreen.preventAutoHideAsync();
 
 const STORAGE_KEY = 'cookit-store';
 
@@ -92,6 +102,22 @@ function StoreHydrator() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    PlayfairDisplay_700Bold,
+    PlayfairDisplay_700Bold_Italic,
+    PlayfairDisplay_900Black,
+    Lato_400Regular,
+    Lato_700Bold,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) return null;
+
   if (Platform.OS === 'web') {
     return (
       <View style={styles.webOuter}>
@@ -118,7 +144,7 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   webOuter: {
     flex: 1,
-    backgroundColor: '#03030F',
+    backgroundColor: '#F0EDE8',
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: '100vh' as any,
@@ -128,11 +154,11 @@ const styles = StyleSheet.create({
     height: 844,
     overflow: 'hidden',
     borderRadius: 44,
-    shadowColor: '#00C8FF',
+    shadowColor: 'rgba(0,0,0,0.15)',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.45,
     shadowRadius: 60,
     borderWidth: 1,
-    borderColor: 'rgba(0,200,255,0.18)',
+    borderColor: 'rgba(0,0,0,0.08)',
   },
 });

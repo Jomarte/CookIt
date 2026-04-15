@@ -1,35 +1,35 @@
 export const COLORS = {
-  // Backgrounds — deeper indigo-black for a premium space feel
-  bg:         '#06061A',
-  surface1:   '#0C0C22',
-  surface2:   '#131332',
-  surface3:   '#191940',
+  // Backgrounds — warm white / cream
+  bg:         '#FAFAF8',
+  surface1:   '#FFFFFF',
+  surface2:   '#F5F0EB',
+  surface3:   '#EDE8E3',
 
-  // Brand
-  primary:     '#00C8FF',
-  primaryDim:  'rgba(0,200,255,0.13)',
-  primaryGlow: 'rgba(0,200,255,0.50)',
-  accent:      '#FF2D55',
-  accentDim:   'rgba(255,45,85,0.13)',
+  // Brand — coral red
+  primary:     '#FF5A5A',
+  primaryDim:  'rgba(255,90,90,0.08)',
+  primaryGlow: 'rgba(255,90,90,0.30)',
+  accent:      '#FF8C1A',
+  accentDim:   'rgba(255,140,26,0.10)',
 
-  // Text — blue-white tint for premium dark feel
+  // Text
   white:   '#FFFFFF',
-  text1:   '#EEEEFF',
-  text2:   '#8888B4',
-  text3:   '#484862',
+  text1:   '#1A1A1A',
+  text2:   '#555555',
+  text3:   '#999999',
 
   // UI
-  border:       'rgba(255,255,255,0.09)',
-  borderActive: 'rgba(0,200,255,0.40)',
-  star:         '#FFB800',
-  green:        '#00E676',
-  greenDim:     'rgba(0,230,118,0.13)',
+  border:       'rgba(0,0,0,0.08)',
+  borderActive: 'rgba(255,90,90,0.35)',
+  star:         '#D97706',
+  green:        '#16A34A',
+  greenDim:     'rgba(22,163,74,0.10)',
 
   // Legacy aliases kept for compat
-  dark:         '#06061A',
-  medium:       '#8888B4',
-  light:        '#484862',
-  primaryLight: 'rgba(0,200,255,0.13)',
-  primaryDark:  '#0099CC',
-  greenLight:   'rgba(0,230,118,0.13)',
+  dark:         '#1A1A1A',
+  medium:       '#555555',
+  light:        '#999999',
+  primaryLight: 'rgba(255,90,90,0.08)',
+  primaryDark:  '#CC3333',
+  greenLight:   'rgba(22,163,74,0.10)',
 };
