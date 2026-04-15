@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../../constants/Colors';
+import { FONTS } from '../../../constants/Fonts';
 import { api } from '../../../services/api';
 import { useStore } from '../../../store/useStore';
 import { getIngredientSuggestions, type IngredientEntry } from '../../../data/ingredients';
@@ -466,14 +467,14 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface2, borderWidth: 1, borderColor: COLORS.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: { fontSize: 17, fontWeight: '800', color: COLORS.text1 },
+  headerTitle: { fontSize: 17, fontWeight: '800', color: COLORS.text1, fontFamily: FONTS.bodyBold },
   saveBtn: {
     backgroundColor: COLORS.primary, paddingHorizontal: 20, paddingVertical: 9,
     borderRadius: 20, shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4, shadowRadius: 8, elevation: 4,
+    shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
   },
   saveBtnDisabled: { opacity: 0.6 },
-  saveBtnText: { fontSize: 14, fontWeight: '700', color: COLORS.bg },
+  saveBtnText: { fontSize: 14, fontWeight: '700', color: COLORS.bg, fontFamily: FONTS.bodyBold },
 
   content: { padding: 16, gap: 12 },
 
@@ -489,45 +490,47 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 6, paddingVertical: 10, backgroundColor: 'rgba(0,0,0,0.45)',
   },
-  photoChangeText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  photoChangeText: { fontSize: 13, fontWeight: '700', color: '#fff', fontFamily: FONTS.bodyBold },
   photoIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: COLORS.primaryDim, alignItems: 'center', justifyContent: 'center' },
-  photoText: { fontSize: 15, fontWeight: '700', color: COLORS.text1 },
+  photoText: { fontSize: 15, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.bodyBold },
 
   section: {
     backgroundColor: COLORS.surface1, borderRadius: 16,
     paddingHorizontal: 16, paddingTop: 16, paddingBottom: 18,
     borderWidth: 1, borderColor: COLORS.border,
   },
-  label: { fontSize: 14, fontWeight: '700', color: COLORS.text1, marginBottom: 12 },
+  label: { fontSize: 14, fontWeight: '700', color: COLORS.text1, marginBottom: 12, fontFamily: FONTS.bodyBold },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   labelSelected: {
     fontSize: 12, fontWeight: '700', color: COLORS.primary,
     backgroundColor: COLORS.primaryDim, paddingHorizontal: 8, paddingVertical: 3,
     borderRadius: 8, borderWidth: 1, borderColor: COLORS.borderActive, overflow: 'hidden',
+    fontFamily: FONTS.bodyBold,
   },
   input: {
     borderWidth: 1, borderColor: COLORS.border, borderRadius: 12,
     paddingHorizontal: 14, paddingVertical: 14, fontSize: 15, color: COLORS.text1, backgroundColor: COLORS.surface2,
+    fontFamily: FONTS.body,
   },
   pillsRow: { gap: 8, flexDirection: 'row', paddingVertical: 2 },
   pill: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surface2 },
   pillActive: { backgroundColor: COLORS.primaryDim, borderColor: COLORS.borderActive },
-  pillText: { fontSize: 13, fontWeight: '600', color: COLORS.text3 },
-  pillTextActive: { color: COLORS.primary, fontWeight: '700' },
+  pillText: { fontSize: 13, fontWeight: '600', color: COLORS.text3, fontFamily: FONTS.body },
+  pillTextActive: { color: COLORS.primary, fontWeight: '700', fontFamily: FONTS.bodyBold },
   diffRow: { flexDirection: 'row', gap: 10 },
   diffBtn: { flex: 1, paddingVertical: 13, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border, alignItems: 'center', backgroundColor: COLORS.surface2 },
-  diffBtnText: { fontSize: 14, fontWeight: '600', color: COLORS.text3 },
+  diffBtnText: { fontSize: 14, fontWeight: '600', color: COLORS.text3, fontFamily: FONTS.body },
   timeRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-end' },
   timeField: { flex: 1 },
-  timeLabel: { fontSize: 11, color: COLORS.text3, fontWeight: '600', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, minHeight: 28, textAlignVertical: 'bottom' },
-  timeInput: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 13, fontSize: 16, color: COLORS.text1, textAlign: 'center', backgroundColor: COLORS.surface2 },
+  timeLabel: { fontSize: 11, color: COLORS.text3, fontWeight: '600', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, minHeight: 28, textAlignVertical: 'bottom', fontFamily: FONTS.bodyBold },
+  timeInput: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 13, fontSize: 16, color: COLORS.text1, textAlign: 'center', backgroundColor: COLORS.surface2, fontFamily: FONTS.body },
   tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   tagPill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surface2 },
   tagPillGreen: { backgroundColor: COLORS.greenDim, borderColor: COLORS.green },
   tagPillBlue: { backgroundColor: COLORS.primaryDim, borderColor: COLORS.borderActive },
-  tagPillText: { fontSize: 13, fontWeight: '600', color: COLORS.text3 },
-  tagPillTextGreen: { color: COLORS.green, fontWeight: '700' },
-  tagPillTextBlue: { color: COLORS.primary, fontWeight: '700' },
+  tagPillText: { fontSize: 13, fontWeight: '600', color: COLORS.text3, fontFamily: FONTS.body },
+  tagPillTextGreen: { color: COLORS.green, fontWeight: '700', fontFamily: FONTS.bodyBold },
+  tagPillTextBlue: { color: COLORS.primary, fontWeight: '700', fontFamily: FONTS.bodyBold },
 
   ingredientBlock: { marginBottom: 14 },
   ingredientNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -537,21 +540,23 @@ const styles = StyleSheet.create({
     width: 48, borderWidth: 1, borderColor: COLORS.border, borderRadius: 10,
     paddingHorizontal: 6, paddingVertical: 11, fontSize: 13, color: COLORS.text1,
     backgroundColor: COLORS.surface2, textAlign: 'center', flexShrink: 0,
+    fontFamily: FONTS.body,
   },
   ingredientInput: {
     flex: 1, minWidth: 0, borderWidth: 1, borderColor: COLORS.border, borderRadius: 12,
     paddingHorizontal: 10, paddingVertical: 11, fontSize: 14, color: COLORS.text1, backgroundColor: COLORS.surface2,
+    fontFamily: FONTS.body,
   },
   ingredientInputMatched: { borderColor: COLORS.borderActive, backgroundColor: COLORS.primaryDim },
   suggestionsBox: { marginLeft: 18, marginTop: 4, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surface1, overflow: 'hidden' },
   suggestionItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  suggestionName: { fontSize: 14, fontWeight: '600', color: COLORS.text1 },
-  suggestionCategory: { fontSize: 11, color: COLORS.text3, fontWeight: '500' },
+  suggestionName: { fontSize: 14, fontWeight: '600', color: COLORS.text1, fontFamily: FONTS.body },
+  suggestionCategory: { fontSize: 11, color: COLORS.text3, fontWeight: '500', fontFamily: FONTS.body },
 
   addBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 8 },
-  addBtnText: { fontSize: 14, fontWeight: '600', color: COLORS.primary },
+  addBtnText: { fontSize: 14, fontWeight: '600', color: COLORS.primary, fontFamily: FONTS.body },
   stepRow: { flexDirection: 'row', gap: 10, marginBottom: 12, alignItems: 'flex-start' },
   stepNumber: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.primaryDim, borderWidth: 1.5, borderColor: COLORS.borderActive, alignItems: 'center', justifyContent: 'center', marginTop: 10, flexShrink: 0 },
-  stepNumberText: { fontSize: 13, fontWeight: '800', color: COLORS.primary },
-  stepInput: { flex: 1, borderWidth: 1, borderColor: COLORS.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13, fontSize: 14, color: COLORS.text1, minHeight: 70, textAlignVertical: 'top', backgroundColor: COLORS.surface2 },
+  stepNumberText: { fontSize: 13, fontWeight: '800', color: COLORS.primary, fontFamily: FONTS.bodyBold },
+  stepInput: { flex: 1, borderWidth: 1, borderColor: COLORS.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13, fontSize: 14, color: COLORS.text1, minHeight: 70, textAlignVertical: 'top', backgroundColor: COLORS.surface2, fontFamily: FONTS.body },
 });

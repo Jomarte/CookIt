@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/Colors';
+import { FONTS } from '../constants/Fonts';
 import { api } from '../services/api';
 import { useStore } from '../store/useStore';
 
@@ -246,7 +247,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: COLORS.text1 },
+  headerTitle: { fontSize: 17, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.bodyBold },
 
   userCard: {
     flexDirection: 'row',
@@ -285,7 +286,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: COLORS.borderActive,
   },
-  userAvatarText: { fontSize: 22, fontWeight: '900', color: COLORS.primary },
+  userAvatarText: { fontSize: 22, fontWeight: '900', color: COLORS.primary, fontFamily: FONTS.bodyBold },
   avatarEditBadge: {
     position: 'absolute',
     bottom: 0,
@@ -301,10 +302,10 @@ const styles = StyleSheet.create({
   },
 
   userInfo: { flex: 1, gap: 2 },
-  userName: { fontSize: 15, fontWeight: '700', color: COLORS.text1 },
-  userUsername: { fontSize: 12, color: COLORS.text3 },
-  addAvatarText: { fontSize: 12, color: COLORS.primary, fontWeight: '600', marginTop: 2 },
-  removeAvatarText: { fontSize: 12, color: COLORS.text3, fontWeight: '500', marginTop: 2 },
+  userName: { fontSize: 15, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.bodyBold },
+  userUsername: { fontSize: 12, color: COLORS.text3, fontFamily: FONTS.body },
+  addAvatarText: { fontSize: 12, color: COLORS.primary, fontWeight: '600', marginTop: 2, fontFamily: FONTS.body },
+  removeAvatarText: { fontSize: 12, color: COLORS.text3, fontWeight: '500', marginTop: 2, fontFamily: FONTS.body },
 
   userBadge: {
     paddingHorizontal: 8,
@@ -312,7 +313,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
   },
-  userBadgeText: { fontSize: 11, fontWeight: '700' },
+  userBadgeText: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.bodyBold },
 
   sectionLabel: {
     fontSize: 11,
@@ -323,6 +324,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: 4,
     textTransform: 'uppercase',
+    fontFamily: FONTS.bodyBold,
   },
 
   card: {
@@ -358,9 +360,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.accent,
   },
   rowText: { flex: 1 },
-  rowLabel: { fontSize: 15, fontWeight: '600', color: COLORS.text1 },
+  rowLabel: { fontSize: 15, fontWeight: '600', color: COLORS.text1, fontFamily: FONTS.body },
   rowLabelDanger: { color: COLORS.accent },
-  rowSublabel: { fontSize: 12, color: COLORS.text3, marginTop: 2 },
+  rowSublabel: { fontSize: 12, color: COLORS.text3, marginTop: 2, fontFamily: FONTS.body },
   rowRight: { alignItems: 'center', justifyContent: 'center' },
 
   badge: {
@@ -371,7 +373,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  badgeText: { fontSize: 11, fontWeight: '700', color: COLORS.text3 },
+  badgeText: { fontSize: 11, fontWeight: '700', color: COLORS.text3, fontFamily: FONTS.bodyBold },
 
   divider: { height: 1, backgroundColor: COLORS.border, marginLeft: 66 },
 
@@ -408,8 +410,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 4,
   },
-  modalTitle: { fontSize: 20, fontWeight: '800', color: COLORS.text1 },
-  modalText: { fontSize: 14, color: COLORS.text2, textAlign: 'center', lineHeight: 22 },
+  modalTitle: { fontSize: 20, fontWeight: '800', color: COLORS.text1, fontFamily: FONTS.titleBold },
+  modalText: { fontSize: 14, color: COLORS.text2, textAlign: 'center', lineHeight: 22, fontFamily: FONTS.body },
   modalBtns: { flexDirection: 'row', gap: 10, marginTop: 8, width: '100%' },
   modalCancelBtn: {
     flex: 1,
@@ -420,7 +422,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     alignItems: 'center',
   },
-  modalCancelText: { fontSize: 15, fontWeight: '700', color: COLORS.text1 },
+  modalCancelText: { fontSize: 15, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.bodyBold },
   modalDeleteBtn: {
     flex: 1,
     paddingVertical: 13,
@@ -429,10 +431,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: COLORS.accent,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.08,
     shadowRadius: 10,
-    elevation: 4,
+    elevation: 3,
   },
-  modalDeleteText: { fontSize: 15, fontWeight: '700', color: COLORS.white },
+  modalDeleteText: { fontSize: 15, fontWeight: '700', color: COLORS.white, fontFamily: FONTS.bodyBold },
   btnDisabled: { opacity: 0.6 },
 });

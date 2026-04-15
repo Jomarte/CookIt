@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/Colors';
+import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 import { useStore } from '../../store/useStore';
 
@@ -190,6 +191,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     color: COLORS.white,
     letterSpacing: -0.5,
+    fontFamily: FONTS.titleBlack,
   },
   wordmarkIt: {
     fontSize: 28,
@@ -200,10 +202,11 @@ const styles = StyleSheet.create({
     textShadowColor: COLORS.primaryGlow,
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 10,
+    fontFamily: FONTS.titleBlack,
   },
 
-  title: { fontSize: 22, fontWeight: '800', color: COLORS.text1, letterSpacing: -0.3 },
-  subtitle: { fontSize: 14, color: COLORS.text3, marginBottom: 8 },
+  title: { fontSize: 22, fontWeight: '800', color: COLORS.text1, letterSpacing: -0.3, fontFamily: FONTS.titleBold },
+  subtitle: { fontSize: 14, color: COLORS.text3, marginBottom: 8, fontFamily: FONTS.body },
 
   errorBox: {
     flexDirection: 'row',
@@ -217,7 +220,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.accent,
   },
-  errorMsg: { color: COLORS.accent, fontSize: 13, fontWeight: '600', flex: 1 },
+  errorMsg: { color: COLORS.accent, fontSize: 13, fontWeight: '600', flex: 1, fontFamily: FONTS.body },
 
   form: { alignSelf: 'stretch', gap: 14 },
   inputWrap: { gap: 7 },
@@ -227,6 +230,7 @@ const styles = StyleSheet.create({
     color: COLORS.text3,
     textTransform: 'uppercase',
     letterSpacing: 0.7,
+    fontFamily: FONTS.bodyBold,
   },
   inputRow: {
     flexDirection: 'row',
@@ -243,6 +247,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 15,
     color: COLORS.text1,
+    fontFamily: FONTS.body,
   },
   eyeBtn: { padding: 4 },
 
@@ -254,14 +259,14 @@ const styles = StyleSheet.create({
     marginTop: 4,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.08,
     shadowRadius: 14,
-    elevation: 6,
+    elevation: 3,
   },
   btnDisabled: { opacity: 0.6 },
-  btnText: { fontSize: 16, fontWeight: '800', color: COLORS.bg },
+  btnText: { fontSize: 16, fontWeight: '800', color: COLORS.bg, fontFamily: FONTS.bodyBold },
 
   loginLink: { marginTop: 16 },
-  loginLinkText: { fontSize: 14, color: COLORS.text3 },
-  loginLinkBold: { color: COLORS.primary, fontWeight: '700' },
+  loginLinkText: { fontSize: 14, color: COLORS.text3, fontFamily: FONTS.body },
+  loginLinkBold: { color: COLORS.primary, fontWeight: '700', fontFamily: FONTS.bodyBold },
 });

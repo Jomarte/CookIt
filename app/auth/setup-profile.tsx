@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/Colors';
+import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 import { useStore } from '../../store/useStore';
 
@@ -276,7 +277,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: COLORS.text1 },
+  headerTitle: { fontSize: 17, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.bodyBold },
   saveBtn: {
     backgroundColor: COLORS.primary,
     paddingHorizontal: 18,
@@ -284,11 +285,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.08,
     shadowRadius: 8,
   },
   saveBtnDisabled: { opacity: 0.6 },
-  saveBtnText: { fontSize: 14, fontWeight: '800', color: COLORS.bg },
+  saveBtnText: { fontSize: 14, fontWeight: '800', color: COLORS.bg, fontFamily: FONTS.bodyBold },
 
   inner: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 40, gap: 22 },
 
@@ -303,7 +304,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.accent,
   },
-  errorMsg: { color: COLORS.accent, fontSize: 13, fontWeight: '600', flex: 1 },
+  errorMsg: { color: COLORS.accent, fontSize: 13, fontWeight: '600', flex: 1, fontFamily: FONTS.body },
 
   avatarSection: { alignItems: 'center', gap: 12 },
   avatarWrap: { position: 'relative', width: 96, height: 96 },
@@ -318,7 +319,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.08,
     shadowRadius: 14,
   },
   avatarImg: {
@@ -328,7 +329,7 @@ const styles = StyleSheet.create({
     borderWidth: 2.5,
     borderColor: COLORS.borderActive,
   },
-  avatarLetter: { fontSize: 38, fontWeight: '900', color: COLORS.primary },
+  avatarLetter: { fontSize: 38, fontWeight: '900', color: COLORS.primary, fontFamily: FONTS.bodyBold },
   avatarCameraBadge: {
     position: 'absolute',
     bottom: 2,
@@ -343,15 +344,15 @@ const styles = StyleSheet.create({
     borderColor: COLORS.bg,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.08,
     shadowRadius: 6,
   },
   avatarActions: { flexDirection: 'row', gap: 16, alignItems: 'center' },
-  avatarChangeText: { fontSize: 14, color: COLORS.primary, fontWeight: '600' },
-  avatarRemoveText: { fontSize: 14, color: COLORS.text3, fontWeight: '500' },
+  avatarChangeText: { fontSize: 14, color: COLORS.primary, fontWeight: '600', fontFamily: FONTS.body },
+  avatarRemoveText: { fontSize: 14, color: COLORS.text3, fontWeight: '500', fontFamily: FONTS.body },
 
   field: { gap: 8 },
-  fieldLabel: { fontSize: 13, fontWeight: '700', color: COLORS.text3, textTransform: 'uppercase', letterSpacing: 0.7 },
+  fieldLabel: { fontSize: 13, fontWeight: '700', color: COLORS.text3, textTransform: 'uppercase', letterSpacing: 0.7, fontFamily: FONTS.bodyBold },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -367,6 +368,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 15,
     color: COLORS.text1,
+    fontFamily: FONTS.body,
   },
   bioInput: {
     backgroundColor: COLORS.surface2,
@@ -379,8 +381,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     minHeight: 90,
     textAlignVertical: 'top',
+    fontFamily: FONTS.body,
   },
-  charCount: { fontSize: 12, color: COLORS.text3, textAlign: 'right' },
+  charCount: { fontSize: 12, color: COLORS.text3, textAlign: 'right', fontFamily: FONTS.body },
 
   cookingGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   cookingOption: {
@@ -399,10 +402,10 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 3,
   },
-  cookingLabel: { fontSize: 13, fontWeight: '600', color: COLORS.text3 },
-  cookingLabelActive: { color: COLORS.bg, fontWeight: '700' },
+  cookingLabel: { fontSize: 13, fontWeight: '600', color: COLORS.text3, fontFamily: FONTS.body },
+  cookingLabelActive: { color: COLORS.bg, fontWeight: '700', fontFamily: FONTS.bodyBold },
 });

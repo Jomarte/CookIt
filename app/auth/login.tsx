@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/Colors';
+import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 import { useStore } from '../../store/useStore';
 
@@ -156,7 +157,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.borderActive,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
+    shadowOpacity: 0.08,
     shadowRadius: 20,
   },
   wordmark: { flexDirection: 'row', alignItems: 'baseline' },
@@ -166,6 +167,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     color: COLORS.text1,
     letterSpacing: -0.8,
+    fontFamily: FONTS.titleBlack,
   },
   wordmarkIt: {
     fontSize: 36,
@@ -176,6 +178,7 @@ const styles = StyleSheet.create({
     textShadowColor: COLORS.primaryGlow,
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 16,
+    fontFamily: FONTS.titleBlack,
   },
 
   title: {
@@ -184,8 +187,9 @@ const styles = StyleSheet.create({
     color: COLORS.text1,
     letterSpacing: -0.4,
     marginTop: 6,
+    fontFamily: FONTS.titleBold,
   },
-  subtitle: { fontSize: 14, color: COLORS.text3, marginBottom: 4 },
+  subtitle: { fontSize: 14, color: COLORS.text3, marginBottom: 4, fontFamily: FONTS.body },
 
   errorBox: {
     flexDirection: 'row',
@@ -199,11 +203,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.accent,
   },
-  errorMsg: { color: COLORS.accent, fontSize: 13, fontWeight: '600', flex: 1 },
+  errorMsg: { color: COLORS.accent, fontSize: 13, fontWeight: '600', flex: 1, fontFamily: FONTS.body },
 
   form: { alignSelf: 'stretch', gap: 14 },
   inputWrap: { gap: 7 },
-  label: { fontSize: 11, fontWeight: '700', color: COLORS.text3, textTransform: 'uppercase', letterSpacing: 0.8 },
+  label: { fontSize: 11, fontWeight: '700', color: COLORS.text3, textTransform: 'uppercase', letterSpacing: 0.8, fontFamily: FONTS.bodyBold },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -219,6 +223,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 15,
     color: COLORS.text1,
+    fontFamily: FONTS.body,
   },
   eyeBtn: { padding: 4 },
 
@@ -230,12 +235,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.55,
+    shadowOpacity: 0.08,
     shadowRadius: 18,
-    elevation: 8,
+    elevation: 3,
   },
   btnDisabled: { opacity: 0.6 },
-  btnText: { fontSize: 16, fontWeight: '900', color: COLORS.bg, letterSpacing: 0.3 },
+  btnText: { fontSize: 16, fontWeight: '900', color: COLORS.bg, letterSpacing: 0.3, fontFamily: FONTS.bodyBold },
 
   dividerRow: {
     flexDirection: 'row',
@@ -245,7 +250,7 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   dividerLine: { flex: 1, height: 1, backgroundColor: COLORS.border },
-  dividerText: { fontSize: 13, color: COLORS.text3 },
+  dividerText: { fontSize: 13, color: COLORS.text3, fontFamily: FONTS.body },
 
   registerBtn: {
     alignSelf: 'stretch',
@@ -256,5 +261,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.surface1,
   },
-  registerBtnText: { fontSize: 15, fontWeight: '700', color: COLORS.text1 },
+  registerBtnText: { fontSize: 15, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.bodyBold },
 });
