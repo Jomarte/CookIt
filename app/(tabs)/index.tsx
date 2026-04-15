@@ -90,6 +90,43 @@ export default function FeedScreen() {
 
     return (
       <View style={styles.post}>
+        {/* Author bar — top of post, acts as separator between posts */}
+        <View style={styles.postHeader}>
+          <TouchableOpacity
+            style={styles.postHeaderLeft}
+            onPress={() => router.push(`/user/${recipe.author_id}`)}
+            activeOpacity={0.7}
+          >
+            {recipe.author_avatar
+              ? <Image source={{ uri: recipe.author_avatar }} style={styles.authorAvatar} />
+              : <View style={styles.authorAvatarPlaceholder}>
+                  <Text style={styles.authorAvatarLetter}>{initial}</Text>
+                </View>
+            }
+            <View>
+              <Text style={styles.authorName}>{recipe.author_name ?? 'Utilizador'}</Text>
+              <Text style={styles.authorUsername}>@{recipe.author_username ?? ''}</Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.moreBtn}
+            onPress={(e) => {
+              const target = (e.target as any);
+              if (target?.measure) {
+                target.measure((_x: number, _y: number, width: number, height: number, pageX: number, pageY: number) => {
+                  setMenuPos({ top: pageY + height + 4, right: window.innerWidth - pageX - width });
+                  setMenuRecipe(recipe);
+                });
+              } else {
+                setMenuPos({ top: 80, right: 16 });
+                setMenuRecipe(recipe);
+              }
+            }}
+          >
+            <Ionicons name="ellipsis-horizontal" size={18} color={COLORS.text3} />
+          </TouchableOpacity>
+        </View>
+
         {/* Full-bleed image */}
         <TouchableOpacity activeOpacity={0.97} onPress={() => router.push(`/recipe/${recipe.id}`)}>
           <View style={styles.imageContainer}>
@@ -99,59 +136,10 @@ export default function FeedScreen() {
                   <Ionicons name="restaurant-outline" size={56} color={COLORS.surface3} />
                 </View>
             }
-
-            {/* Gradient simulation (bottom) */}
-            <View pointerEvents="none" style={styles.imageGradient}>
-              <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.00)' }} />
-              <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.08)' }} />
-              <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.22)' }} />
-              <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.42)' }} />
-              <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.60)' }} />
-            </View>
-
             {/* Difficulty badge — top left */}
             <View style={[styles.diffBadge, { borderColor: diffColor }]}>
               <Text style={[styles.diffBadgeText, { color: diffColor }]}>{recipe.difficulty}</Text>
             </View>
-
-            {/* Top-right: more options */}
-            <View style={styles.imageTopRight}>
-              <TouchableOpacity
-                style={styles.iconBtn}
-                onPress={(e) => {
-                  const target = (e.target as any);
-                  if (target?.measure) {
-                    target.measure((_x: number, _y: number, width: number, height: number, pageX: number, pageY: number) => {
-                      setMenuPos({ top: pageY + height + 4, right: window.innerWidth - pageX - width });
-                      setMenuRecipe(recipe);
-                    });
-                  } else {
-                    setMenuPos({ top: 80, right: 16 });
-                    setMenuRecipe(recipe);
-                  }
-                }}
-              >
-                <Ionicons name="ellipsis-horizontal" size={18} color="#fff" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Author — overlaid bottom-left */}
-            <TouchableOpacity
-              style={styles.imageAuthor}
-              onPress={() => router.push(`/user/${recipe.author_id}`)}
-              activeOpacity={0.75}
-            >
-              {recipe.author_avatar
-                ? <Image source={{ uri: recipe.author_avatar }} style={styles.authorAvatar} />
-                : <View style={styles.authorAvatarPlaceholder}>
-                    <Text style={styles.authorAvatarLetter}>{initial}</Text>
-                  </View>
-              }
-              <View>
-                <Text style={styles.authorName}>{recipe.author_name ?? 'Utilizador'}</Text>
-                <Text style={styles.authorUsername}>@{recipe.author_username ?? ''}</Text>
-              </View>
-            </TouchableOpacity>
           </View>
         </TouchableOpacity>
 
@@ -265,8 +253,6 @@ export default function FeedScreen() {
           </View>
         </View>
 
-        {/* Subtle section separator */}
-        <View style={styles.separator} />
       </View>
     );
   };
@@ -297,6 +283,10 @@ export default function FeedScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
+
+        <TouchableOpacity style={styles.notifBtn} onPress={() => router.push('/rankings')}>
+          <Ionicons name="trophy-outline" size={20} color={COLORS.text2} />
+        </TouchableOpacity>
 
         <TouchableOpacity style={styles.notifBtn} onPress={() => setNotifOpen(true)}>
           <Ionicons name={unreadCount > 0 ? 'notifications' : 'notifications-outline'} size={20} color={unreadCount > 0 ? COLORS.primary : COLORS.text2} />
@@ -471,6 +461,28 @@ const styles = StyleSheet.create({
   // ── Post ──────────────────────────────────────────────────────────────────
   post: { backgroundColor: COLORS.surface1 },
 
+  // Author bar at top of post (acts as separator between posts)
+  postHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: COLORS.surface1,
+  },
+  postHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  moreBtn: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
   // Full-bleed image
   imageContainer: {
     width: '100%',
@@ -487,16 +499,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface2,
   },
 
-  // Gradient overlay (bottom)
-  imageGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 160,
-    flexDirection: 'column',
-  },
-
   // Difficulty badge
   diffBadge: {
     position: 'absolute',
@@ -509,26 +511,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   diffBadgeText: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.bodyBold },
-
-  // Top-right icon group (only more/options button now)
-  imageTopRight: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.40)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconBtnActive: {
-    backgroundColor: 'rgba(255,90,90,0.80)',
-  },
 
   // Social actions row
   socialRow: {
@@ -554,15 +536,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Author overlay
-  imageAuthor: {
-    position: 'absolute',
-    bottom: 16,
-    left: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
   authorAvatar: {
     width: 40,
     height: 40,
@@ -589,15 +562,12 @@ const styles = StyleSheet.create({
   authorName: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#fff',
+    color: COLORS.text1,
     fontFamily: FONTS.bodyBold,
-    textShadowColor: 'rgba(0,0,0,0.6)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
   },
   authorUsername: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.72)',
+    color: COLORS.text3,
     fontFamily: FONTS.body,
   },
 
@@ -618,14 +588,24 @@ const styles = StyleSheet.create({
 
   metaRow: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 8,
     marginBottom: 12,
     flexWrap: 'wrap',
     alignItems: 'center',
   },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  metaText: { fontSize: 13, color: COLORS.text2, fontFamily: FONTS.body },
-  metaCount: { fontSize: 12, color: COLORS.text3, fontFamily: FONTS.body },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: COLORS.surface2,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  metaText: { fontSize: 12, color: COLORS.text2, fontFamily: FONTS.body, fontWeight: '600' },
+  metaCount: { fontSize: 11, color: COLORS.text3, fontFamily: FONTS.body },
 
   tagsScroll: { marginBottom: 14 },
   dietTag: {
@@ -671,9 +651,6 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   ctaCartText: { fontSize: 13, fontWeight: '600', color: COLORS.text2, fontFamily: FONTS.body },
-
-  // Subtle separator between posts
-  separator: { height: 8, backgroundColor: COLORS.surface2 },
 
   // Context menu
   menuModalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)' },

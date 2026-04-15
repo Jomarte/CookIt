@@ -185,40 +185,36 @@ export default function ProfileScreen() {
     const isOwn = activeTab === 'Receitas';
 
     return (
-      <View style={styles.gridCell}>
-        {/* Action bar above photo — serves as separator between photos */}
-        <View style={styles.gridCellBar}>
-          {isOwn ? (
-            <>
-              <TouchableOpacity
-                style={styles.gridBarBtn}
-                onPress={() => router.push(`/recipe/edit/${item.id}`)}
-              >
-                <Ionicons name="pencil-outline" size={13} color={COLORS.text3} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.gridBarBtn}
-                onPress={() => handleDelete(item.id)}
-                disabled={isDeleting}
-              >
-                {isDeleting
-                  ? <ActivityIndicator size="small" color={COLORS.accent} />
-                  : <Ionicons name="trash-outline" size={13} color={COLORS.accent} />
-                }
-              </TouchableOpacity>
-            </>
-          ) : null}
-        </View>
-        {/* Square photo */}
-        <TouchableOpacity style={styles.gridImageWrap} activeOpacity={0.88} onPress={() => router.push(`/recipe/${item.id}`)}>
+      <TouchableOpacity style={styles.gridCell} activeOpacity={0.88} onPress={() => router.push(`/recipe/${item.id}`)}>
+        <View style={styles.gridImageWrap}>
           {item.image
             ? <Image source={{ uri: item.image }} style={styles.gridPhoto} resizeMode="cover" />
             : <View style={styles.gridPlaceholder}>
                 <Ionicons name="restaurant-outline" size={22} color={COLORS.text3} />
               </View>
           }
-        </TouchableOpacity>
-      </View>
+          {isOwn && (
+            <View style={styles.gridActions}>
+              <TouchableOpacity
+                style={styles.gridActionBtn}
+                onPress={(e) => { (e as any).stopPropagation?.(); router.push(`/recipe/edit/${item.id}`); }}
+              >
+                <Ionicons name="pencil-outline" size={11} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.gridActionBtn, styles.gridActionBtnDel]}
+                onPress={(e) => { (e as any).stopPropagation?.(); handleDelete(item.id); }}
+                disabled={isDeleting}
+              >
+                {isDeleting
+                  ? <ActivityIndicator size={10} color="#fff" />
+                  : <Ionicons name="trash-outline" size={11} color="#fff" />
+                }
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
     );
   };
 
@@ -682,36 +678,31 @@ const styles = StyleSheet.create({
   // Instagram-style grid — no card borders, 2px column gaps
   gridContent: { gap: 2 },
   gridRow: { gap: 2 },
-  gridCell: {
-    flex: 1,
-    flexDirection: 'column',
-  },
-  // Thin bar above each photo — acts as separator + holds action buttons
-  gridCellBar: {
-    width: '100%',
-    height: 30,
-    backgroundColor: COLORS.bg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 8,
-    gap: 6,
-  },
-  gridBarBtn: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
-    backgroundColor: COLORS.surface2,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  gridCell: { flex: 1 },
   gridImageWrap: {
     width: '100%',
     aspectRatio: 1,
     overflow: 'hidden',
     backgroundColor: COLORS.surface2,
+    position: 'relative',
+  },
+  gridActions: {
+    position: 'absolute',
+    bottom: 6,
+    right: 6,
+    flexDirection: 'row',
+    gap: 4,
+  },
+  gridActionBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gridActionBtnDel: {
+    backgroundColor: 'rgba(255,90,90,0.70)',
   },
   gridPhoto: {
     width: '100%',

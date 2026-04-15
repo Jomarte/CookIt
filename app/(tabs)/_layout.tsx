@@ -1,5 +1,5 @@
 import { Tabs, Redirect } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 import { COLORS } from '../../constants/Colors';
 import { useStore } from '../../store/useStore';
@@ -48,13 +48,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="rankings"
         options={{
-          title: 'Top',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={styles.iconWrap}>
-              <Ionicons name={focused ? 'trophy' : 'trophy-outline'} size={22} color={color} />
-              {focused && <View style={styles.activeDot} />}
-            </View>
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen
@@ -64,7 +58,7 @@ export default function TabLayout() {
           tabBarIcon: () => (
             <View style={styles.addOuter}>
               <View style={styles.addButton}>
-                <Ionicons name="add" size={30} color={COLORS.bg} />
+                <MaterialCommunityIcons name="chef-hat" size={28} color={COLORS.bg} />
               </View>
             </View>
           ),

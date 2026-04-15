@@ -4,8 +4,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Platform, StyleSheet, View } from 'react-native';
 import { useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
+import { useFonts } from 'expo-font';
 import {
-  useFonts,
   PlayfairDisplay_700Bold,
   PlayfairDisplay_700Bold_Italic,
   PlayfairDisplay_900Black,

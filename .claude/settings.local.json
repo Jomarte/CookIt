@@ -5,7 +5,9 @@
       "Bash(npm install:*)",
       "Bash(npx tsc:*)",
       "Bash(curl:*)",
-      "Bash(node server.js)"
+      "Bash(node server.js)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

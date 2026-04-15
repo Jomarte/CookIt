@@ -4,11 +4,13 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
   Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -29,6 +31,10 @@ export default function RecipeDetailScreen() {
   const [servings, setServings] = useState(2);
   const { savedRecipes, cookedRecipes, toggleSaved, toggleCooked, addToShoppingList, setRating, userRatings, token } = useStore();
   const [userRating, setUserRating] = useState(() => userRatings[String(id)] ?? 0);
+  const [comments, setComments] = useState<any[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     api.getRecipe(id).then((data) => {
@@ -36,6 +42,28 @@ export default function RecipeDetailScreen() {
       setServings(data.servings ?? 2);
     }).catch(() => {}).finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (activeTab !== 'Comentários') return;
+    setCommentsLoading(true);
+    api.getComments(id).then(setComments).catch(() => {}).finally(() => setCommentsLoading(false));
+  }, [activeTab, id]);
+
+  const handlePostComment = async () => {
+    if (!commentText.trim() || !token) return;
+    setSubmitting(true);
+    try {
+      const newComment = await api.postComment(token, id, commentText.trim());
+      setComments((prev) => [...prev, newComment]);
+      setCommentText('');
+      setRecipe((prev: any) => prev ? { ...prev, comments_count: (prev.comments_count ?? 0) + 1 } : prev);
+    } catch (e: any) {
+      if (Platform.OS === 'web') alert(e.message);
+      else Alert.alert('Erro', e.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -295,12 +323,73 @@ export default function RecipeDetailScreen() {
           )}
 
           {activeTab === 'Comentários' && (
-            <View style={styles.emptyTab}>
-              <View style={styles.emptyTabIcon}>
-                <Ionicons name="chatbubbles-outline" size={32} color={COLORS.primary} />
-              </View>
-              <Text style={styles.emptyTabTitle}>Sem comentários</Text>
-              <Text style={styles.emptyTabText}>Sê o primeiro a comentar!</Text>
+            <View style={styles.commentsSection}>
+              {commentsLoading ? (
+                <View style={styles.commentsLoading}>
+                  <ActivityIndicator color={COLORS.primary} />
+                </View>
+              ) : comments.length === 0 ? (
+                <View style={styles.emptyTab}>
+                  <View style={styles.emptyTabIcon}>
+                    <Ionicons name="chatbubbles-outline" size={32} color={COLORS.primary} />
+                  </View>
+                  <Text style={styles.emptyTabTitle}>Sem comentários</Text>
+                  <Text style={styles.emptyTabText}>Sê o primeiro a comentar!</Text>
+                </View>
+              ) : (
+                comments.map((c) => {
+                  const initial = (c.author_name ?? '?')[0].toUpperCase();
+                  const date = new Date(c.created_at).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                  return (
+                    <View key={c.id} style={styles.commentItem}>
+                      {c.author_avatar
+                        ? <Image source={{ uri: c.author_avatar }} style={styles.commentAvatar} />
+                        : <View style={styles.commentAvatarPlaceholder}>
+                            <Text style={styles.commentAvatarLetter}>{initial}</Text>
+                          </View>
+                      }
+                      <View style={styles.commentBody}>
+                        <View style={styles.commentHeader}>
+                          <Text style={styles.commentAuthor}>{c.author_name ?? 'Utilizador'}</Text>
+                          <Text style={styles.commentDate}>{date}</Text>
+                        </View>
+                        <Text style={styles.commentText}>{c.text}</Text>
+                      </View>
+                    </View>
+                  );
+                })
+              )}
+
+              {/* Input para escrever comentário */}
+              {token ? (
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+                  <View style={styles.commentInputRow}>
+                    <TextInput
+                      style={styles.commentInput}
+                      placeholder="Escreve um comentário..."
+                      placeholderTextColor={COLORS.text3}
+                      value={commentText}
+                      onChangeText={setCommentText}
+                      multiline
+                      maxLength={500}
+                    />
+                    <TouchableOpacity
+                      style={[styles.commentSendBtn, (!commentText.trim() || submitting) && styles.commentSendBtnDisabled]}
+                      onPress={handlePostComment}
+                      disabled={!commentText.trim() || submitting}
+                    >
+                      {submitting
+                        ? <ActivityIndicator size="small" color="#fff" />
+                        : <Ionicons name="paper-plane" size={18} color="#fff" />
+                      }
+                    </TouchableOpacity>
+                  </View>
+                </KeyboardAvoidingView>
+              ) : (
+                <View style={styles.commentLoginNote}>
+                  <Text style={styles.commentLoginNoteText}>Inicia sessão para comentar</Text>
+                </View>
+              )}
             </View>
           )}
 
@@ -609,6 +698,77 @@ const styles = StyleSheet.create({
   },
   emptyTabTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.titleBold },
   emptyTabText: { fontSize: 14, color: COLORS.text2, textAlign: 'center', fontFamily: FONTS.body },
+
+  // Comments
+  commentsSection: { gap: 0 },
+  commentsLoading: { paddingVertical: 40, alignItems: 'center' },
+  commentItem: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  commentAvatar: { width: 38, height: 38, borderRadius: 19, flexShrink: 0 },
+  commentAvatarPlaceholder: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: COLORS.primaryDim,
+    borderWidth: 1.5,
+    borderColor: COLORS.borderActive,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  commentAvatarLetter: { fontSize: 14, fontWeight: '800', color: COLORS.primary, fontFamily: FONTS.bodyBold },
+  commentBody: { flex: 1 },
+  commentHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  commentAuthor: { fontSize: 13, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.bodyBold, flex: 1 },
+  commentDate: { fontSize: 11, color: COLORS.text3, fontFamily: FONTS.body },
+  commentText: { fontSize: 14, color: COLORS.text1, lineHeight: 20, fontFamily: FONTS.body },
+
+  commentInputRow: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'flex-end',
+    marginTop: 16,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  commentInput: {
+    flex: 1,
+    minHeight: 44,
+    maxHeight: 120,
+    backgroundColor: COLORS.surface2,
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: COLORS.text1,
+    fontFamily: FONTS.body,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  commentSendBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  commentSendBtnDisabled: { opacity: 0.45 },
+  commentLoginNote: {
+    marginTop: 16,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    alignItems: 'center',
+  },
+  commentLoginNoteText: { fontSize: 13, color: COLORS.text3, fontFamily: FONTS.body },
 
   bottomBar: {
     flexDirection: 'row',

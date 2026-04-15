@@ -361,6 +361,56 @@ app.post('/api/recipes/:id/rate', auth, (req, res) => {
   }
 });
 
+// ── COMMENTS ────────────────────────────────────────────────────────────────
+
+// Listar comentários de uma receita
+app.get('/api/recipes/:id/comments', (req, res) => {
+  try {
+    const comments = db.all(`
+      SELECT c.id, c.text, c.created_at, c.user_id,
+             u.name as author_name, u.username as author_username, u.avatar as author_avatar
+      FROM comments c
+      LEFT JOIN users u ON c.user_id = u.id
+      WHERE c.recipe_id = ?
+      ORDER BY c.created_at ASC
+    `, [req.params.id]);
+    res.json(comments);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Publicar comentário
+app.post('/api/recipes/:id/comments', auth, (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text?.trim()) return res.status(400).json({ error: 'Comentário não pode ser vazio' });
+    if (text.trim().length > 500) return res.status(400).json({ error: 'Comentário demasiado longo (máx. 500 caracteres)' });
+
+    const recipe = db.get('SELECT id FROM recipes WHERE id = ?', [req.params.id]);
+    if (!recipe) return res.status(404).json({ error: 'Receita não encontrada' });
+
+    db.run(
+      'INSERT INTO comments (recipe_id, user_id, text) VALUES (?, ?, ?)',
+      [req.params.id, req.user.id, text.trim()]
+    );
+
+    db.run('UPDATE recipes SET comments_count = comments_count + 1 WHERE id = ?', [req.params.id]);
+
+    const comment = db.get(`
+      SELECT c.id, c.text, c.created_at, c.user_id,
+             u.name as author_name, u.username as author_username, u.avatar as author_avatar
+      FROM comments c LEFT JOIN users u ON c.user_id = u.id
+      WHERE c.recipe_id = ? AND c.user_id = ?
+      ORDER BY c.id DESC LIMIT 1
+    `, [req.params.id, req.user.id]);
+
+    res.status(201).json(comment);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── HEALTH ──────────────────────────────────────────────────────────────────
 app.get('/api/health', (_, res) => res.json({ ok: true, db: 'sqlite (sql.js)', time: new Date().toISOString() }));
 

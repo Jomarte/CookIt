@@ -96,11 +96,24 @@ async function init() {
     )
   `);
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS comments (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      recipe_id  INTEGER NOT NULL,
+      user_id    INTEGER NOT NULL,
+      text       TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id)   REFERENCES users(id)   ON DELETE CASCADE
+    )
+  `);
+
   // Migrate existing databases — safe to run multiple times
   try { db.run(`ALTER TABLE recipes ADD COLUMN cuisine TEXT DEFAULT 'Internacional'`); } catch (_) {}
   try { db.run(`ALTER TABLE recipes ADD COLUMN dish_type TEXT DEFAULT 'Prato Principal'`); } catch (_) {}
   try { db.run(`ALTER TABLE recipes ADD COLUMN cooking_method TEXT DEFAULT '[]'`); } catch (_) {}
   try { db.run(`ALTER TABLE ingredients ADD COLUMN canonical_name TEXT DEFAULT NULL`); } catch (_) {}
+  try { db.run(`ALTER TABLE recipes ADD COLUMN comments_count INTEGER DEFAULT 0`); } catch (_) {}
 
   save();
   return db;

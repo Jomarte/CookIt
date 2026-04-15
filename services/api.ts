@@ -70,6 +70,12 @@ export const api = {
   rateRecipe: (token: string, id: number | string, rating: number) =>
     request(`/recipes/${id}/rate`, { method: 'POST', headers: authHeader(token), body: JSON.stringify({ rating }) }),
 
+  getComments: (recipeId: number | string) =>
+    request(`/recipes/${recipeId}/comments`),
+
+  postComment: (token: string, recipeId: number | string, text: string) =>
+    request(`/recipes/${recipeId}/comments`, { method: 'POST', headers: authHeader(token), body: JSON.stringify({ text }) }),
+
   getUser: (id: number | string) => request(`/users/${id}`),
 
   getUserRecipes: (id: number | string) => request(`/users/${id}/recipes`),
