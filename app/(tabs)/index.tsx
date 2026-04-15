@@ -16,6 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '../../store/useStore';
 import { COLORS } from '../../constants/Colors';
+import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 
 const FILTERS = ['Todos', 'Popular', 'Rápido', 'Saudável'];
@@ -351,8 +352,9 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: '900',
     fontStyle: 'italic',
-    color: COLORS.white,
+    color: COLORS.text1,
     letterSpacing: -0.5,
+    fontFamily: FONTS.titleBlack,
   },
   wordmarkIt: {
     fontSize: 26,
@@ -363,6 +365,7 @@ const styles = StyleSheet.create({
     textShadowColor: COLORS.primaryGlow,
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 10,
+    fontFamily: FONTS.titleBlack,
   },
   notifBtn: { position: 'relative', width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
   notifBadge: {
@@ -387,10 +390,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, paddingTop: 20, paddingBottom: 14,
     borderBottomWidth: 1, borderBottomColor: COLORS.border,
   },
-  notifPanelTitle: { fontSize: 17, fontWeight: '800', color: COLORS.text1 },
-  notifMarkRead: { fontSize: 12, fontWeight: '600', color: COLORS.primary },
+  notifPanelTitle: { fontSize: 17, fontWeight: '800', color: COLORS.text1, fontFamily: FONTS.titleBold },
+  notifMarkRead: { fontSize: 12, fontWeight: '600', color: COLORS.primary, fontFamily: FONTS.body },
   notifEmpty: { alignItems: 'center', paddingVertical: 40, gap: 10 },
-  notifEmptyText: { fontSize: 14, color: COLORS.text3 },
+  notifEmptyText: { fontSize: 14, color: COLORS.text3, fontFamily: FONTS.body },
   notifItem: {
     flexDirection: 'row', gap: 12, paddingHorizontal: 16, paddingVertical: 14,
     borderBottomWidth: 1, borderBottomColor: COLORS.border,
@@ -402,10 +405,10 @@ const styles = StyleSheet.create({
   },
   notifItemBody: { flex: 1 },
   notifItemTop: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
-  notifItemTitle: { fontSize: 13, fontWeight: '700', color: COLORS.text1, flex: 1 },
+  notifItemTitle: { fontSize: 13, fontWeight: '700', color: COLORS.text1, flex: 1, fontFamily: FONTS.bodyBold },
   notifUnreadDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: COLORS.primary },
-  notifItemMsg: { fontSize: 12, color: COLORS.text2, lineHeight: 17, marginBottom: 4 },
-  notifItemTime: { fontSize: 10, color: COLORS.text3, fontWeight: '500' },
+  notifItemMsg: { fontSize: 12, color: COLORS.text2, lineHeight: 17, marginBottom: 4, fontFamily: FONTS.body },
+  notifItemTime: { fontSize: 10, color: COLORS.text3, fontWeight: '500', fontFamily: FONTS.body },
 
   filtersWrap: { flex: 1 },
   filtersContent: {
@@ -426,8 +429,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryDim,
     borderColor: COLORS.borderActive,
   },
-  filterText: { fontSize: 11, fontWeight: '600', color: COLORS.text3 },
-  filterTextActive: { color: COLORS.primary },
+  filterText: { fontSize: 11, fontWeight: '600', color: COLORS.text3, fontFamily: FONTS.body },
+  filterTextActive: { color: COLORS.primary, fontFamily: FONTS.bodyBold },
 
   feedContent: { paddingTop: 14, paddingBottom: 28, gap: 14 },
 
@@ -439,9 +442,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.45,
-    shadowRadius: 18,
-    elevation: 10,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -466,9 +469,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   avatarImg: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: COLORS.borderActive },
-  avatarLetter: { fontSize: 15, fontWeight: '800', color: COLORS.primary },
-  authorName: { fontSize: 14, fontWeight: '700', color: COLORS.text1, letterSpacing: -0.2 },
-  authorUsername: { fontSize: 12, color: COLORS.text3, marginTop: 1 },
+  avatarLetter: { fontSize: 15, fontWeight: '800', color: COLORS.primary, fontFamily: FONTS.bodyBold },
+  authorName: { fontSize: 14, fontWeight: '700', color: COLORS.text1, letterSpacing: -0.2, fontFamily: FONTS.bodyBold },
+  authorUsername: { fontSize: 12, color: COLORS.text3, marginTop: 1, fontFamily: FONTS.body },
   moreBtn: { padding: 6 },
   menuModalBackdrop: {
     flex: 1,
@@ -497,7 +500,7 @@ const styles = StyleSheet.create({
   cardMenuText: { fontSize: 14, color: COLORS.text2, fontWeight: '500' },
   cardMenuDivider: { height: 1, backgroundColor: COLORS.border, marginHorizontal: 10 },
   imageWrap: {
-    height: 240,
+    height: 300,
     backgroundColor: COLORS.surface2,
     position: 'relative',
     overflow: 'hidden',
@@ -552,6 +555,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     letterSpacing: -0.4,
     lineHeight: 25,
+    fontFamily: FONTS.titleBold,
   },
 
   metaRow: { flexDirection: 'row', gap: 7, marginBottom: 10, flexWrap: 'wrap' },
@@ -566,7 +570,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  metaChipText: { fontSize: 12, color: COLORS.text2, fontWeight: '600' },
+  metaChipText: { fontSize: 12, color: COLORS.text2, fontWeight: '600', fontFamily: FONTS.body },
   ratingChip: { borderColor: `${COLORS.star}40` },
   ratingCount: { fontSize: 11, color: COLORS.text3, fontWeight: '500' },
 
@@ -580,7 +584,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(0,230,118,0.3)',
   },
-  dietTagText: { fontSize: 11, color: COLORS.green, fontWeight: '600' },
+  dietTagText: { fontSize: 11, color: COLORS.green, fontWeight: '600', fontFamily: FONTS.body },
 
   ctaRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
   ctaPrimary: {
@@ -603,7 +607,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 10,
   },
-  ctaPrimaryText: { fontSize: 13, fontWeight: '700', color: COLORS.primary },
+  ctaPrimaryText: { fontSize: 13, fontWeight: '700', color: COLORS.primary, fontFamily: FONTS.bodyBold },
   ctaPrimaryTextActive: { color: COLORS.bg },
   ctaGhost: {
     flexDirection: 'row',
@@ -617,7 +621,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  ctaGhostText: { fontSize: 13, fontWeight: '600', color: COLORS.text2 },
+  ctaGhostText: { fontSize: 13, fontWeight: '600', color: COLORS.text2, fontFamily: FONTS.body },
 
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, paddingHorizontal: 40 },
@@ -632,6 +636,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 4,
   },
-  emptyTitle: { fontSize: 20, fontWeight: '800', color: COLORS.text1 },
-  emptyText: { fontSize: 14, color: COLORS.text2, textAlign: 'center', lineHeight: 22 },
+  emptyTitle: { fontSize: 20, fontWeight: '800', color: COLORS.text1, fontFamily: FONTS.titleBold },
+  emptyText: { fontSize: 14, color: COLORS.text2, textAlign: 'center', lineHeight: 22, fontFamily: FONTS.body },
 });

@@ -108,8 +108,8 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
     elevation: 24,
   },
   tabLabel: {
@@ -149,6 +149,6 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     elevation: 12,
     borderWidth: 2,
-    borderColor: 'rgba(0,200,255,0.4)',
+    borderColor: 'rgba(255,90,90,0.3)',
   },
 });
