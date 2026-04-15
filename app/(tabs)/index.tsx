@@ -8,6 +8,7 @@ import {
   RefreshControl,
   SafeAreaView,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -36,6 +37,7 @@ export default function FeedScreen() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [menuRecipe, setMenuRecipe] = useState<any | null>(null);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
+  const [likedRecipes, setLikedRecipes] = useState<Record<string, boolean>>({});
   const { savedRecipes, cookedRecipes, toggleSaved, toggleCooked, addToShoppingList, notifications, markAllRead } = useStore();
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -66,9 +68,25 @@ export default function FeedScreen() {
     const id = String(recipe.id);
     const isSaved = savedRecipes.includes(id);
     const isCooked = cookedRecipes.includes(id);
+    const isLiked = likedRecipes[id] ?? false;
+    const likeCount = (recipe.likes ?? 0) + (isLiked ? 1 : 0);
+    const commentCount = recipe.comments_count ?? 0;
     const totalTime = (recipe.prep_time ?? 0) + (recipe.cook_time ?? 0);
     const diffColor = DIFF_COLORS[recipe.difficulty] ?? COLORS.text2;
     const initial = (recipe.author_name ?? '?')[0].toUpperCase();
+
+    const handleLike = () => {
+      setLikedRecipes((prev) => ({ ...prev, [id]: !prev[id] }));
+    };
+
+    const handleShare = async () => {
+      try {
+        await Share.share({
+          message: `Experimenta esta receita: "${recipe.title}" — no CookIt! 🍽️`,
+          title: recipe.title,
+        });
+      } catch {}
+    };
 
     return (
       <View style={styles.post}>
@@ -96,18 +114,8 @@ export default function FeedScreen() {
               <Text style={[styles.diffBadgeText, { color: diffColor }]}>{recipe.difficulty}</Text>
             </View>
 
-            {/* Top-right: bookmark + more */}
+            {/* Top-right: more options */}
             <View style={styles.imageTopRight}>
-              <TouchableOpacity
-                style={[styles.iconBtn, isSaved && styles.iconBtnActive]}
-                onPress={() => toggleSaved(id)}
-              >
-                <Ionicons
-                  name={isSaved ? 'bookmark' : 'bookmark-outline'}
-                  size={19}
-                  color={isSaved ? COLORS.primary : '#fff'}
-                />
-              </TouchableOpacity>
               <TouchableOpacity
                 style={styles.iconBtn}
                 onPress={(e) => {
@@ -146,6 +154,51 @@ export default function FeedScreen() {
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
+
+        {/* Social actions row */}
+        <View style={styles.socialRow}>
+          <TouchableOpacity style={styles.socialBtn} onPress={handleLike} activeOpacity={0.7}>
+            <Ionicons
+              name={isLiked ? 'heart' : 'heart-outline'}
+              size={24}
+              color={isLiked ? '#E53935' : COLORS.text2}
+            />
+            {likeCount > 0 && (
+              <Text style={[styles.socialCount, isLiked && { color: '#E53935' }]}>
+                {likeCount >= 1000 ? `${(likeCount / 1000).toFixed(1)}K` : likeCount}
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.socialBtn}
+            onPress={() => router.push(`/recipe/${recipe.id}`)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chatbubble-outline" size={22} color={COLORS.text2} />
+            {commentCount > 0 && (
+              <Text style={styles.socialCount}>{commentCount}</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.socialBtn} onPress={handleShare} activeOpacity={0.7}>
+            <Ionicons name="paper-plane-outline" size={22} color={COLORS.text2} />
+          </TouchableOpacity>
+
+          {/* Spacer — bookmark far right */}
+          <View style={{ flex: 1 }} />
+          <TouchableOpacity
+            style={[styles.socialBtn, isSaved && { opacity: 1 }]}
+            onPress={() => toggleSaved(id)}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={isSaved ? 'bookmark' : 'bookmark-outline'}
+              size={22}
+              color={isSaved ? COLORS.primary : COLORS.text2}
+            />
+          </TouchableOpacity>
+        </View>
 
         {/* Content below image */}
         <View style={styles.postBody}>
@@ -457,7 +510,7 @@ const styles = StyleSheet.create({
   },
   diffBadgeText: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.bodyBold },
 
-  // Top-right icon group
+  // Top-right icon group (only more/options button now)
   imageTopRight: {
     position: 'absolute',
     top: 12,
@@ -475,6 +528,30 @@ const styles = StyleSheet.create({
   },
   iconBtnActive: {
     backgroundColor: 'rgba(255,90,90,0.80)',
+  },
+
+  // Social actions row
+  socialRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  socialBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+  },
+  socialCount: {
+    fontSize: 13,
+    color: COLORS.text2,
+    fontFamily: FONTS.bodyBold,
+    fontWeight: '700',
   },
 
   // Author overlay
