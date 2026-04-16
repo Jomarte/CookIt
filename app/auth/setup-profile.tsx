@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -18,6 +19,79 @@ import { COLORS } from '../../constants/Colors';
 import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 import { useStore } from '../../store/useStore';
+
+const COUNTRIES = [
+  { code: 'za', name: 'África do Sul' },
+  { code: 'de', name: 'Alemanha' },
+  { code: 'ao', name: 'Angola' },
+  { code: 'sa', name: 'Arábia Saudita' },
+  { code: 'dz', name: 'Argélia' },
+  { code: 'ar', name: 'Argentina' },
+  { code: 'au', name: 'Austrália' },
+  { code: 'at', name: 'Áustria' },
+  { code: 'bd', name: 'Bangladesh' },
+  { code: 'be', name: 'Bélgica' },
+  { code: 'br', name: 'Brasil' },
+  { code: 'bg', name: 'Bulgária' },
+  { code: 'cv', name: 'Cabo Verde' },
+  { code: 'ca', name: 'Canadá' },
+  { code: 'cl', name: 'Chile' },
+  { code: 'cn', name: 'China' },
+  { code: 'co', name: 'Colômbia' },
+  { code: 'kr', name: 'Coreia do Sul' },
+  { code: 'hr', name: 'Croácia' },
+  { code: 'dk', name: 'Dinamarca' },
+  { code: 'eg', name: 'Egito' },
+  { code: 'ae', name: 'Emirados Árabes' },
+  { code: 'sk', name: 'Eslováquia' },
+  { code: 'es', name: 'Espanha' },
+  { code: 'us', name: 'Estados Unidos' },
+  { code: 'et', name: 'Etiópia' },
+  { code: 'ph', name: 'Filipinas' },
+  { code: 'fi', name: 'Finlândia' },
+  { code: 'fr', name: 'França' },
+  { code: 'gh', name: 'Gana' },
+  { code: 'gr', name: 'Grécia' },
+  { code: 'hu', name: 'Hungria' },
+  { code: 'in', name: 'Índia' },
+  { code: 'id', name: 'Indonésia' },
+  { code: 'ir', name: 'Irão' },
+  { code: 'iq', name: 'Iraque' },
+  { code: 'il', name: 'Israel' },
+  { code: 'it', name: 'Itália' },
+  { code: 'jp', name: 'Japão' },
+  { code: 'my', name: 'Malásia' },
+  { code: 'ma', name: 'Marrocos' },
+  { code: 'mx', name: 'México' },
+  { code: 'mz', name: 'Moçambique' },
+  { code: 'ng', name: 'Nigéria' },
+  { code: 'no', name: 'Noruega' },
+  { code: 'nz', name: 'Nova Zelândia' },
+  { code: 'nl', name: 'Países Baixos' },
+  { code: 'pk', name: 'Paquistão' },
+  { code: 'pe', name: 'Peru' },
+  { code: 'pl', name: 'Polónia' },
+  { code: 'pt', name: 'Portugal' },
+  { code: 'ke', name: 'Quénia' },
+  { code: 'gb', name: 'Reino Unido' },
+  { code: 'cz', name: 'República Checa' },
+  { code: 'ro', name: 'Roménia' },
+  { code: 'ru', name: 'Rússia' },
+  { code: 'rs', name: 'Sérvia' },
+  { code: 'sg', name: 'Singapura' },
+  { code: 'se', name: 'Suécia' },
+  { code: 'ch', name: 'Suíça' },
+  { code: 'th', name: 'Tailândia' },
+  { code: 'tn', name: 'Tunísia' },
+  { code: 'tr', name: 'Turquia' },
+  { code: 'ua', name: 'Ucrânia' },
+  { code: 've', name: 'Venezuela' },
+  { code: 'vn', name: 'Vietname' },
+];
+
+function flagUrl(code: string) {
+  return `https://flagcdn.com/w40/${code}.png`;
+}
 
 const COOKING_TYPES = [
   { label: 'Caseiro', icon: 'home-outline' },
@@ -63,11 +137,20 @@ export default function EditProfileScreen() {
   const [name, setName] = useState(user?.name ?? '');
   const [bio, setBio] = useState(user?.bio ?? '');
   const [cookingType, setCookingType] = useState(user?.cooking_type ?? 'Caseiro');
+  const [nationality, setNationality] = useState<string | null>(user?.nationality ?? null);
+  const [countrySearch, setCountrySearch] = useState('');
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.avatar ?? null);
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef<any>(null);
+
+  const filteredCountries = useMemo(() => {
+    const q = countrySearch.toLowerCase().trim();
+    if (!q) return COUNTRIES;
+    return COUNTRIES.filter((c) => c.name.toLowerCase().includes(q));
+  }, [countrySearch]);
 
   async function handleAvatarChange(e: any) {
     const file = e.target.files?.[0];
@@ -93,6 +176,7 @@ export default function EditProfileScreen() {
         name: name.trim(),
         bio,
         cooking_type: cookingType,
+        nationality,
         avatar: avatarPreview,
       });
       // Garantir que o avatar local é mantido caso o backend não o devolva
@@ -256,9 +340,92 @@ export default function EditProfileScreen() {
             </View>
           </View>
 
+          {/* Nationality */}
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Nacionalidade</Text>
+            <TouchableOpacity
+              style={styles.inputRow}
+              onPress={() => { setCountrySearch(''); setShowCountryPicker(true); }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="earth-outline" size={17} color={COLORS.text3} />
+              {nationality && (
+                <Image
+                  source={{ uri: flagUrl(COUNTRIES.find((c) => c.name === nationality)?.code ?? '') }}
+                  style={styles.flagImg}
+                />
+              )}
+              <Text style={[styles.input, !nationality && { color: COLORS.text3 }]}>
+                {nationality ?? 'Seleciona o teu país'}
+              </Text>
+              {nationality ? (
+                <TouchableOpacity onPress={() => setNationality(null)}>
+                  <Ionicons name="close-circle" size={17} color={COLORS.text3} />
+                </TouchableOpacity>
+              ) : (
+                <Ionicons name="chevron-down" size={15} color={COLORS.text3} />
+              )}
+            </TouchableOpacity>
+          </View>
+
           <View style={{ height: 20 }} />
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Country picker overlay */}
+      {showCountryPicker && (
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={styles.modalBackdrop} onPress={() => setShowCountryPicker(false)} activeOpacity={1} />
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Seleciona o país</Text>
+              <TouchableOpacity onPress={() => setShowCountryPicker(false)}>
+                <Ionicons name="close" size={22} color={COLORS.text2} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalSearchRow}>
+              <Ionicons name="search-outline" size={16} color={COLORS.text3} />
+              <TextInput
+                style={styles.modalSearchInput}
+                placeholder="Pesquisar país..."
+                placeholderTextColor={COLORS.text3}
+                value={countrySearch}
+                onChangeText={setCountrySearch}
+                autoFocus
+              />
+              {countrySearch.length > 0 && (
+                <TouchableOpacity onPress={() => setCountrySearch('')}>
+                  <Ionicons name="close-circle" size={16} color={COLORS.text3} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <FlatList
+              data={filteredCountries}
+              keyExtractor={(item) => item.name}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              style={styles.modalList}
+              renderItem={({ item }) => {
+                const isSelected = nationality === item.name;
+                return (
+                  <TouchableOpacity
+                    style={[styles.countryRow, isSelected && styles.countryRowSelected]}
+                    onPress={() => { setNationality(item.name); setShowCountryPicker(false); }}
+                  >
+                    <Image source={{ uri: flagUrl(item.code) }} style={styles.flagImg} />
+                    <Text style={[styles.countryName, isSelected && styles.countryNameSelected]}>
+                      {item.name}
+                    </Text>
+                    {isSelected && <Ionicons name="checkmark" size={16} color={COLORS.primary} />}
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -407,6 +574,70 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
   },
   charCount: { fontSize: 12, color: COLORS.text3, textAlign: 'right', fontFamily: FONTS.body },
+
+  // Country modal
+  modalOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    justifyContent: 'flex-end',
+    zIndex: 100,
+  },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  modalSheet: {
+    backgroundColor: COLORS.bg,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+    paddingBottom: 24,
+    zIndex: 101,
+  },
+  modalList: { flexShrink: 1 },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  modalTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.bodyBold },
+  modalSearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: 16,
+    marginVertical: 12,
+    backgroundColor: COLORS.surface2,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  modalSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: COLORS.text1,
+    fontFamily: FONTS.body,
+  },
+  countryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  countryRowSelected: { backgroundColor: COLORS.primaryDim },
+  flagImg: { width: 28, height: 20, borderRadius: 3 },
+  countryName: { flex: 1, fontSize: 15, color: COLORS.text1, fontFamily: FONTS.body },
+  countryNameSelected: { color: COLORS.primary, fontWeight: '700', fontFamily: FONTS.bodyBold },
 
   cookingGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   cookingOption: {

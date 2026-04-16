@@ -51,7 +51,7 @@ app.post('/api/auth/register', (req, res) => {
 
     // Buscar por email — não depende de lastInsertRowid
     const user = db.get(
-      'SELECT id, name, username, email, avatar, bio, cooking_type, followers, following, recipes_count, created_at FROM users WHERE email = ?',
+      'SELECT id, name, username, email, avatar, bio, cooking_type, nationality, followers, following, recipes_count, created_at FROM users WHERE email = ?',
       [email]
     );
 
@@ -92,7 +92,7 @@ app.post('/api/auth/login', (req, res) => {
 // Perfil do utilizador atual
 app.get('/api/auth/me', auth, (req, res) => {
   const user = db.get(
-    'SELECT id, name, username, email, avatar, bio, cooking_type, followers, following, recipes_count, created_at FROM users WHERE id = ?',
+    'SELECT id, name, username, email, avatar, bio, cooking_type, nationality, followers, following, recipes_count, created_at FROM users WHERE id = ?',
     [req.user.id]
   );
   if (!user) return res.status(404).json({ error: 'Utilizador não encontrado' });
@@ -101,13 +101,13 @@ app.get('/api/auth/me', auth, (req, res) => {
 
 // Atualizar perfil
 app.put('/api/auth/me', auth, (req, res) => {
-  const { name, bio, cooking_type, avatar } = req.body;
+  const { name, bio, cooking_type, nationality, avatar } = req.body;
   db.run(
-    'UPDATE users SET name = ?, bio = ?, cooking_type = ?, avatar = ? WHERE id = ?',
-    [name, bio, cooking_type, avatar ?? null, req.user.id]
+    'UPDATE users SET name = ?, bio = ?, cooking_type = ?, nationality = ?, avatar = ? WHERE id = ?',
+    [name, bio, cooking_type, nationality ?? null, avatar ?? null, req.user.id]
   );
   const user = db.get(
-    'SELECT id, name, username, email, avatar, bio, cooking_type, followers, following, recipes_count, created_at FROM users WHERE id = ?',
+    'SELECT id, name, username, email, avatar, bio, cooking_type, nationality, followers, following, recipes_count, created_at FROM users WHERE id = ?',
     [req.user.id]
   );
   res.json(user);
@@ -312,7 +312,7 @@ app.delete('/api/recipes/:id', auth, (req, res) => {
 // ── USERS ───────────────────────────────────────────────────────────────────
 app.get('/api/users/:id', (req, res) => {
   const user = db.get(
-    'SELECT id, name, username, avatar, bio, cooking_type, followers, following, recipes_count, created_at FROM users WHERE id = ?',
+    'SELECT id, name, username, avatar, bio, cooking_type, nationality, followers, following, recipes_count, created_at FROM users WHERE id = ?',
     [req.params.id]
   );
   if (!user) return res.status(404).json({ error: 'Utilizador não encontrado' });

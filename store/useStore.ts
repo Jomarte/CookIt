@@ -39,6 +39,7 @@ export interface AuthUser {
   avatar: string | null;
   bio: string;
   cooking_type: string;
+  nationality?: string | null;
   followers: number;
   following: number;
   recipes_count: number;

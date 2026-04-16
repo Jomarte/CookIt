@@ -36,7 +36,7 @@ export const api = {
   me: (token: string) =>
     request('/auth/me', { headers: authHeader(token) }),
 
-  updateMe: (token: string, body: { name: string; bio: string; cooking_type: string; avatar?: string | null }) =>
+  updateMe: (token: string, body: { name: string; bio: string; cooking_type: string; nationality?: string | null; avatar?: string | null }) =>
     request('/auth/me', { method: 'PUT', headers: authHeader(token), body: JSON.stringify(body) }),
 
   deleteMe: (token: string) =>

@@ -20,6 +20,7 @@ interface BestRecipe {
   title: string;
   difficulty: 'Fácil' | 'Médio' | 'Difícil';
   totalTime: number;
+  dishType?: string;
 }
 
 interface Cook {
@@ -29,6 +30,7 @@ interface Cook {
   name: string;
   specialty: string;
   cuisine: string;
+  nationality: string;
   averageRating: number;
   totalRatingsCount: number;
   bestRecipe: BestRecipe;
@@ -39,75 +41,75 @@ interface Cook {
 const ALL_COOKS: Cook[] = [
   {
     id: '1', rank: 1, username: 'chef_ana', name: 'Ana Rodrigues',
-    specialty: 'Assados & Arrozes', cuisine: 'Portuguesa',
+    specialty: 'Assados & Arrozes', cuisine: 'Portuguesa', nationality: 'pt',
     averageRating: 4.9, totalRatingsCount: 312,
-    bestRecipe: { id: 'r1', title: 'Arroz de Pato da Avó', difficulty: 'Médio', totalTime: 75 },
+    bestRecipe: { id: 'r1', title: 'Arroz de Pato da Avó', difficulty: 'Médio', totalTime: 75, dishType: 'Prato Principal' },
   },
   {
     id: '2', rank: 2, username: 'marco_cozinha', name: 'Marco Silva',
-    specialty: 'Pastas Artesanais', cuisine: 'Italiana',
+    specialty: 'Pastas Artesanais', cuisine: 'Italiana', nationality: 'it',
     averageRating: 4.8, totalRatingsCount: 276,
-    bestRecipe: { id: 'r2', title: 'Tagliatelle al Ragù', difficulty: 'Médio', totalTime: 90 },
+    bestRecipe: { id: 'r2', title: 'Tagliatelle al Ragù', difficulty: 'Médio', totalTime: 90, dishType: 'Massa' },
   },
   {
     id: '3', rank: 3, username: 'sushi_miguel', name: 'Miguel Tanaka',
-    specialty: 'Sushi & Ramen', cuisine: 'Japonesa',
+    specialty: 'Sushi & Ramen', cuisine: 'Japonesa', nationality: 'jp',
     averageRating: 4.8, totalRatingsCount: 198,
-    bestRecipe: { id: 'r3', title: 'Tonkotsu Ramen', difficulty: 'Difícil', totalTime: 240 },
+    bestRecipe: { id: 'r3', title: 'Tonkotsu Ramen', difficulty: 'Difícil', totalTime: 240, dishType: 'Sopa' },
   },
   {
     id: '4', rank: 4, username: 'tacos_lucia', name: 'Lúcia Mendez',
-    specialty: 'Street Food', cuisine: 'Mexicana',
+    specialty: 'Street Food', cuisine: 'Mexicana', nationality: 'mx',
     averageRating: 4.7, totalRatingsCount: 154,
-    bestRecipe: { id: 'r4', title: 'Tacos al Pastor', difficulty: 'Fácil', totalTime: 35 },
+    bestRecipe: { id: 'r4', title: 'Tacos al Pastor', difficulty: 'Fácil', totalTime: 35, dishType: 'Street Food' },
   },
   {
     id: '5', rank: 5, username: 'spice_raj', name: 'Raj Patel',
-    specialty: 'Especiarias & Curry', cuisine: 'Indiana',
+    specialty: 'Especiarias & Curry', cuisine: 'Indiana', nationality: 'in',
     averageRating: 4.7, totalRatingsCount: 143,
-    bestRecipe: { id: 'r5', title: 'Butter Chicken Masala', difficulty: 'Médio', totalTime: 55 },
+    bestRecipe: { id: 'r5', title: 'Butter Chicken Masala', difficulty: 'Médio', totalTime: 55, dishType: 'Prato Principal' },
   },
   {
     id: '6', rank: 6, username: 'bistro_claire', name: 'Claire Dubois',
-    specialty: 'Pâtisserie', cuisine: 'Francesa',
+    specialty: 'Pâtisserie', cuisine: 'Francesa', nationality: 'fr',
     averageRating: 4.6, totalRatingsCount: 129,
-    bestRecipe: { id: 'r6', title: 'Crème Brûlée Clássico', difficulty: 'Médio', totalTime: 50 },
+    bestRecipe: { id: 'r6', title: 'Crème Brûlée Clássico', difficulty: 'Médio', totalTime: 50, dishType: 'Sobremesa' },
   },
   {
     id: '7', rank: 7, username: 'dim_sum_wei', name: 'Wei Chen',
-    specialty: 'Dim Sum & Wok', cuisine: 'Chinesa',
+    specialty: 'Dim Sum & Wok', cuisine: 'Chinesa', nationality: 'cn',
     averageRating: 4.6, totalRatingsCount: 117,
-    bestRecipe: { id: 'r7', title: 'Pato Laqueado Pequim', difficulty: 'Difícil', totalTime: 180 },
+    bestRecipe: { id: 'r7', title: 'Pato Laqueado Pequim', difficulty: 'Difícil', totalTime: 180, dishType: 'Prato Principal' },
   },
   {
     id: '8', rank: 8, username: 'carne_carlos', name: 'Carlos Ferreira',
-    specialty: 'Churrasco', cuisine: 'Brasileira',
+    specialty: 'Churrasco', cuisine: 'Brasileira', nationality: 'br',
     averageRating: 4.5, totalRatingsCount: 98,
-    bestRecipe: { id: 'r8', title: 'Picanha na Brasa', difficulty: 'Fácil', totalTime: 40 },
+    bestRecipe: { id: 'r8', title: 'Picanha na Brasa', difficulty: 'Fácil', totalTime: 40, dishType: 'Grelhados' },
   },
   {
     id: '9', rank: 9, username: 'bacalhau_ze', name: 'José Oliveira',
-    specialty: 'Bacalhau & Grelhados', cuisine: 'Portuguesa',
+    specialty: 'Bacalhau & Grelhados', cuisine: 'Portuguesa', nationality: 'pt',
     averageRating: 4.5, totalRatingsCount: 87,
-    bestRecipe: { id: 'r9', title: 'Bacalhau à Brás', difficulty: 'Fácil', totalTime: 30 },
+    bestRecipe: { id: 'r9', title: 'Bacalhau à Brás', difficulty: 'Fácil', totalTime: 30, dishType: 'Peixe' },
   },
   {
     id: '10', rank: 10, username: 'pizza_sofia', name: 'Sofia Romano',
-    specialty: 'Pizza Napolitana', cuisine: 'Italiana',
+    specialty: 'Pizza Napolitana', cuisine: 'Italiana', nationality: 'it',
     averageRating: 4.4, totalRatingsCount: 76,
-    bestRecipe: { id: 'r10', title: 'Margherita DOC', difficulty: 'Médio', totalTime: 45 },
+    bestRecipe: { id: 'r10', title: 'Margherita DOC', difficulty: 'Médio', totalTime: 45, dishType: 'Pizza' },
   },
   {
     id: '11', rank: 11, username: 'ramen_yuki', name: 'Yuki Sato',
-    specialty: 'Noodles & Gyoza', cuisine: 'Japonesa',
+    specialty: 'Noodles & Gyoza', cuisine: 'Japonesa', nationality: 'jp',
     averageRating: 4.4, totalRatingsCount: 65,
-    bestRecipe: { id: 'r11', title: 'Gyoza de Frango', difficulty: 'Médio', totalTime: 60 },
+    bestRecipe: { id: 'r11', title: 'Gyoza de Frango', difficulty: 'Médio', totalTime: 60, dishType: 'Entrada' },
   },
   {
     id: '12', rank: 12, username: 'mole_elena', name: 'Elena Vargas',
-    specialty: 'Mole & Enchiladas', cuisine: 'Mexicana',
+    specialty: 'Mole & Enchiladas', cuisine: 'Mexicana', nationality: 'mx',
     averageRating: 4.3, totalRatingsCount: 54,
-    bestRecipe: { id: 'r12', title: 'Mole Poblano', difficulty: 'Difícil', totalTime: 120 },
+    bestRecipe: { id: 'r12', title: 'Mole Poblano', difficulty: 'Difícil', totalTime: 120, dishType: 'Prato Principal' },
   },
 ];
 
@@ -117,6 +119,18 @@ const DIFF_COLORS: Record<string, string> = {
   'Fácil': COLORS.green,
   'Médio': COLORS.star,
   'Difícil': COLORS.accent,
+};
+
+const DISH_ICONS: Record<string, string> = {
+  'Prato Principal': 'restaurant-outline',
+  'Massa':           'restaurant-outline',
+  'Sopa':            'cafe-outline',
+  'Street Food':     'fast-food-outline',
+  'Sobremesa':       'ice-cream-outline',
+  'Grelhados':       'flame-outline',
+  'Pizza':           'pizza-outline',
+  'Entrada':         'nutrition-outline',
+  'Peixe':           'fish-outline',
 };
 
 const PODIUM_COLORS = {
@@ -179,14 +193,19 @@ function StarRating({ value }: { value: number }) {
   );
 }
 
+function chefTitle(name: string) {
+  const first = name.split(' ')[0];
+  return first.toLowerCase().endsWith('a') ? 'Cozinheira' : 'Cozinheiro';
+}
+
 function RecipeMiniCard({ recipe }: { recipe: BestRecipe }) {
   const diffColor = DIFF_COLORS[recipe.difficulty] ?? COLORS.text2;
+  const dishIcon = (recipe.dishType ? DISH_ICONS[recipe.dishType] : null) ?? 'restaurant-outline';
   return (
     <View style={styles.miniCard}>
-      <Ionicons name="restaurant-outline" size={13} color={COLORS.text3} />
-      <Text style={styles.miniCardTitle} numberOfLines={1}>{recipe.title}</Text>
+      <Ionicons name={dishIcon as any} size={13} color={COLORS.text3} />
+      <Text style={styles.miniCardTitle}>{recipe.title}</Text>
       <View style={[styles.miniDiffDot, { backgroundColor: diffColor }]} />
-      <Text style={styles.miniCardTime}>{recipe.totalTime}min</Text>
     </View>
   );
 }
@@ -209,38 +228,39 @@ function PodiumCard({ cook, position }: { cook: Cook; position: 1 | 2 | 3 }) {
       </View>
 
       {/* Avatar */}
-      <View
-        style={[
-          styles.podiumAvatar,
-          {
-            width: avatarSize,
-            height: avatarSize,
-            borderRadius: avatarSize / 2,
-            backgroundColor: pc.bg,
-            borderColor: pc.border,
-            shadowColor: pc.glow,
-          },
-          isCenter && styles.podiumAvatarCenter,
-        ]}
-      >
-        <Text style={[styles.podiumAvatarLetter, { fontSize: isCenter ? 30 : 22, color: pc.text }]}>
-          {initial}
-        </Text>
+      <View style={{ position: 'relative' }}>
+        <View
+          style={[
+            styles.podiumAvatar,
+            {
+              width: avatarSize,
+              height: avatarSize,
+              borderRadius: avatarSize / 2,
+              backgroundColor: pc.bg,
+              borderColor: pc.border,
+              shadowColor: pc.glow,
+            },
+            isCenter && styles.podiumAvatarCenter,
+          ]}
+        >
+          <Text style={[styles.podiumAvatarLetter, { fontSize: isCenter ? 30 : 22, color: pc.text }]}>
+            {initial}
+          </Text>
+        </View>
+        <Image
+          source={{ uri: `https://flagcdn.com/w40/${cook.nationality}.png` }}
+          style={[styles.podiumFlag, isCenter && styles.podiumFlagCenter]}
+        />
       </View>
 
       <Text style={[styles.podiumName, isCenter && styles.podiumNameCenter]} numberOfLines={1}>
-        {cook.name.split(' ')[0]}
+        {chefTitle(cook.name)} {cook.name.split(' ')[0]}
       </Text>
-      <Text style={styles.podiumUsername} numberOfLines={1}>@{cook.username}</Text>
 
       <StarRating value={cook.averageRating} />
 
       <RecipeMiniCard recipe={cook.bestRecipe} />
 
-      {/* Podium base */}
-      <View style={[styles.podiumBase, { backgroundColor: pc.bg, borderColor: pc.border, height: isCenter ? 36 : 24 }]}>
-        <Text style={[styles.podiumBaseText, { color: pc.text }]}>{medalLabel}</Text>
-      </View>
     </View>
   );
 }
@@ -256,7 +276,13 @@ function ListRow({ cook }: { cook: Cook }) {
       </View>
 
       <View style={styles.listInfo}>
-        <Text style={styles.listName} numberOfLines={1}>{cook.name}</Text>
+        <View style={styles.listNameRow}>
+          <Text style={styles.listName} numberOfLines={1}>{chefTitle(cook.name)} {cook.name.split(' ')[0]}</Text>
+          <Image
+            source={{ uri: `https://flagcdn.com/w40/${cook.nationality}.png` }}
+            style={styles.listFlag}
+          />
+        </View>
         <Text style={styles.listSpecialty} numberOfLines={1}>{cook.specialty}</Text>
         <RecipeMiniCard recipe={cook.bestRecipe} />
       </View>
@@ -297,7 +323,6 @@ export default function RankingsScreen() {
           <Text style={styles.wordmarkC}>C</Text>
           <Text style={styles.wordmarkK}>K</Text>
         </View>
-        <Text style={styles.headerSub}>Top cozinheiros</Text>
       </View>
 
       {/* Cuisine chips */}
@@ -477,6 +502,18 @@ const styles = StyleSheet.create({
   },
   podiumAvatarLetter: { fontWeight: '900', fontFamily: FONTS.titleBlack },
 
+  podiumFlag: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 20,
+    height: 14,
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: COLORS.bg,
+  },
+  podiumFlagCenter: { width: 24, height: 17 },
+
   podiumName: { fontSize: 13, fontWeight: '800', color: COLORS.text1, marginTop: 2, fontFamily: FONTS.bodyBold },
   podiumNameCenter: { fontSize: 15 },
   podiumUsername: { fontSize: 11, color: COLORS.text3, marginTop: -2, fontFamily: FONTS.body },
@@ -562,7 +599,9 @@ const styles = StyleSheet.create({
   },
   listAvatarLetter: { fontSize: 18, fontWeight: '800', color: COLORS.primary, fontFamily: FONTS.titleBold },
   listInfo: { flex: 1, gap: 2 },
+  listNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   listName: { fontSize: 14, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.bodyBold },
+  listFlag: { width: 20, height: 14, borderRadius: 3 },
   listSpecialty: { fontSize: 12, color: COLORS.text3, fontWeight: '500', fontFamily: FONTS.body },
 
   listRatingWrap: { alignItems: 'flex-end', gap: 4, flexShrink: 0 },

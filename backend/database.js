@@ -28,12 +28,16 @@ async function init() {
       avatar        TEXT DEFAULT NULL,
       bio           TEXT DEFAULT '',
       cooking_type  TEXT DEFAULT 'Caseiro',
+      nationality   TEXT DEFAULT NULL,
       followers     INTEGER DEFAULT 0,
       following     INTEGER DEFAULT 0,
       recipes_count INTEGER DEFAULT 0,
       created_at    TEXT DEFAULT (datetime('now'))
     )
   `);
+
+  // Migration: add nationality column to existing databases
+  try { db.run(`ALTER TABLE users ADD COLUMN nationality TEXT DEFAULT NULL`); } catch (_) {}
 
   db.run(`
     CREATE TABLE IF NOT EXISTS recipes (

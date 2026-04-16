@@ -16,6 +16,21 @@ import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 import { useStore } from '../../store/useStore';
 
+const FLAG_CODES: Record<string, string> = {
+  'África do Sul':'za','Alemanha':'de','Angola':'ao','Arábia Saudita':'sa','Argélia':'dz',
+  'Argentina':'ar','Austrália':'au','Áustria':'at','Bangladesh':'bd','Bélgica':'be',
+  'Brasil':'br','Bulgária':'bg','Cabo Verde':'cv','Canadá':'ca','Chile':'cl','China':'cn',
+  'Colômbia':'co','Coreia do Sul':'kr','Croácia':'hr','Dinamarca':'dk','Egito':'eg',
+  'Emirados Árabes':'ae','Eslováquia':'sk','Espanha':'es','Estados Unidos':'us','Etiópia':'et',
+  'Filipinas':'ph','Finlândia':'fi','França':'fr','Gana':'gh','Grécia':'gr','Hungria':'hu',
+  'Índia':'in','Indonésia':'id','Irão':'ir','Iraque':'iq','Israel':'il','Itália':'it',
+  'Japão':'jp','Malásia':'my','Marrocos':'ma','México':'mx','Moçambique':'mz','Nigéria':'ng',
+  'Noruega':'no','Nova Zelândia':'nz','Países Baixos':'nl','Paquistão':'pk','Peru':'pe',
+  'Polónia':'pl','Portugal':'pt','Quénia':'ke','Reino Unido':'gb','República Checa':'cz',
+  'Roménia':'ro','Rússia':'ru','Sérvia':'rs','Singapura':'sg','Suécia':'se','Suíça':'ch',
+  'Tailândia':'th','Tunísia':'tn','Turquia':'tr','Ucrânia':'ua','Venezuela':'ve','Vietname':'vn',
+};
+
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -144,12 +159,25 @@ export default function UserProfileScreen() {
                 <Text style={styles.name}>{profile.name}</Text>
                 <Text style={styles.username}>@{profile.username}</Text>
 
-                {/* Cooking type badge */}
-                {profile.cooking_type ? (
-                  <View style={styles.typeBadge}>
-                    <Text style={styles.typeBadgeText}>{profile.cooking_type}</Text>
-                  </View>
-                ) : null}
+                {/* Cooking type + nationality badges */}
+                <View style={styles.badgeRow}>
+                  {profile.cooking_type ? (
+                    <View style={styles.typeBadge}>
+                      <Text style={styles.typeBadgeText}>{profile.cooking_type}</Text>
+                    </View>
+                  ) : null}
+                  {profile.nationality ? (
+                    <View style={styles.nationalityBadge}>
+                      {FLAG_CODES[profile.nationality] && (
+                        <Image
+                          source={{ uri: `https://flagcdn.com/w40/${FLAG_CODES[profile.nationality]}.png` }}
+                          style={styles.nationalityFlag}
+                        />
+                      )}
+                      <Text style={styles.nationalityText}>{profile.nationality}</Text>
+                    </View>
+                  ) : null}
+                </View>
 
                 {/* Bio */}
                 {profile.bio ? (
@@ -269,12 +297,26 @@ const styles = StyleSheet.create({
   name: { fontSize: 20, fontWeight: '900', color: COLORS.text1, letterSpacing: -0.3, fontFamily: FONTS.titleBlack },
   username: { fontSize: 13, color: COLORS.text3, fontWeight: '500', fontFamily: FONTS.body },
 
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginTop: 6 },
   typeBadge: {
     backgroundColor: COLORS.primaryDim,
     paddingHorizontal: 12, paddingVertical: 4,
     borderRadius: 10, borderWidth: 1, borderColor: COLORS.borderActive,
   },
   typeBadgeText: { fontSize: 12, color: COLORS.primary, fontWeight: '700', fontFamily: FONTS.bodyBold },
+  nationalityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: COLORS.surface2,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  nationalityFlag: { width: 20, height: 14, borderRadius: 2 },
+  nationalityText: { fontSize: 12, color: COLORS.text2, fontWeight: '600', fontFamily: FONTS.body },
 
   bio: { fontSize: 14, color: COLORS.text2, textAlign: 'center', lineHeight: 20, paddingHorizontal: 16, fontFamily: FONTS.body },
 

@@ -21,6 +21,21 @@ import { api } from '../../services/api';
 
 const TABS = ['Receitas', 'Guardadas', 'Cozinhei'];
 
+const FLAG_CODES: Record<string, string> = {
+  'África do Sul':'za','Alemanha':'de','Angola':'ao','Arábia Saudita':'sa','Argélia':'dz',
+  'Argentina':'ar','Austrália':'au','Áustria':'at','Bangladesh':'bd','Bélgica':'be',
+  'Brasil':'br','Bulgária':'bg','Cabo Verde':'cv','Canadá':'ca','Chile':'cl','China':'cn',
+  'Colômbia':'co','Coreia do Sul':'kr','Croácia':'hr','Dinamarca':'dk','Egito':'eg',
+  'Emirados Árabes':'ae','Eslováquia':'sk','Espanha':'es','Estados Unidos':'us','Etiópia':'et',
+  'Filipinas':'ph','Finlândia':'fi','França':'fr','Gana':'gh','Grécia':'gr','Hungria':'hu',
+  'Índia':'in','Indonésia':'id','Irão':'ir','Iraque':'iq','Israel':'il','Itália':'it',
+  'Japão':'jp','Malásia':'my','Marrocos':'ma','México':'mx','Moçambique':'mz','Nigéria':'ng',
+  'Noruega':'no','Nova Zelândia':'nz','Países Baixos':'nl','Paquistão':'pk','Peru':'pe',
+  'Polónia':'pl','Portugal':'pt','Quénia':'ke','Reino Unido':'gb','República Checa':'cz',
+  'Roménia':'ro','Rússia':'ru','Sérvia':'rs','Singapura':'sg','Suécia':'se','Suíça':'ch',
+  'Tailândia':'th','Tunísia':'tn','Turquia':'tr','Ucrânia':'ua','Venezuela':'ve','Vietname':'vn',
+};
+
 interface Badge {
   id: string;
   label: string;
@@ -261,11 +276,24 @@ export default function ProfileScreen() {
 
           <Text style={styles.name}>{user?.name ?? ''}</Text>
           <Text style={styles.usernameText}>@{user?.username ?? ''}</Text>
-          {user?.cooking_type ? (
-            <View style={styles.cookingTypeBadge}>
-              <Text style={styles.cookingTypeText}>{user.cooking_type}</Text>
-            </View>
-          ) : null}
+          <View style={styles.badgeRow}>
+            {user?.cooking_type ? (
+              <View style={styles.cookingTypeBadge}>
+                <Text style={styles.cookingTypeText}>{user.cooking_type}</Text>
+              </View>
+            ) : null}
+            {user?.nationality ? (
+              <View style={styles.nationalityBadge}>
+                {FLAG_CODES[user.nationality] && (
+                  <Image
+                    source={{ uri: `https://flagcdn.com/w40/${FLAG_CODES[user.nationality]}.png` }}
+                    style={styles.nationalityFlag}
+                  />
+                )}
+                <Text style={styles.nationalityText}>{user.nationality}</Text>
+              </View>
+            ) : null}
+          </View>
           {user?.bio ? (
             <Text style={styles.bio}>{user.bio}</Text>
           ) : null}
@@ -478,17 +506,29 @@ const styles = StyleSheet.create({
 
   name: { fontSize: 21, fontWeight: '900', color: COLORS.text1, marginBottom: 3, letterSpacing: -0.3, fontFamily: FONTS.titleBold },
   usernameText: { fontSize: 13, color: COLORS.text3, marginBottom: 8, fontWeight: '500', fontFamily: FONTS.body },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
   cookingTypeBadge: {
-    alignSelf: 'flex-start',
     backgroundColor: COLORS.primaryDim,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 10,
-    marginBottom: 8,
     borderWidth: 1,
     borderColor: COLORS.borderActive,
   },
   cookingTypeText: { fontSize: 12, color: COLORS.primary, fontWeight: '700', fontFamily: FONTS.bodyBold },
+  nationalityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: COLORS.surface2,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  nationalityFlag: { width: 20, height: 14, borderRadius: 2 },
+  nationalityText: { fontSize: 12, color: COLORS.text2, fontWeight: '600', fontFamily: FONTS.body },
   bio: { fontSize: 14, color: COLORS.text2, lineHeight: 21, marginBottom: 14, fontFamily: FONTS.body },
 
   actionsRow: { flexDirection: 'row', gap: 10, marginTop: 6 },
