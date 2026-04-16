@@ -134,6 +134,10 @@ export default function EditProfileScreen() {
   const router = useRouter();
   const { user, token, updateUser } = useStore();
 
+  const nameParts = (user?.name ?? '').trim().split(/\s+/);
+  const [firstName, setFirstName] = useState(user?.first_name ?? nameParts[0] ?? '');
+  const [lastName, setLastName] = useState(user?.last_name ?? nameParts.slice(1).join(' ') ?? '');
+  const [username, setUsername] = useState(user?.username ?? '');
   const [name, setName] = useState(user?.name ?? '');
   const [bio, setBio] = useState(user?.bio ?? '');
   const [cookingType, setCookingType] = useState(user?.cooking_type ?? 'Caseiro');
@@ -168,12 +172,21 @@ export default function EditProfileScreen() {
   }
 
   async function handleSave() {
-    if (!name.trim()) { setError('O nome não pode estar vazio'); return; }
+    if (!firstName.trim() && !lastName.trim() && !name.trim()) {
+      setError('Insere pelo menos o primeiro nome');
+      return;
+    }
+    if (username.trim().length < 3) { setError('O username deve ter pelo menos 3 caracteres'); return; }
+    if (/\s/.test(username.trim())) { setError('O username não pode ter espaços'); return; }
     setError('');
     setSaving(true);
+    const displayName = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ') || name.trim();
     try {
       const updated = await api.updateMe(token!, {
-        name: name.trim(),
+        name: displayName,
+        first_name: firstName.trim() || null,
+        last_name: lastName.trim() || null,
+        username: username.trim(),
         bio,
         cooking_type: cookingType,
         nationality,
@@ -227,8 +240,7 @@ export default function EditProfileScreen() {
           <View style={styles.chefIdentity}>
             <Ionicons name="restaurant" size={18} color={COLORS.primary} />
             <Text style={styles.chefIdentityText}>
-              És conhecido na comunidade como{' '}
-              <Text style={styles.chefIdentityHandle}>@{user?.username}</Text>
+              Podes alterar o teu username e nome como nas outras redes sociais
             </Text>
           </View>
 
@@ -281,19 +293,47 @@ export default function EditProfileScreen() {
             )}
           </View>
 
-          {/* Name */}
+          {/* Username */}
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Nome do cozinheiro</Text>
+            <Text style={styles.fieldLabel}>Username</Text>
             <View style={styles.inputRow}>
-              <Ionicons name="person-outline" size={17} color={COLORS.text3} />
+              <Text style={styles.atSign}>@</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Como te chamas, cozinheiro?"
+                placeholder="o_teu_username"
                 placeholderTextColor={COLORS.text3}
-                value={name}
-                onChangeText={setName}
-                maxLength={50}
+                value={username}
+                onChangeText={(t) => setUsername(t.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                autoCapitalize="none"
+                maxLength={30}
               />
+            </View>
+          </View>
+
+          {/* First + Last Name */}
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Nome e apelido</Text>
+            <View style={styles.nameRow}>
+              <View style={[styles.inputRow, { flex: 1 }]}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Primeiro nome"
+                  placeholderTextColor={COLORS.text3}
+                  value={firstName}
+                  onChangeText={setFirstName}
+                  maxLength={30}
+                />
+              </View>
+              <View style={[styles.inputRow, { flex: 1 }]}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Apelido"
+                  placeholderTextColor={COLORS.text3}
+                  value={lastName}
+                  onChangeText={setLastName}
+                  maxLength={30}
+                />
+              </View>
             </View>
           </View>
 
@@ -439,8 +479,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 14,
-    backgroundColor: COLORS.surface1,
-    borderBottomWidth: 1,
+    backgroundColor: COLORS.bg,
+    borderBottomWidth: 0,
     borderBottomColor: COLORS.border,
   },
   backBtn: {
@@ -543,6 +583,8 @@ const styles = StyleSheet.create({
 
   field: { gap: 8 },
   fieldLabel: { fontSize: 13, fontWeight: '700', color: COLORS.text3, textTransform: 'uppercase', letterSpacing: 0.7, fontFamily: FONTS.bodyBold },
+  nameRow: { flexDirection: 'row', gap: 10 },
+  atSign: { fontSize: 17, color: COLORS.primary, fontWeight: '700', fontFamily: FONTS.bodyBold },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',

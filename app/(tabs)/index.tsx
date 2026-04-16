@@ -31,12 +31,13 @@ export default function FeedScreen() {
   const [recipes, setRecipes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
   const [menuRecipe, setMenuRecipe] = useState<any | null>(null);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const [likedRecipes, setLikedRecipes] = useState<Record<string, boolean>>({});
-  const { savedRecipes, toggleSaved, notifications, markAllRead } = useStore();
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const [serverUnread, setServerUnread] = useState(0);
+  const { savedRecipes, toggleSaved, notifications, token } = useStore();
+  const localUnread = notifications.filter((n) => !n.read).length;
+  const unreadCount = localUnread + serverUnread;
 
   const loadRecipes = useCallback(async () => {
     try {
@@ -51,6 +52,11 @@ export default function FeedScreen() {
   }, []);
 
   useEffect(() => { loadRecipes(); }, [loadRecipes]);
+
+  useEffect(() => {
+    if (!token) return;
+    api.getUnreadCount(token).then((r) => setServerUnread(r.count ?? 0)).catch(() => {});
+  }, [token]);
 
   const onRefresh = () => { setRefreshing(true); loadRecipes(); };
 
@@ -201,7 +207,7 @@ export default function FeedScreen() {
           <Ionicons name="trophy-outline" size={20} color={COLORS.text2} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.notifBtn} onPress={() => setNotifOpen(true)}>
+        <TouchableOpacity style={styles.notifBtn} onPress={() => { setServerUnread(0); router.push('/notifications'); }}>
           <Ionicons name={unreadCount > 0 ? 'notifications' : 'notifications-outline'} size={20} color={unreadCount > 0 ? COLORS.primary : COLORS.text2} />
           {unreadCount > 0 && (
             <View style={styles.notifBadge}>
@@ -270,47 +276,6 @@ export default function FeedScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* Painel de Notificações */}
-      <Modal visible={notifOpen} transparent animationType="fade" onRequestClose={() => setNotifOpen(false)}>
-        <TouchableOpacity style={styles.notifBackdrop} activeOpacity={1} onPress={() => setNotifOpen(false)}>
-          <View style={styles.notifPanel} onStartShouldSetResponder={() => true}>
-            <View style={styles.notifPanelHeader}>
-              <Text style={styles.notifPanelTitle}>Notificações</Text>
-              {unreadCount > 0 && (
-                <TouchableOpacity onPress={() => { markAllRead(); }}>
-                  <Text style={styles.notifMarkRead}>Marcar todas como lidas</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-            {notifications.length === 0 ? (
-              <View style={styles.notifEmpty}>
-                <Ionicons name="notifications-off-outline" size={36} color={COLORS.text3} />
-                <Text style={styles.notifEmptyText}>Sem notificações</Text>
-              </View>
-            ) : (
-              <ScrollView showsVerticalScrollIndicator={false}>
-                {notifications.map((n) => (
-                  <View key={n.id} style={[styles.notifItem, !n.read && styles.notifItemUnread]}>
-                    <View style={[styles.notifIconWrap, { backgroundColor: `${n.color}20`, borderColor: `${n.color}40` }]}>
-                      <Ionicons name={n.icon as any} size={18} color={n.color} />
-                    </View>
-                    <View style={styles.notifItemBody}>
-                      <View style={styles.notifItemTop}>
-                        <Text style={styles.notifItemTitle}>{n.title}</Text>
-                        {!n.read && <View style={styles.notifUnreadDot} />}
-                      </View>
-                      <Text style={styles.notifItemMsg}>{n.message}</Text>
-                      <Text style={styles.notifItemTime}>
-                        {new Date(n.createdAt).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                      </Text>
-                    </View>
-                  </View>
-                ))}
-              </ScrollView>
-            )}
-          </View>
-        </TouchableOpacity>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -323,9 +288,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: COLORS.surface1,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.bg,
+    borderBottomWidth: 0,
     gap: 10,
   },
   wordmark: { flexDirection: 'row', alignItems: 'center', flexShrink: 0 },

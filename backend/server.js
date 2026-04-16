@@ -51,7 +51,7 @@ app.post('/api/auth/register', (req, res) => {
 
     // Buscar por email — não depende de lastInsertRowid
     const user = db.get(
-      'SELECT id, name, username, email, avatar, bio, cooking_type, nationality, followers, following, recipes_count, created_at FROM users WHERE email = ?',
+      'SELECT id, name, first_name, last_name, username, email, avatar, bio, cooking_type, nationality, followers, following, recipes_count, created_at FROM users WHERE email = ?',
       [email]
     );
 
@@ -92,7 +92,7 @@ app.post('/api/auth/login', (req, res) => {
 // Perfil do utilizador atual
 app.get('/api/auth/me', auth, (req, res) => {
   const user = db.get(
-    'SELECT id, name, username, email, avatar, bio, cooking_type, nationality, followers, following, recipes_count, created_at FROM users WHERE id = ?',
+    'SELECT id, name, first_name, last_name, username, email, avatar, bio, cooking_type, nationality, followers, following, recipes_count, created_at FROM users WHERE id = ?',
     [req.user.id]
   );
   if (!user) return res.status(404).json({ error: 'Utilizador não encontrado' });
@@ -101,13 +101,20 @@ app.get('/api/auth/me', auth, (req, res) => {
 
 // Atualizar perfil
 app.put('/api/auth/me', auth, (req, res) => {
-  const { name, bio, cooking_type, nationality, avatar } = req.body;
+  const { name, first_name, last_name, username, bio, cooking_type, nationality, avatar } = req.body;
+
+  // Check username uniqueness if changing
+  if (username) {
+    const existing = db.get('SELECT id FROM users WHERE username = ? AND id != ?', [username, req.user.id]);
+    if (existing) return res.status(409).json({ error: 'Username já está a ser utilizado' });
+  }
+
   db.run(
-    'UPDATE users SET name = ?, bio = ?, cooking_type = ?, nationality = ?, avatar = ? WHERE id = ?',
-    [name, bio, cooking_type, nationality ?? null, avatar ?? null, req.user.id]
+    'UPDATE users SET name = ?, first_name = ?, last_name = ?, username = COALESCE(?, username), bio = ?, cooking_type = ?, nationality = ?, avatar = ? WHERE id = ?',
+    [name, first_name ?? null, last_name ?? null, username ?? null, bio, cooking_type, nationality ?? null, avatar ?? null, req.user.id]
   );
   const user = db.get(
-    'SELECT id, name, username, email, avatar, bio, cooking_type, nationality, followers, following, recipes_count, created_at FROM users WHERE id = ?',
+    'SELECT id, name, first_name, last_name, username, email, avatar, bio, cooking_type, nationality, followers, following, recipes_count, created_at FROM users WHERE id = ?',
     [req.user.id]
   );
   res.json(user);
@@ -312,7 +319,7 @@ app.delete('/api/recipes/:id', auth, (req, res) => {
 // ── USERS ───────────────────────────────────────────────────────────────────
 app.get('/api/users/:id', (req, res) => {
   const user = db.get(
-    'SELECT id, name, username, avatar, bio, cooking_type, nationality, followers, following, recipes_count, created_at FROM users WHERE id = ?',
+    'SELECT id, name, first_name, last_name, username, avatar, bio, cooking_type, nationality, followers, following, recipes_count, created_at FROM users WHERE id = ?',
     [req.params.id]
   );
   if (!user) return res.status(404).json({ error: 'Utilizador não encontrado' });
@@ -368,6 +375,40 @@ app.delete('/api/users/:id/follow', auth, (req, res) => {
   res.json({ following: false, followers: target.followers, myFollowing: me.following });
 });
 
+// ── COOKED ──────────────────────────────────────────────────────────────────
+
+app.post('/api/recipes/:id/cooked', auth, (req, res) => {
+  try {
+    const already = db.get('SELECT 1 FROM user_cooked WHERE user_id = ? AND recipe_id = ?', [req.user.id, req.params.id]);
+    if (already) {
+      const recipe = db.get('SELECT cooked_count FROM recipes WHERE id = ?', [req.params.id]);
+      return res.json({ cooked_count: recipe?.cooked_count ?? 0 });
+    }
+    db.run('INSERT INTO user_cooked (user_id, recipe_id) VALUES (?, ?)', [req.user.id, req.params.id]);
+    db.run('UPDATE recipes SET cooked_count = cooked_count + 1 WHERE id = ?', [req.params.id]);
+    const recipe = db.get('SELECT cooked_count FROM recipes WHERE id = ?', [req.params.id]);
+    res.json({ cooked_count: recipe?.cooked_count ?? 0 });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete('/api/recipes/:id/cooked', auth, (req, res) => {
+  try {
+    const exists = db.get('SELECT 1 FROM user_cooked WHERE user_id = ? AND recipe_id = ?', [req.user.id, req.params.id]);
+    if (!exists) {
+      const recipe = db.get('SELECT cooked_count FROM recipes WHERE id = ?', [req.params.id]);
+      return res.json({ cooked_count: recipe?.cooked_count ?? 0 });
+    }
+    db.run('DELETE FROM user_cooked WHERE user_id = ? AND recipe_id = ?', [req.user.id, req.params.id]);
+    db.run('UPDATE recipes SET cooked_count = MAX(0, cooked_count - 1) WHERE id = ?', [req.params.id]);
+    const recipe = db.get('SELECT cooked_count FROM recipes WHERE id = ?', [req.params.id]);
+    res.json({ cooked_count: recipe?.cooked_count ?? 0 });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── RATINGS ─────────────────────────────────────────────────────────────────
 app.post('/api/recipes/:id/rate', auth, (req, res) => {
   try {
@@ -389,6 +430,17 @@ app.post('/api/recipes/:id/rate', auth, (req, res) => {
       'UPDATE recipes SET rating = ?, rating_count = ? WHERE id = ?',
       [Math.round((stats.avg_rating ?? 0) * 10) / 10, stats.rating_count ?? 0, recipeId]
     );
+
+    // Notificar o autor (se não for o próprio)
+    const recipe = db.get('SELECT author_id, title FROM recipes WHERE id = ?', [recipeId]);
+    if (recipe && recipe.author_id !== req.user.id) {
+      const rater = db.get('SELECT name FROM users WHERE id = ?', [req.user.id]);
+      db.run(
+        `INSERT INTO notifications (user_id, type, title, message, icon, color, recipe_id, from_user_id)
+         VALUES (?, 'rating', ?, ?, 'star', '#D97706', ?, ?)`,
+        [recipe.author_id, 'Nova avaliação', `${rater?.name ?? 'Alguém'} avaliou "${recipe.title}" com ${rating}★`, recipeId, req.user.id]
+      );
+    }
 
     res.json({ rating: Math.round((stats.avg_rating ?? 0) * 10) / 10, rating_count: stats.rating_count ?? 0 });
   } catch (e) {
@@ -432,6 +484,17 @@ app.post('/api/recipes/:id/comments', auth, (req, res) => {
 
     db.run('UPDATE recipes SET comments_count = comments_count + 1 WHERE id = ?', [req.params.id]);
 
+    // Notificar o autor (se não for o próprio)
+    const recipeForNotif = db.get('SELECT author_id, title FROM recipes WHERE id = ?', [req.params.id]);
+    if (recipeForNotif && recipeForNotif.author_id !== req.user.id) {
+      const commenter = db.get('SELECT name FROM users WHERE id = ?', [req.user.id]);
+      db.run(
+        `INSERT INTO notifications (user_id, type, title, message, icon, color, recipe_id, from_user_id)
+         VALUES (?, 'comment', ?, ?, 'chatbubble-outline', '#C2622D', ?, ?)`,
+        [recipeForNotif.author_id, 'Novo comentário', `${commenter?.name ?? 'Alguém'} comentou em "${recipeForNotif.title}"`, req.params.id, req.user.id]
+      );
+    }
+
     const comment = db.get(`
       SELECT c.id, c.text, c.created_at, c.user_id,
              u.name as author_name, u.username as author_username, u.avatar as author_avatar
@@ -441,6 +504,43 @@ app.post('/api/recipes/:id/comments', auth, (req, res) => {
     `, [req.params.id, req.user.id]);
 
     res.status(201).json(comment);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── NOTIFICATIONS ───────────────────────────────────────────────────────────
+
+app.get('/api/notifications', auth, (req, res) => {
+  try {
+    const notifs = db.all(`
+      SELECT n.*, u.name as from_name, u.username as from_username, r.title as recipe_title
+      FROM notifications n
+      LEFT JOIN users u ON n.from_user_id = u.id
+      LEFT JOIN recipes r ON n.recipe_id = r.id
+      WHERE n.user_id = ?
+      ORDER BY n.created_at DESC
+      LIMIT 50
+    `, [req.user.id]);
+    res.json(notifs);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.put('/api/notifications/read', auth, (req, res) => {
+  try {
+    db.run('UPDATE notifications SET read = 1 WHERE user_id = ?', [req.user.id]);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/notifications/unread-count', auth, (req, res) => {
+  try {
+    const row = db.get('SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND read = 0', [req.user.id]);
+    res.json({ count: row?.count ?? 0 });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

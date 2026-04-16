@@ -36,7 +36,7 @@ export const api = {
   me: (token: string) =>
     request('/auth/me', { headers: authHeader(token) }),
 
-  updateMe: (token: string, body: { name: string; bio: string; cooking_type: string; nationality?: string | null; avatar?: string | null }) =>
+  updateMe: (token: string, body: { name: string; first_name?: string | null; last_name?: string | null; username?: string; bio: string; cooking_type: string; nationality?: string | null; avatar?: string | null }) =>
     request('/auth/me', { method: 'PUT', headers: authHeader(token), body: JSON.stringify(body) }),
 
   deleteMe: (token: string) =>
@@ -67,6 +67,12 @@ export const api = {
   deleteRecipe: (token: string, id: number) =>
     request(`/recipes/${id}`, { method: 'DELETE', headers: authHeader(token) }),
 
+  cookRecipe: (token: string, id: number | string) =>
+    request(`/recipes/${id}/cooked`, { method: 'POST', headers: authHeader(token) }),
+
+  uncookRecipe: (token: string, id: number | string) =>
+    request(`/recipes/${id}/cooked`, { method: 'DELETE', headers: authHeader(token) }),
+
   rateRecipe: (token: string, id: number | string, rating: number) =>
     request(`/recipes/${id}/rate`, { method: 'POST', headers: authHeader(token), body: JSON.stringify({ rating }) }),
 
@@ -86,6 +92,15 @@ export const api = {
     request(`/users/${id}/follow`, { method: 'POST', headers: authHeader(token) }),
   unfollowUser: (token: string, id: number | string) =>
     request(`/users/${id}/follow`, { method: 'DELETE', headers: authHeader(token) }),
+
+  getNotifications: (token: string) =>
+    request('/notifications', { headers: authHeader(token) }),
+
+  markNotificationsRead: (token: string) =>
+    request('/notifications/read', { method: 'PUT', headers: authHeader(token) }),
+
+  getUnreadCount: (token: string) =>
+    request('/notifications/unread-count', { headers: authHeader(token) }),
 
   health: () => request('/health'),
 };

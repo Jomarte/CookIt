@@ -15,7 +15,8 @@ import * as SplashScreen from 'expo-splash-screen';
 
 SplashScreen.preventAutoHideAsync();
 
-const STORAGE_KEY = 'cookit-store';
+const AUTH_KEY = 'cookit-auth';
+const userDataKey = (userId: number) => `cookit-data-${userId}`;
 
 function webGet(key: string): any | null {
   try {
@@ -54,7 +55,11 @@ function AppStack() {
       <Stack.Screen name="settings" options={{ headerShown: false }} />
       <Stack.Screen name="recipe/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="recipe/edit/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="recipe/card/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="user/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="calendar" options={{ headerShown: false }} />
+      <Stack.Screen name="notifications" options={{ headerShown: false }} />
+      <Stack.Screen name="achievements" options={{ headerShown: false }} />
     </Stack>
   );
 }
@@ -63,40 +68,88 @@ function StoreHydrator() {
   const store = useStore();
   const hydrated = useRef(false);
 
-  // On mount: restore full state from localStorage
+  // On mount: restore auth + user-specific data from localStorage
   useEffect(() => {
     if (Platform.OS !== 'web') return;
-    const saved = webGet(STORAGE_KEY);
-    if (!saved) return;
-    if (saved.token && saved.user) {
-      store.setAuth(saved.user, saved.token);
+
+    let auth = webGet(AUTH_KEY);
+
+    // Migrate from old format if needed
+    if (!auth) {
+      const old = webGet('cookit-store');
+      if (old?.token && old?.user) {
+        auth = { token: old.token, user: old.user };
+        webSet(AUTH_KEY, auth);
+        webSet(userDataKey(old.user.id), {
+          cookedRecipes: old.cookedRecipes ?? [],
+          cookedLogs: old.cookedLogs ?? [],
+          savedRecipes: old.savedRecipes ?? [],
+          shoppingList: old.shoppingList ?? [],
+          userRatings: old.userRatings ?? {},
+          notifications: old.notifications ?? [],
+          earnedBadgeIds: old.earnedBadgeIds ?? [],
+          pinnedBadgeIds: old.pinnedBadgeIds ?? [],
+        });
+        webRemove('cookit-store');
+      }
     }
-    if (saved.cookedRecipes) {
-      // Restore via individual setters via store internals
+
+    if (!auth?.token || !auth?.user) return;
+    store.setAuth(auth.user, auth.token);
+
+    // Load user-specific data
+    const userData = webGet(userDataKey(auth.user.id));
+    if (userData) {
       useStore.setState({
-        cookedRecipes: saved.cookedRecipes ?? [],
-        cookedLogs: saved.cookedLogs ?? [],
-        savedRecipes: saved.savedRecipes ?? [],
-        shoppingList: saved.shoppingList ?? [],
-        userRatings: saved.userRatings ?? {},
-        notifications: saved.notifications ?? [],
-        earnedBadgeIds: saved.earnedBadgeIds ?? [],
+        cookedRecipes: userData.cookedRecipes ?? [],
+        cookedLogs: userData.cookedLogs ?? [],
+        savedRecipes: userData.savedRecipes ?? [],
+        shoppingList: userData.shoppingList ?? [],
+        userRatings: userData.userRatings ?? {},
+        notifications: userData.notifications ?? [],
+        earnedBadgeIds: userData.earnedBadgeIds ?? [],
+        pinnedBadgeIds: userData.pinnedBadgeIds ?? [],
       });
     }
     hydrated.current = true;
   }, []);
 
-  // Persist state whenever it changes
-  const { token, user, cookedRecipes, cookedLogs, savedRecipes, shoppingList, userRatings, notifications, earnedBadgeIds } = store;
+  const { token, user, cookedRecipes, cookedLogs, savedRecipes, shoppingList, userRatings, notifications, earnedBadgeIds, pinnedBadgeIds } = store;
+
+  // When user logs in (user.id changes), load their saved data from localStorage
+  const prevUserIdRef = useRef<number | null>(null);
   useEffect(() => {
     if (Platform.OS !== 'web') return;
-    if (token === null && !hydrated.current) return;
-    if (token) {
-      webSet(STORAGE_KEY, { token, user, cookedRecipes, cookedLogs, savedRecipes, shoppingList, userRatings, notifications, earnedBadgeIds });
-    } else {
-      webRemove(STORAGE_KEY);
+    if (!user?.id) { prevUserIdRef.current = null; return; }
+    if (user.id === prevUserIdRef.current) return; // already loaded for this user
+    prevUserIdRef.current = user.id;
+    const userData = webGet(userDataKey(user.id));
+    if (userData) {
+      useStore.setState({
+        cookedRecipes: userData.cookedRecipes ?? [],
+        cookedLogs: userData.cookedLogs ?? [],
+        savedRecipes: userData.savedRecipes ?? [],
+        shoppingList: userData.shoppingList ?? [],
+        userRatings: userData.userRatings ?? {},
+        notifications: userData.notifications ?? [],
+        earnedBadgeIds: userData.earnedBadgeIds ?? [],
+        pinnedBadgeIds: userData.pinnedBadgeIds ?? [],
+      });
     }
-  }, [token, user, cookedRecipes, cookedLogs, savedRecipes, shoppingList, userRatings, notifications, earnedBadgeIds]);
+    hydrated.current = true;
+  }, [user?.id]);
+
+  // Persist state whenever it changes
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    if (!hydrated.current && token === null) return;
+    if (token && user) {
+      webSet(AUTH_KEY, { token, user });
+      webSet(userDataKey(user.id), { cookedRecipes, cookedLogs, savedRecipes, shoppingList, userRatings, notifications, earnedBadgeIds, pinnedBadgeIds });
+    } else {
+      webRemove(AUTH_KEY);
+    }
+  }, [token, user, cookedRecipes, cookedLogs, savedRecipes, shoppingList, userRatings, notifications, earnedBadgeIds, pinnedBadgeIds]);
 
   return null;
 }

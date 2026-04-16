@@ -36,8 +36,10 @@ async function init() {
     )
   `);
 
-  // Migration: add nationality column to existing databases
+  // Migrations for existing databases
   try { db.run(`ALTER TABLE users ADD COLUMN nationality TEXT DEFAULT NULL`); } catch (_) {}
+  try { db.run(`ALTER TABLE users ADD COLUMN first_name TEXT DEFAULT NULL`); } catch (_) {}
+  try { db.run(`ALTER TABLE users ADD COLUMN last_name TEXT DEFAULT NULL`); } catch (_) {}
 
   db.run(`
     CREATE TABLE IF NOT EXISTS recipes (
@@ -120,6 +122,33 @@ async function init() {
       PRIMARY KEY (follower_id, following_id),
       FOREIGN KEY (follower_id)  REFERENCES users(id) ON DELETE CASCADE,
       FOREIGN KEY (following_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS user_cooked (
+      user_id   INTEGER NOT NULL,
+      recipe_id INTEGER NOT NULL,
+      PRIMARY KEY (user_id, recipe_id),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id      INTEGER NOT NULL,
+      type         TEXT NOT NULL,
+      title        TEXT NOT NULL,
+      message      TEXT NOT NULL,
+      icon         TEXT NOT NULL DEFAULT 'notifications-outline',
+      color        TEXT NOT NULL DEFAULT '#C2622D',
+      read         INTEGER DEFAULT 0,
+      recipe_id    INTEGER,
+      from_user_id INTEGER,
+      created_at   TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
 

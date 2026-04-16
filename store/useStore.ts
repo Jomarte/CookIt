@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { api } from '../services/api';
 
 export interface Ingredient {
   id: string;
@@ -34,6 +35,8 @@ export interface AppNotification {
 export interface AuthUser {
   id: number;
   name: string;
+  first_name?: string | null;
+  last_name?: string | null;
   username: string;
   email: string;
   avatar: string | null;
@@ -110,9 +113,11 @@ interface AppState {
 
   notifications: AppNotification[];
   earnedBadgeIds: string[];
+  pinnedBadgeIds: string[];
   addNotification: (n: Omit<AppNotification, 'id' | 'read' | 'createdAt'>) => void;
   markAllRead: () => void;
   setEarnedBadgeIds: (ids: string[]) => void;
+  setPinnedBadgeIds: (ids: string[]) => void;
 
   addToShoppingList: (recipeId: string, ingredients: Ingredient[], recipeTitle?: string) => void;
   toggleShoppingItem: (itemId: string) => void;
@@ -124,7 +129,7 @@ interface AppState {
   setRating: (recipeId: string, rating: number) => void;
 }
 
-export const useStore = create<AppState>()((set) => ({
+export const useStore = create<AppState>()((set, get) => ({
   // Auth
   user: null,
   token: null,
@@ -148,6 +153,7 @@ export const useStore = create<AppState>()((set) => ({
   userRatings: {},
   notifications: [],
   earnedBadgeIds: [],
+  pinnedBadgeIds: [],
 
   addNotification: (n) => set((state) => ({
     notifications: [{
@@ -161,6 +167,7 @@ export const useStore = create<AppState>()((set) => ({
     notifications: state.notifications.map((n) => ({ ...n, read: true })),
   })),
   setEarnedBadgeIds: (ids) => set({ earnedBadgeIds: ids }),
+  setPinnedBadgeIds: (ids) => set({ pinnedBadgeIds: ids }),
 
   addToShoppingList: (recipeId, ingredients, recipeTitle = '') => {
     set((state) => {
@@ -212,8 +219,9 @@ export const useStore = create<AppState>()((set) => ({
   },
 
   toggleCooked: (recipeId) => {
+    const { token, cookedRecipes } = get();
+    const isCooked = cookedRecipes.includes(recipeId);
     set((state) => {
-      const isCooked = state.cookedRecipes.includes(recipeId);
       if (isCooked) {
         return {
           cookedRecipes: state.cookedRecipes.filter((id) => id !== recipeId),
@@ -226,6 +234,10 @@ export const useStore = create<AppState>()((set) => ({
         };
       }
     });
+    if (token) {
+      if (isCooked) api.uncookRecipe(token, recipeId).catch(() => {});
+      else api.cookRecipe(token, recipeId).catch(() => {});
+    }
   },
 
   setRating: (recipeId, rating) => {

@@ -117,6 +117,13 @@ export default function ShoppingScreen() {
 
         {/* ── Right: ingredients ── */}
         <View style={styles.detail}>
+          {/* Rings strip on left edge */}
+          <View style={styles.ringsStrip} pointerEvents="none">
+            {[...Array(7)].map((_, i) => (
+              <View key={i} style={styles.ring} />
+            ))}
+          </View>
+
           {activeRecipe ? (
             <>
               {/* Mini progress bar */}
@@ -188,14 +195,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: COLORS.surface1,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    backgroundColor: COLORS.bg,
+    borderBottomWidth: 0,
   },
   headerTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text1, letterSpacing: -0.4, fontFamily: FONTS.titleBold },
   wordmark: { flexDirection: 'row', alignItems: 'center' },
@@ -250,7 +251,30 @@ const styles = StyleSheet.create({
   recipeTabCountActive: { color: COLORS.primary },
 
   // Detail panel
-  detail: { flex: 1 },
+  detail: { flex: 1, position: 'relative' },
+
+  ringsStrip: {
+    position: 'absolute',
+    top: -9,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 18,
+    zIndex: 10,
+  },
+  ring: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 3,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.bg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
 
   progressWrap: { height: 4, backgroundColor: COLORS.surface2 },
   progressBar: {

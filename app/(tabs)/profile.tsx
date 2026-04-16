@@ -1,6 +1,8 @@
-import { useRouter, useFocusEffect } from 'expo-router';
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   Image,
@@ -11,15 +13,17 @@ import {
   Text,
   TouchableOpacity,
   View,
-  ActivityIndicator,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useStore, computeStreak, getLast7Days } from '../../store/useStore';
 import { COLORS } from '../../constants/Colors';
 import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
+import { computeStreak, getLast7Days, useStore } from '../../store/useStore';
 
-const TABS = ['Receitas', 'Guardadas', 'Cozinhei'];
+const TABS = [
+  { key: 'Receitas', icon: 'chef-hat', lib: 'mci' },
+  { key: 'Guardadas', icon: 'bookmark-outline', lib: 'ion' },
+  { key: 'Cozinhei', icon: 'pot-steam-outline', lib: 'mci' },
+];
 
 const FLAG_CODES: Record<string, string> = {
   'África do Sul':'za','Alemanha':'de','Angola':'ao','Arábia Saudita':'sa','Argélia':'dz',
@@ -48,9 +52,10 @@ interface Badge {
 export default function ProfileScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('Receitas');
+  const [showCalendar, setShowCalendar] = useState(true);
   const [allRecipes, setAllRecipes] = useState<any[]>([]);
   const [loadingRecipes, setLoadingRecipes] = useState(true);
-  const { savedRecipes, cookedRecipes, cookedLogs, toggleCooked, addToShoppingList, user, token, logout, addNotification, earnedBadgeIds, setEarnedBadgeIds } = useStore();
+  const { savedRecipes, cookedRecipes, cookedLogs, toggleCooked, addToShoppingList, user, token, logout, addNotification, earnedBadgeIds, setEarnedBadgeIds, pinnedBadgeIds } = useStore();
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [hoveredBadge, setHoveredBadge] = useState<Badge | null>(null);
 
@@ -78,76 +83,43 @@ export default function ProfileScreen() {
   const last7 = getLast7Days();
   const cookedDateSet = new Set(cookedLogs.map((l) => l.date));
 
-  // Badges
-  const badges: Badge[] = [
-    {
-      id: 'first_cook',
-      label: 'Primeiro Prato',
-      desc: 'Cozinha a tua primeira receita',
-      icon: 'flame-outline',
-      color: COLORS.star,
-      earned: cookedRecipes.length >= 1,
-    },
-    {
-      id: 'cook_5',
-      label: 'Cozinheiro Ativo',
-      desc: '5 receitas cozinhadas',
-      icon: 'restaurant-outline',
-      color: COLORS.green,
-      earned: cookedRecipes.length >= 5,
-    },
-    {
-      id: 'cook_10',
-      label: 'Chef em Progresso',
-      desc: '10 receitas cozinhadas',
-      icon: 'ribbon-outline',
-      color: COLORS.primary,
-      earned: cookedRecipes.length >= 10,
-    },
-    {
-      id: 'cook_25',
-      label: 'Chef Experiente',
-      desc: '25 receitas cozinhadas',
-      icon: 'trophy-outline',
-      color: COLORS.star,
-      earned: cookedRecipes.length >= 25,
-    },
-    {
-      id: 'streak_3',
-      label: 'Fogo Aceso',
-      desc: '3 dias de streak',
-      icon: 'flame',
-      color: '#FF8C00',
-      earned: streak >= 3,
-    },
-    {
-      id: 'streak_7',
-      label: 'Semana em Chamas',
-      desc: '7 dias seguidos a cozinhar',
-      icon: 'flame',
-      color: COLORS.accent,
-      earned: streak >= 7,
-    },
-    {
-      id: 'saved_5',
-      label: 'Colecionador',
-      desc: '5 receitas guardadas',
-      icon: 'bookmark',
-      color: COLORS.primary,
-      earned: savedRecipes.length >= 5,
-    },
-    {
-      id: 'publisher',
-      label: 'Publicador',
-      desc: 'Publicaste a primeira receita',
-      icon: 'paper-plane-outline',
-      color: COLORS.green,
-      earned: myRecipes.length >= 1,
-    },
+  const isOwner = user?.email === 'jmgpcl@gmail.com';
+
+  // Lista completa de badges (IDs iguais à página de conquistas)
+  const allBadges: Badge[] = [
+    { id: 'cook_1', label: 'Primeiro Prato', icon: 'flame-outline', color: COLORS.star, earned: isOwner || cookedRecipes.length >= 1, desc: '' },
+    { id: 'cook_5', label: 'Cozinheiro Ativo', icon: 'restaurant-outline', color: COLORS.green, earned: isOwner || cookedRecipes.length >= 5, desc: '' },
+    { id: 'cook_10', label: 'Chef em Progresso', icon: 'ribbon-outline', color: COLORS.primary, earned: isOwner || cookedRecipes.length >= 10, desc: '' },
+    { id: 'cook_25', label: 'Chef Experiente', icon: 'trophy-outline', color: COLORS.star, earned: isOwner || cookedRecipes.length >= 25, desc: '' },
+    { id: 'cook_50', label: 'Mestre da Cozinha', icon: 'chef-hat', color: '#E07B39', earned: isOwner || cookedRecipes.length >= 50, desc: '' },
+    { id: 'cook_100', label: 'Fogo Azul', icon: 'flame', color: '#3B8BFF', earned: isOwner || cookedRecipes.length >= 100, desc: '' },
+    { id: 'cook_250', label: 'Chama Imortal', icon: 'flame', color: '#9B30FF', earned: isOwner || cookedRecipes.length >= 250, desc: '' },
+    { id: 'cook_500', label: 'Deus da Cozinha', icon: 'flame', color: '#FFD700', earned: isOwner || cookedRecipes.length >= 500, desc: '' },
+    { id: 'streak_3', label: 'Fogo Aceso', icon: 'flame', color: '#FF8C00', earned: isOwner || streak >= 3, desc: '' },
+    { id: 'streak_7', label: 'Semana em Chamas', icon: 'flame', color: COLORS.accent, earned: isOwner || streak >= 7, desc: '' },
+    { id: 'streak_14', label: 'Duas Semanas', icon: 'flame', color: '#FF4500', earned: isOwner || streak >= 14, desc: '' },
+    { id: 'streak_30', label: 'Mês de Fogo', icon: 'flame', color: '#E91E63', earned: isOwner || streak >= 30, desc: '' },
+    { id: 'streak_100', label: 'Centenário', icon: 'flame', color: '#3B8BFF', earned: isOwner || streak >= 100, desc: '' },
+    { id: 'streak_365', label: 'Um Ano Inteiro', icon: 'flame', color: '#FFD700', earned: isOwner || streak >= 365, desc: '' },
+    { id: 'saved_1', label: 'Guardador', icon: 'bookmark-outline', color: COLORS.primary, earned: isOwner || savedRecipes.length >= 1, desc: '' },
+    { id: 'saved_5', label: 'Colecionador', icon: 'bookmark', color: COLORS.primary, earned: isOwner || savedRecipes.length >= 5, desc: '' },
+    { id: 'saved_20', label: 'Arquivo Pessoal', icon: 'library-outline', color: '#6366F1', earned: isOwner || savedRecipes.length >= 20, desc: '' },
+    { id: 'saved_50', label: 'Biblioteca do Chef', icon: 'book-outline', color: '#8B5CF6', earned: isOwner || savedRecipes.length >= 50, desc: '' },
+    { id: 'publisher', label: 'Publicador', icon: 'paper-plane-outline', color: COLORS.green, earned: isOwner || myRecipes.length >= 1, desc: '' },
+    { id: 'publish_5', label: 'Criador', icon: 'create-outline', color: COLORS.green, earned: isOwner || myRecipes.length >= 5, desc: '' },
+    { id: 'publish_20', label: 'Chef Influencer', icon: 'megaphone-outline', color: '#EC4899', earned: isOwner || myRecipes.length >= 20, desc: '' },
+    { id: 'publish_50', label: 'Estrela da Cozinha', icon: 'star', color: COLORS.star, earned: isOwner || myRecipes.length >= 50, desc: '' },
+    { id: 'legend_all', label: 'O Completo', icon: 'diamond-outline', color: '#3B8BFF', earned: isOwner, desc: '' },
+    { id: 'legend_diamond', label: 'Diamante', icon: 'diamond-outline', color: '#67E8F9', earned: isOwner || cookedRecipes.length >= 1000, desc: '' },
   ];
 
-  const earnedBadges = badges.filter((b) => b.earned);
-  const lockedBadges = badges.filter((b) => !b.earned);
+  // Badges a mostrar no perfil: os selecionados ou os primeiros 8 por defeito
+  const badges = pinnedBadgeIds.length > 0
+    ? allBadges.filter((b) => pinnedBadgeIds.includes(b.id))
+    : allBadges.slice(0, 8);
+
+  const earnedBadges = allBadges.filter((b) => b.earned);
+  const lockedBadges = allBadges.filter((b) => !b.earned);
 
   // Notificações: badges novos + milestones de streak
   useEffect(() => {
@@ -199,8 +171,12 @@ export default function ProfileScreen() {
     const isDeleting = deletingId === item.id;
     const isOwn = activeTab === 'Receitas';
 
+    const destination = activeTab === 'Guardadas'
+      ? `/recipe/card/${item.id}`
+      : `/recipe/${item.id}`;
+
     return (
-      <TouchableOpacity style={styles.gridCell} activeOpacity={0.88} onPress={() => router.push(`/recipe/${item.id}`)}>
+      <TouchableOpacity style={styles.gridCell} activeOpacity={0.88} onPress={() => router.push(destination)}>
         <View style={styles.gridImageWrap}>
           {item.image
             ? <Image source={{ uri: item.image }} style={styles.gridPhoto} resizeMode="cover" />
@@ -208,24 +184,10 @@ export default function ProfileScreen() {
                 <Ionicons name="restaurant-outline" size={22} color={COLORS.text3} />
               </View>
           }
-          {isOwn && (
-            <View style={styles.gridActions}>
-              <TouchableOpacity
-                style={styles.gridActionBtn}
-                onPress={(e) => { (e as any).stopPropagation?.(); router.push(`/recipe/edit/${item.id}`); }}
-              >
-                <Ionicons name="pencil-outline" size={11} color="#fff" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.gridActionBtn, styles.gridActionBtnDel]}
-                onPress={(e) => { (e as any).stopPropagation?.(); handleDelete(item.id); }}
-                disabled={isDeleting}
-              >
-                {isDeleting
-                  ? <ActivityIndicator size={10} color="#fff" />
-                  : <Ionicons name="trash-outline" size={11} color="#fff" />
-                }
-              </TouchableOpacity>
+          {item.rating > 0 && (
+            <View style={styles.gridRating}>
+              <Ionicons name="star" size={9} color={COLORS.star} />
+              <Text style={styles.gridRatingText}>{Number(item.rating).toFixed(1)}</Text>
             </View>
           )}
         </View>
@@ -238,152 +200,198 @@ export default function ProfileScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.settingsBtn} onPress={() => router.push('/settings')}>
-            <Ionicons name="settings-outline" size={20} color={COLORS.text2} />
-          </TouchableOpacity>
+          {/* Top row: @username + action buttons */}
+          <View style={styles.headerTopRow}>
+            <Text style={styles.profileUsername}>{user?.username ?? ''}</Text>
+            <View style={styles.topActions}>
+              <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/auth/setup-profile')}>
+                <Ionicons name="pencil" size={17} color={COLORS.text2} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.iconBtn}
+                onPress={() => {
+                  const { Share: RNShare } = require('react-native');
+                  RNShare.share({ message: `Segue-me no CookIt! @${user?.username ?? ''}` });
+                }}
+              >
+                <Ionicons name="share-outline" size={17} color={COLORS.text2} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/settings')}>
+                <Ionicons name="settings-outline" size={17} color={COLORS.text2} />
+              </TouchableOpacity>
+            </View>
+          </View>
 
-          <View style={styles.headerTop}>
+          {/* Avatar + info */}
+          <View style={styles.avatarSection}>
             <View style={styles.avatarWrap}>
               {user?.avatar
                 ? <Image source={{ uri: user.avatar }} style={styles.avatarImg} />
                 : (
                   <View style={styles.avatar}>
                     <Text style={styles.avatarLetter}>
-                      {(user?.name ?? '?')[0].toUpperCase()}
+                      {(user?.first_name ?? user?.name ?? '?')[0].toUpperCase()}
                     </Text>
                   </View>
                 )
               }
               <View style={styles.avatarRing} />
             </View>
-            <View style={styles.statsRow}>
-              <View style={styles.stat}>
-                <Text style={styles.statNumber}>{user?.recipes_count ?? 0}</Text>
-                <Text style={styles.statLabel}>Receitas</Text>
+
+            <View style={styles.nameBlock}>
+              <View style={styles.nameRow}>
+                <Text style={styles.name}>
+                  {user?.first_name || user?.last_name
+                    ? [user.first_name, user.last_name].filter(Boolean).join(' ')
+                    : (user?.name ?? '')}
+                </Text>
+                {streak > 0 && (
+                  <View style={styles.streakPill}>
+                    <Ionicons name="flame" size={12} color={COLORS.star} />
+                    <Text style={styles.streakPillText}>{streak}</Text>
+                  </View>
+                )}
               </View>
-              <View style={styles.statDivider} />
-              <View style={styles.stat}>
-                <Text style={styles.statNumber}>{user?.followers ?? 0}</Text>
-                <Text style={styles.statLabel}>Seguidores</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.stat}>
-                <Text style={styles.statNumber}>{user?.following ?? 0}</Text>
-                <Text style={styles.statLabel}>A seguir</Text>
+              <View style={styles.badgeRow}>
+                {user?.cooking_type ? (
+                  <View style={styles.cookingTypeBadge}>
+                    <Text style={styles.cookingTypeText}>{user.cooking_type}</Text>
+                  </View>
+                ) : null}
+                {user?.nationality ? (
+                  <View style={styles.nationalityBadge}>
+                    {FLAG_CODES[user.nationality] && (
+                      <Image
+                        source={{ uri: `https://flagcdn.com/w40/${FLAG_CODES[user.nationality]}.png` }}
+                        style={styles.nationalityFlag}
+                      />
+                    )}
+                    <Text style={styles.nationalityText}>{user.nationality}</Text>
+                  </View>
+                ) : null}
               </View>
             </View>
           </View>
 
-          <Text style={styles.name}>{user?.name ?? ''}</Text>
-          <Text style={styles.usernameText}>@{user?.username ?? ''}</Text>
-          <View style={styles.badgeRow}>
-            {user?.cooking_type ? (
-              <View style={styles.cookingTypeBadge}>
-                <Text style={styles.cookingTypeText}>{user.cooking_type}</Text>
-              </View>
-            ) : null}
-            {user?.nationality ? (
-              <View style={styles.nationalityBadge}>
-                {FLAG_CODES[user.nationality] && (
-                  <Image
-                    source={{ uri: `https://flagcdn.com/w40/${FLAG_CODES[user.nationality]}.png` }}
-                    style={styles.nationalityFlag}
-                  />
-                )}
-                <Text style={styles.nationalityText}>{user.nationality}</Text>
-              </View>
-            ) : null}
+          {/* Bio */}
+          {user?.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
+
+          {/* Stats */}
+          <View style={styles.statsRow}>
+            <View style={styles.stat}>
+              <Text style={styles.statNumber}>{user?.recipes_count ?? 0}</Text>
+              <Text style={styles.statLabel}>Receitas</Text>
+            </View>
+            <View style={styles.stat}>
+              <Text style={styles.statNumber}>{user?.followers ?? 0}</Text>
+              <Text style={styles.statLabel}>Seguidores</Text>
+            </View>
+            <View style={styles.stat}>
+              <Text style={styles.statNumber}>{user?.following ?? 0}</Text>
+              <Text style={styles.statLabel}>A seguir</Text>
+            </View>
           </View>
-          {user?.bio ? (
-            <Text style={styles.bio}>{user.bio}</Text>
-          ) : null}
 
         </View>
 
-        {/* Streak + Badges lado a lado */}
-        <View style={styles.rowCards}>
-          {/* Streak — calendário */}
-          <View style={styles.streakCard}>
-            {/* Header */}
-            <View style={styles.streakHeader}>
-              <Ionicons name="flame" size={14} color={COLORS.star} />
-              <Text style={styles.streakTitle}>
-                {new Date().toLocaleDateString('pt-PT', { month: 'long' })}
-              </Text>
-              <Text style={styles.streakBigNumText}>{streak}🔥</Text>
-            </View>
+        <View style={styles.headerDivider} />
 
-            {/* Dias da semana */}
-            <View style={styles.calWeekRow}>
-              {['D','S','T','Q','Q','S','S'].map((d, i) => (
-                <Text key={i} style={styles.calWeekLabel}>{d}</Text>
-              ))}
-            </View>
+        {/* Calendário / Conquistas com toggle */}
+        <View style={styles.cardSection}>
+          <View style={styles.cardSectionHeader}>
+            <Text style={styles.cardSectionTitle}>
+              {showCalendar ? 'Calendário' : 'Conquistas'}
+            </Text>
+            <TouchableOpacity style={styles.toggleBtn} onPress={() => setShowCalendar((v) => !v)}>
+              <Ionicons name={showCalendar ? 'trophy-outline' : 'calendar-outline'} size={13} color={COLORS.primary} />
+              <Text style={styles.toggleBtnText}>{showCalendar ? 'Conquistas' : 'Calendário'}</Text>
+            </TouchableOpacity>
+          </View>
 
-            {/* Grelha do mês */}
-            <View style={styles.calGrid}>
+          {showCalendar ? (
+            <>
+              <View style={styles.streakHeader}>
+                <Text style={styles.streakTitle}>
+                  {new Date().toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}
+                </Text>
+                <Text style={styles.streakBigNumText}>{streak}🔥</Text>
+              </View>
+
+              {/* Semana atual */}
               {(() => {
                 const now = new Date();
-                const year = now.getFullYear();
-                const month = now.getMonth();
-                const firstDay = new Date(year, month, 1).getDay();
-                const daysInMonth = new Date(year, month + 1, 0).getDate();
-                const cells = [];
-                for (let i = 0; i < firstDay; i++) {
-                  cells.push(<View key={`e-${i}`} style={styles.calCell} />);
-                }
-                for (let d = 1; d <= daysInMonth; d++) {
-                  const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const dayOfWeek = now.getDay();
+                const weekDays = ['D','S','T','Q','Q','S','S'];
+                const days = [];
+                for (let i = 0; i < 7; i++) {
+                  const d = new Date(now);
+                  d.setDate(now.getDate() - dayOfWeek + i);
+                  const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
                   const cooked = cookedDateSet.has(dateStr);
-                  const isToday = d === now.getDate();
-                  cells.push(
-                    <View key={d} style={[styles.calCell, cooked && styles.calCellCooked, isToday && !cooked && styles.calCellToday]}>
-                      <Text style={[styles.calCellText, cooked && styles.calCellTextCooked, isToday && !cooked && styles.calCellTextToday]}>{d}</Text>
+                  const isToday = i === dayOfWeek;
+                  days.push(
+                    <View key={i} style={styles.weekDayCol}>
+                      <Text style={styles.weekDayLabel}>{weekDays[i]}</Text>
+                      <View style={[styles.weekDayCell, cooked && styles.weekDayCellCooked, isToday && !cooked && styles.weekDayCellToday]}>
+                        <Text style={[styles.weekDayCellText, cooked && styles.weekDayCellTextCooked, isToday && !cooked && styles.weekDayCellTextToday]}>
+                          {d.getDate()}
+                        </Text>
+                      </View>
                     </View>
                   );
                 }
-                return cells;
+                return <View style={styles.weekRow}>{days}</View>;
               })()}
-            </View>
-          </View>
 
-          {/* Badges */}
-          <View style={styles.badgesCard}>
-            <Text style={styles.sectionTitle}>Conquistas</Text>
-            <View style={styles.badgesIconRow}>
-              {badges.map((badge) => (
-                <View
-                  key={badge.id}
-                  {...({
-                    onMouseEnter: () => setHoveredBadge(badge),
-                    onMouseLeave: () => setHoveredBadge(null),
-                  } as any)}
-                  style={[
-                    styles.badgeSmallIcon,
-                    badge.earned
-                      ? { backgroundColor: `${badge.color}22`, borderColor: `${badge.color}55` }
-                      : styles.badgeSmallIconLocked,
-                  ]}
-                >
-                  {badge.earned
-                    ? <Ionicons name={badge.icon as any} size={16} color={badge.color} />
-                    : <Ionicons name="lock-closed-outline" size={11} color={COLORS.text3} />
-                  }
-                </View>
-              ))}
-            </View>
-          </View>
+              <TouchableOpacity style={styles.fullCalBtn} onPress={() => router.push('/calendar')}>
+                <Ionicons name="calendar-outline" size={13} color={COLORS.primary} />
+                <Text style={styles.fullCalBtnText}>Ver calendário completo</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <View style={styles.badgesIconRow}>
+                {badges.map((badge) => (
+                  <View
+                    key={badge.id}
+                    {...({
+                      onMouseEnter: () => setHoveredBadge(badge),
+                      onMouseLeave: () => setHoveredBadge(null),
+                    } as any)}
+                    style={[
+                      styles.badgeSmallIcon,
+                      badge.earned
+                        ? { backgroundColor: `${badge.color}22`, borderColor: `${badge.color}55` }
+                        : styles.badgeSmallIconLocked,
+                    ]}
+                  >
+                    {badge.earned
+                      ? <Ionicons name={badge.icon as any} size={16} color={badge.color} />
+                      : <Ionicons name="lock-closed-outline" size={11} color={COLORS.text3} />
+                    }
+                  </View>
+                ))}
+              </View>
+              <TouchableOpacity style={styles.fullCalBtn} onPress={() => router.push('/achievements')}>
+                <Ionicons name="trophy-outline" size={13} color={COLORS.primary} />
+                <Text style={styles.fullCalBtnText}>Ver todas as conquistas</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         {/* Tabs */}
         <View style={styles.tabs}>
           {TABS.map((tab) => (
             <TouchableOpacity
-              key={tab}
-              style={[styles.tab, activeTab === tab && styles.tabActive]}
-              onPress={() => setActiveTab(tab)}
+              key={tab.key}
+              style={[styles.tab, activeTab === tab.key && styles.tabActive]}
+              onPress={() => setActiveTab(tab.key)}
             >
-              <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
+              {tab.lib === 'mci'
+                ? <MaterialCommunityIcons name={tab.icon as any} size={22} color={activeTab === tab.key ? COLORS.primary : COLORS.text3} />
+                : <Ionicons name={tab.icon as any} size={20} color={activeTab === tab.key ? COLORS.primary : COLORS.text3} />
+              }
             </TouchableOpacity>
           ))}
         </View>
@@ -445,17 +453,16 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
 
   header: {
-    backgroundColor: COLORS.surface1,
+    backgroundColor: COLORS.bg,
     padding: 20,
     paddingTop: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    paddingBottom: 8,
     position: 'relative',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
+  },
+  headerDivider: {
+    height: 0.5,
+    backgroundColor: COLORS.border,
+    marginHorizontal: 14,
   },
   settingsBtn: {
     position: 'absolute',
@@ -471,42 +478,49 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  headerTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 16 },
-  avatarWrap: { position: 'relative', width: 84, height: 84 },
-  avatar: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    backgroundColor: COLORS.primaryDim,
-    alignItems: 'center',
-    justifyContent: 'center',
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  topActions: { flexDirection: 'row', gap: 8 },
+  profileUsername: { fontSize: 22, color: COLORS.text1, fontFamily: FONTS.titleBold, letterSpacing: -0.3 },
+  iconBtn: {
+    width: 34, height: 34, borderRadius: 17,
+    backgroundColor: COLORS.surface2,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: COLORS.border,
   },
-  avatarImg: { width: 84, height: 84, borderRadius: 42 },
-  avatarLetter: { fontSize: 34, fontWeight: '900', color: COLORS.primary, fontFamily: FONTS.titleBlack },
+  avatarSection: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 12 },
+  nameBlock: { flex: 1, gap: 2 },
+  avatarWrap: { position: 'relative', width: 76, height: 76, flexShrink: 0 },
+  avatar: {
+    width: 76, height: 76, borderRadius: 38,
+    backgroundColor: COLORS.primaryDim,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  avatarImg: { width: 76, height: 76, borderRadius: 38 },
+  avatarLetter: { fontSize: 30, fontWeight: '900', color: COLORS.primary, fontFamily: FONTS.titleBlack },
   avatarRing: {
-    position: 'absolute',
-    top: -4,
-    left: -4,
-    right: -4,
-    bottom: -4,
-    borderRadius: 48,
-    borderWidth: 2.5,
-    borderColor: COLORS.primary,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
+    position: 'absolute', top: -3, left: -3, right: -3, bottom: -3,
+    borderRadius: 42, borderWidth: 2.5, borderColor: COLORS.primary,
+    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.08, shadowRadius: 10,
   },
 
-  statsRow: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  stat: { flex: 1, alignItems: 'center', gap: 2 },
-  statNumber: { fontSize: 24, fontWeight: '900', color: COLORS.primary, letterSpacing: -0.5, fontFamily: FONTS.titleBlack },
-  statLabel: { fontSize: 11, color: COLORS.text3, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3, fontFamily: FONTS.body },
+  statsRow: { flexDirection: 'row', marginBottom: 0 },
+  stat: { flex: 1, alignItems: 'center', gap: 3 },
+  statNumber: { fontSize: 20, fontWeight: '800', color: COLORS.primary, letterSpacing: -0.5, fontFamily: FONTS.bodyBold },
+  statLabel: { fontSize: 14, color: COLORS.primary, fontWeight: '500', fontFamily: FONTS.body },
   statDivider: { width: 1, height: 30, backgroundColor: COLORS.border },
 
-  name: { fontSize: 21, fontWeight: '900', color: COLORS.text1, marginBottom: 3, letterSpacing: -0.3, fontFamily: FONTS.titleBold },
-  usernameText: { fontSize: 13, color: COLORS.text3, marginBottom: 8, fontWeight: '500', fontFamily: FONTS.body },
-  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  name: { fontSize: 18, fontWeight: '900', color: COLORS.text1, letterSpacing: -0.3, fontFamily: FONTS.bodyBold },
+  streakPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: 'rgba(217,119,6,0.12)',
+    paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: 10, borderWidth: 1, borderColor: 'rgba(217,119,6,0.3)',
+  },
+  streakPillText: { fontSize: 13, fontWeight: '800', color: COLORS.star, fontFamily: FONTS.bodyBold },
+  usernameText: { fontSize: 12, color: COLORS.text3, fontWeight: '500', fontFamily: FONTS.body },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 4 },
   cookingTypeBadge: {
     backgroundColor: COLORS.primaryDim,
     paddingHorizontal: 10,
@@ -529,64 +543,109 @@ const styles = StyleSheet.create({
   },
   nationalityFlag: { width: 20, height: 14, borderRadius: 2 },
   nationalityText: { fontSize: 12, color: COLORS.text2, fontWeight: '600', fontFamily: FONTS.body },
-  bio: { fontSize: 14, color: COLORS.text2, lineHeight: 21, marginBottom: 14, fontFamily: FONTS.body },
+  bio: { fontSize: 13, color: COLORS.text2, lineHeight: 20, marginBottom: 12, fontFamily: FONTS.body },
 
-  actionsRow: { flexDirection: 'row', gap: 10, marginTop: 6 },
+  actionsRow: { flexDirection: 'row', gap: 8 },
   editBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 11,
-    borderRadius: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
     borderWidth: 1.5,
     borderColor: COLORS.borderActive,
     backgroundColor: COLORS.primaryDim,
   },
-  editBtnText: { fontSize: 14, fontWeight: '700', color: COLORS.primary, fontFamily: FONTS.bodyBold },
-  logoutBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,45,85,0.25)',
-    backgroundColor: 'rgba(255,45,85,0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
+  editBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.primary, fontFamily: FONTS.bodyBold },
+  shareBtn: {
+    width: 38, height: 38, borderRadius: 10,
+    borderWidth: 1.5, borderColor: COLORS.border,
+    backgroundColor: COLORS.surface2,
+    alignItems: 'center', justifyContent: 'center',
   },
 
-  // Streak + Badges row
-  rowCards: {
-    flexDirection: 'row',
+  cardSection: {
     marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 4,
-    gap: 10,
+    marginTop: 4,
+    marginBottom: 2,
+    backgroundColor: COLORS.bg,
+    borderRadius: 18,
+    padding: 12,
+    gap: 8,
   },
+  cardSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  cardSectionTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.text3,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    fontFamily: FONTS.bodyBold,
+  },
+  toggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.primaryDim,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.borderActive,
+  },
+  toggleBtnText: { fontSize: 11, fontWeight: '700', color: COLORS.primary, fontFamily: FONTS.bodyBold },
+
   streakCard: {
     flex: 1,
-    backgroundColor: COLORS.surface1,
+    backgroundColor: COLORS.bg,
     borderRadius: 18,
     padding: 14,
     borderWidth: 1,
     borderColor: COLORS.border,
     gap: 10,
   },
-  streakHeader: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 4 },
+  streakHeader: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 2 },
   streakFireIcon: {},
   streakTitle: { fontSize: 12, fontWeight: '700', color: COLORS.text1, flex: 1, textTransform: 'capitalize', fontFamily: FONTS.bodyBold },
   streakSub: { fontSize: 10, color: COLORS.text3, fontFamily: FONTS.body },
   streakBigNumText: { fontSize: 13, fontWeight: '900', color: COLORS.star, fontFamily: FONTS.titleBlack },
 
-  calWeekRow: { flexDirection: 'row', marginBottom: 3 },
-  calWeekLabel: { flex: 1, textAlign: 'center', fontSize: 8, fontWeight: '700', color: COLORS.text3, fontFamily: FONTS.bodyBold },
+  weekRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  weekDayCol: { flex: 1, alignItems: 'center', gap: 4 },
+  weekDayLabel: { fontSize: 10, fontWeight: '700', color: COLORS.text3, fontFamily: FONTS.bodyBold },
+  weekDayCell: {
+    width: 30, height: 30, borderRadius: 15,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: COLORS.surface2,
+  },
+  weekDayCellCooked: { backgroundColor: COLORS.star },
+  weekDayCellToday: { borderWidth: 2, borderColor: COLORS.primary, backgroundColor: COLORS.primaryDim },
+  weekDayCellText: { fontSize: 12, fontWeight: '600', color: COLORS.text2, fontFamily: FONTS.body },
+  weekDayCellTextCooked: { color: '#fff', fontWeight: '800' },
+  weekDayCellTextToday: { color: COLORS.primary, fontWeight: '800' },
 
+  fullCalBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
+    paddingVertical: 7,
+    borderRadius: 10,
+    backgroundColor: COLORS.primaryDim,
+    borderWidth: 1, borderColor: COLORS.borderActive,
+  },
+  fullCalBtnText: { fontSize: 12, fontWeight: '700', color: COLORS.primary, fontFamily: FONTS.bodyBold },
+
+  calWeekRow: { flexDirection: 'row', marginBottom: 1 },
+  calWeekLabel: { flex: 1, textAlign: 'center', fontSize: 7, fontWeight: '700', color: COLORS.text3, fontFamily: FONTS.bodyBold },
   calGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   calCell: { width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center' },
-  calCellCooked: { backgroundColor: COLORS.star, borderRadius: 4 },
-  calCellToday: { borderRadius: 4, borderWidth: 1, borderColor: COLORS.primary },
-  calCellText: { fontSize: 8, color: COLORS.text2, fontFamily: FONTS.body },
+  calCellCooked: { backgroundColor: COLORS.star, borderRadius: 3 },
+  calCellToday: { borderRadius: 3, borderWidth: 1, borderColor: COLORS.primary },
+  calCellText: { fontSize: 7, color: COLORS.text2, fontFamily: FONTS.body },
   calCellTextCooked: { color: '#fff', fontWeight: '700' },
   calCellTextToday: { color: COLORS.primary, fontWeight: '700' },
 
@@ -599,7 +658,7 @@ const styles = StyleSheet.create({
   // Badges
   badgesCard: {
     flex: 1,
-    backgroundColor: COLORS.surface1,
+    backgroundColor: COLORS.bg,
     borderRadius: 18,
     padding: 14,
     borderWidth: 1,
@@ -666,7 +725,7 @@ const styles = StyleSheet.create({
   // Tabs
   tabs: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface1,
+    backgroundColor: COLORS.bg,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
     marginTop: 4,
@@ -697,23 +756,23 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface2,
     position: 'relative',
   },
-  gridActions: {
+  gridRating: {
     position: 'absolute',
-    bottom: 6,
-    right: 6,
+    top: 5,
+    right: 5,
     flexDirection: 'row',
-    gap: 4,
-  },
-  gridActionBtn: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    backgroundColor: 'rgba(0,0,0,0.45)',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 2,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
-  gridActionBtnDel: {
-    backgroundColor: 'rgba(255,90,90,0.70)',
+  gridRatingText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: COLORS.star,
+    fontFamily: FONTS.bodyBold,
   },
   gridPhoto: {
     width: '100%',

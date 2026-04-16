@@ -34,7 +34,7 @@ const FLAG_CODES: Record<string, string> = {
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { user: me, savedRecipes, toggleSaved, token, setAuth } = useStore();
+  const { user: me, token, setAuth } = useStore();
 
   const [profile, setProfile] = useState<any>(null);
   const [recipes, setRecipes] = useState<any[]>([]);
@@ -76,7 +76,6 @@ export default function UserProfileScreen() {
 
   const renderCard = ({ item: recipe }: { item: any }) => {
     if (!recipe) return <View style={[styles.card, { opacity: 0 }]} pointerEvents="none" />;
-    const isSaved = savedRecipes.includes(String(recipe.id));
     const totalTime = (recipe.prep_time ?? 0) + (recipe.cook_time ?? 0);
     return (
       <TouchableOpacity style={styles.card} onPress={() => router.push(`/recipe/${recipe.id}`)}>
@@ -85,17 +84,12 @@ export default function UserProfileScreen() {
             ? <Image source={{ uri: recipe.image }} style={styles.cardPhoto} resizeMode="cover" />
             : <Ionicons name="restaurant-outline" size={24} color={COLORS.text3} />
           }
-          <TouchableOpacity
-            style={styles.cardSaveBtn}
-            onPress={(e) => { e.stopPropagation?.(); toggleSaved(String(recipe.id)); }}
-          >
-            <Ionicons name={isSaved ? 'bookmark' : 'bookmark-outline'} size={14} color={isSaved ? COLORS.primary : '#fff'} />
-          </TouchableOpacity>
-          {recipe.difficulty ? (
-            <View style={styles.cardDiff}>
-              <Text style={styles.cardDiffText}>{recipe.difficulty}</Text>
+          {recipe.rating > 0 && (
+            <View style={styles.cardRating}>
+              <Ionicons name="star" size={10} color={COLORS.star} />
+              <Text style={styles.cardRatingText}>{Number(recipe.rating).toFixed(1)}</Text>
             </View>
-          ) : null}
+          )}
         </View>
         <View style={styles.cardContent}>
           <Text style={styles.cardTitle} numberOfLines={2}>{recipe.title}</Text>
@@ -391,20 +385,14 @@ const styles = StyleSheet.create({
     position: 'relative', overflow: 'hidden',
   },
   cardPhoto: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
-  cardSaveBtn: {
-    position: 'absolute', top: 7, left: 7,
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: 'rgba(6,6,26,0.65)',
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
-  },
-  cardDiff: {
+  cardRating: {
     position: 'absolute', top: 7, right: 7,
-    backgroundColor: 'rgba(6,6,26,0.8)',
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: 'rgba(6,6,26,0.65)',
     paddingHorizontal: 7, paddingVertical: 3,
-    borderRadius: 8, borderWidth: 1, borderColor: COLORS.border,
+    borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
   },
-  cardDiffText: { fontSize: 10, color: COLORS.text2, fontWeight: '700', fontFamily: FONTS.bodyBold },
+  cardRatingText: { fontSize: 11, fontWeight: '700', color: COLORS.star, fontFamily: FONTS.bodyBold },
   cardContent: { padding: 9 },
   cardTitle: { fontSize: 12, fontWeight: '700', color: COLORS.text1, marginBottom: 4, lineHeight: 17, fontFamily: FONTS.bodyBold },
   cardMeta: { flexDirection: 'row', alignItems: 'center', gap: 3 },

@@ -350,9 +350,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: COLORS.surface1,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.bg,
+    borderBottomWidth: 0,
   },
   headerTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text1, letterSpacing: -0.3, fontFamily: FONTS.titleBlack },
   wordmark: { flexDirection: 'row', alignItems: 'center' },
@@ -405,12 +404,10 @@ const styles = StyleSheet.create({
   filterBadgeText: { fontSize: 9, fontWeight: '800', color: COLORS.bg, fontFamily: FONTS.bodyBold },
 
   searchContainer: {
-    backgroundColor: COLORS.surface1,
+    backgroundColor: COLORS.bg,
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
   },
   searchWrap: {
     flexDirection: 'row',

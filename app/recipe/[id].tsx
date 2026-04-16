@@ -29,12 +29,13 @@ export default function RecipeDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Receita');
   const [servings, setServings] = useState(2);
-  const { savedRecipes, cookedRecipes, toggleSaved, toggleCooked, addToShoppingList, setRating, userRatings, token } = useStore();
-  const [userRating, setUserRating] = useState(() => userRatings[String(id)] ?? 0);
+  const { savedRecipes, cookedRecipes, toggleSaved, toggleCooked, addToShoppingList, setRating, userRatings, token, user } = useStore();
+  const userRating = userRatings[String(id)] ?? 0;
   const [comments, setComments] = useState<any[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [cookedCountOffset, setCookedCountOffset] = useState(0);
 
   useEffect(() => {
     api.getRecipe(id).then((data) => {
@@ -90,11 +91,31 @@ export default function RecipeDetailScreen() {
 
   const isSaved = savedRecipes.includes(String(recipe.id));
   const isCooked = cookedRecipes.includes(String(recipe.id));
+  const isOwn = user && String(recipe.author_id) === String(user.id);
+
+  const handleDelete = () => {
+    const doDelete = async () => {
+      try {
+        await api.deleteRecipe(token!, recipe.id);
+        router.back();
+      } catch (e: any) {
+        if (Platform.OS === 'web') alert(e.message);
+        else Alert.alert('Erro', e.message);
+      }
+    };
+    if (Platform.OS === 'web') {
+      if (window.confirm('Apagar esta receita? Esta ação é irreversível.')) doDelete();
+    } else {
+      Alert.alert('Apagar receita', 'Esta ação é irreversível. Tens a certeza?', [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Apagar', style: 'destructive', onPress: doDelete },
+      ]);
+    }
+  };
   const ratio = servings / (recipe.servings || 1);
   const initial = (recipe.author_name ?? '?')[0].toUpperCase();
 
   const handleRate = async (star: number) => {
-    setUserRating(star);
     setRating(String(recipe.id), star);
     if (token) {
       try {
@@ -114,6 +135,11 @@ export default function RecipeDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Back button fixo */}
+      <TouchableOpacity style={styles.floatBackBtn} onPress={() => router.back()}>
+        <Ionicons name="arrow-back" size={20} color="#fff" />
+      </TouchableOpacity>
+
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Hero */}
         <View style={styles.hero}>
@@ -124,9 +150,6 @@ export default function RecipeDetailScreen() {
               </View>
           }
           <View style={styles.heroGradient} />
-          <TouchableOpacity style={styles.floatBackBtn} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={20} color="#fff" />
-          </TouchableOpacity>
           <TouchableOpacity
             style={[styles.floatSaveBtn, isSaved && styles.floatSaveBtnActive]}
             onPress={() => toggleSaved(String(recipe.id))}
@@ -142,6 +165,20 @@ export default function RecipeDetailScreen() {
         <View style={styles.content}>
           {/* Title */}
           <Text style={styles.title}>{recipe.title}</Text>
+
+          {/* Owner actions */}
+          {isOwn && (
+            <View style={styles.ownerActions}>
+              <TouchableOpacity style={styles.ownerEditBtn} onPress={() => router.push(`/recipe/edit/${recipe.id}`)}>
+                <Ionicons name="pencil-outline" size={15} color={COLORS.primary} />
+                <Text style={styles.ownerEditText}>Editar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.ownerDeleteBtn} onPress={handleDelete}>
+                <Ionicons name="trash-outline" size={15} color="#FF5A5A" />
+                <Text style={styles.ownerDeleteText}>Apagar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Meta chips */}
           <View style={styles.metaRow}>
@@ -196,7 +233,7 @@ export default function RecipeDetailScreen() {
               <View style={styles.statIcon}>
                 <Ionicons name="checkmark-circle-outline" size={18} color={COLORS.star} />
               </View>
-              <Text style={styles.statValue}>{recipe.cooked_count ?? 0}</Text>
+              <Text style={styles.statValue}>{Math.max(0, (recipe.cooked_count ?? 0) + cookedCountOffset)}</Text>
               <Text style={styles.statLabel}>Cozinharam</Text>
             </View>
           </View>
@@ -401,7 +438,11 @@ export default function RecipeDetailScreen() {
       <View style={styles.bottomBar}>
         <TouchableOpacity
           style={[styles.bottomBtnCooked, isCooked && styles.bottomBtnCookedActive]}
-          onPress={() => toggleCooked(String(recipe.id))}
+          onPress={() => {
+            const wasCooked = cookedRecipes.includes(String(recipe.id));
+            toggleCooked(String(recipe.id));
+            setCookedCountOffset((prev) => prev + (wasCooked ? -1 : 1));
+          }}
         >
           <Ionicons
             name={isCooked ? 'checkmark-circle' : 'checkmark-circle-outline'}
@@ -457,6 +498,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 16,
     left: 16,
+    zIndex: 20,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -495,6 +537,38 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     lineHeight: 30,
   },
+
+  ownerActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+  },
+  ownerEditBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: COLORS.borderActive,
+    backgroundColor: COLORS.primaryDim,
+  },
+  ownerEditText: { fontSize: 13, fontWeight: '700', color: COLORS.primary, fontFamily: FONTS.bodyBold },
+  ownerDeleteBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,90,90,0.3)',
+    backgroundColor: 'rgba(255,90,90,0.1)',
+  },
+  ownerDeleteText: { fontSize: 13, fontWeight: '700', color: '#FF5A5A', fontFamily: FONTS.bodyBold },
 
   metaRow: { flexDirection: 'row', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
   metaChip: {
