@@ -20,8 +20,6 @@ import { COLORS } from '../../constants/Colors';
 import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 
-const FILTERS = ['Todos', 'Popular', 'Rápido', 'Saudável'];
-
 const DIFF_COLORS: Record<string, string> = {
   'Fácil': COLORS.green,
   'Médio': COLORS.star,
@@ -30,7 +28,6 @@ const DIFF_COLORS: Record<string, string> = {
 
 export default function FeedScreen() {
   const router = useRouter();
-  const [activeFilter, setActiveFilter] = useState('Todos');
   const [recipes, setRecipes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -57,12 +54,7 @@ export default function FeedScreen() {
 
   const onRefresh = () => { setRefreshing(true); loadRecipes(); };
 
-  const filtered = recipes.filter((r) => {
-    if (activeFilter === 'Popular') return (r.likes ?? 0) >= 0;
-    if (activeFilter === 'Rápido') return (r.prep_time + r.cook_time) <= 30;
-    if (activeFilter === 'Saudável') return r.diet?.includes('Vegan') || r.diet?.includes('Vegetariano');
-    return true;
-  });
+  const filtered = recipes;
 
   const renderPost = ({ item: recipe }: { item: any }) => {
     const id = String(recipe.id);
@@ -266,24 +258,7 @@ export default function FeedScreen() {
           <Text style={styles.wordmarkIt}>It</Text>
         </View>
 
-        {/* Filter pills */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filtersWrap}
-          contentContainerStyle={styles.filtersContent}
-        >
-          {FILTERS.map((f) => (
-            <TouchableOpacity
-              key={f}
-              style={[styles.filterPill, activeFilter === f && styles.filterPillActive]}
-              onPress={() => setActiveFilter(f)}
-            >
-              <Text style={[styles.filterText, activeFilter === f && styles.filterTextActive]}>{f}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
+        <View style={{ flex: 1 }} />
         <TouchableOpacity style={styles.notifBtn} onPress={() => router.push('/rankings')}>
           <Ionicons name="trophy-outline" size={20} color={COLORS.text2} />
         </TouchableOpacity>
@@ -442,24 +417,17 @@ const styles = StyleSheet.create({
   },
   notifBadgeText: { fontSize: 9, fontWeight: '800', color: '#fff' },
 
-  filtersWrap: { flex: 1 },
-  filtersContent: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingVertical: 2 },
-  filterPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+  feedContent: { paddingBottom: 32, paddingHorizontal: 12, paddingTop: 12 },
+
+  // ── Post ──────────────────────────────────────────────────────────────────
+  post: {
+    backgroundColor: COLORS.surface1,
     borderRadius: 20,
-    backgroundColor: COLORS.surface2,
+    marginBottom: 14,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  filterPillActive: { backgroundColor: COLORS.primaryDim, borderColor: COLORS.borderActive },
-  filterText: { fontSize: 12, fontWeight: '600', color: COLORS.text3, fontFamily: FONTS.body },
-  filterTextActive: { color: COLORS.primary, fontFamily: FONTS.bodyBold },
-
-  feedContent: { paddingBottom: 32 },
-
-  // ── Post ──────────────────────────────────────────────────────────────────
-  post: { backgroundColor: COLORS.surface1 },
 
   // Author bar at top of post (acts as separator between posts)
   postHeader: {

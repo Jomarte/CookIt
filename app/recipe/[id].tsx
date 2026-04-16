@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 100,
-    backgroundColor: 'rgba(9,9,18,0.6)',
+    backgroundColor: 'transparent',
   },
   floatBackBtn: {
     position: 'absolute',
