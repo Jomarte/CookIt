@@ -350,8 +350,9 @@ app.post('/api/users/:id/follow', auth, (req, res) => {
   db.run('INSERT INTO follows (follower_id, following_id) VALUES (?, ?)', [req.user.id, targetId]);
   db.run('UPDATE users SET following = following + 1 WHERE id = ?', [req.user.id]);
   db.run('UPDATE users SET followers = followers + 1 WHERE id = ?', [targetId]);
-  const updated = db.get('SELECT followers FROM users WHERE id = ?', [targetId]);
-  res.json({ following: true, followers: updated.followers });
+  const target = db.get('SELECT followers FROM users WHERE id = ?', [targetId]);
+  const me = db.get('SELECT following FROM users WHERE id = ?', [req.user.id]);
+  res.json({ following: true, followers: target.followers, myFollowing: me.following });
 });
 
 // Deixar de seguir
@@ -362,8 +363,9 @@ app.delete('/api/users/:id/follow', auth, (req, res) => {
   db.run('DELETE FROM follows WHERE follower_id = ? AND following_id = ?', [req.user.id, targetId]);
   db.run('UPDATE users SET following = MAX(0, following - 1) WHERE id = ?', [req.user.id]);
   db.run('UPDATE users SET followers = MAX(0, followers - 1) WHERE id = ?', [targetId]);
-  const updated = db.get('SELECT followers FROM users WHERE id = ?', [targetId]);
-  res.json({ following: false, followers: updated.followers });
+  const target = db.get('SELECT followers FROM users WHERE id = ?', [targetId]);
+  const me = db.get('SELECT following FROM users WHERE id = ?', [req.user.id]);
+  res.json({ following: false, followers: target.followers, myFollowing: me.following });
 });
 
 // ── RATINGS ─────────────────────────────────────────────────────────────────

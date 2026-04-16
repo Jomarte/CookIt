@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   Alert,
+  Image,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -185,8 +186,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: COLORS.surface1,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,

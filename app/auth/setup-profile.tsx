@@ -116,7 +116,7 @@ export default function EditProfileScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={20} color={COLORS.text2} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Editar Perfil</Text>
+        <Text style={styles.headerTitle}>O teu perfil de cozinheiro</Text>
         <TouchableOpacity
           style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
           onPress={handleSave}
@@ -138,6 +138,15 @@ export default function EditProfileScreen() {
               <Text style={styles.errorMsg}>{error}</Text>
             </View>
           ) : null}
+
+          {/* Identidade */}
+          <View style={styles.chefIdentity}>
+            <Ionicons name="restaurant" size={18} color={COLORS.primary} />
+            <Text style={styles.chefIdentityText}>
+              És conhecido na comunidade como{' '}
+              <Text style={styles.chefIdentityHandle}>@{user?.username}</Text>
+            </Text>
+          </View>
 
           {/* Avatar */}
           <View style={styles.avatarSection}>
@@ -190,12 +199,12 @@ export default function EditProfileScreen() {
 
           {/* Name */}
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Nome</Text>
+            <Text style={styles.fieldLabel}>Nome do cozinheiro</Text>
             <View style={styles.inputRow}>
               <Ionicons name="person-outline" size={17} color={COLORS.text3} />
               <TextInput
                 style={styles.input}
-                placeholder="O teu nome"
+                placeholder="Como te chamas, cozinheiro?"
                 placeholderTextColor={COLORS.text3}
                 value={name}
                 onChangeText={setName}
@@ -206,7 +215,7 @@ export default function EditProfileScreen() {
 
           {/* Bio */}
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Bio</Text>
+            <Text style={styles.fieldLabel}>Sobre a tua cozinha</Text>
             <TextInput
               style={styles.bioInput}
               placeholder="Descreve o teu estilo de cozinha..."
@@ -305,6 +314,20 @@ const styles = StyleSheet.create({
     borderColor: COLORS.accent,
   },
   errorMsg: { color: COLORS.accent, fontSize: 13, fontWeight: '600', flex: 1, fontFamily: FONTS.body },
+
+  chefIdentity: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: COLORS.primaryDim,
+    borderWidth: 1,
+    borderColor: COLORS.borderActive,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  chefIdentityText: { flex: 1, fontSize: 13, color: COLORS.text2, fontFamily: FONTS.body, lineHeight: 19 },
+  chefIdentityHandle: { color: COLORS.primary, fontWeight: '700', fontFamily: FONTS.bodyBold },
 
   avatarSection: { alignItems: 'center', gap: 12 },
   avatarWrap: { position: 'relative', width: 96, height: 96 },

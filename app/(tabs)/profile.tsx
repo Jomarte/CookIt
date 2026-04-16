@@ -272,68 +272,78 @@ export default function ProfileScreen() {
 
         </View>
 
-        {/* Streak Card */}
-        <View style={styles.streakCard}>
-          <View style={styles.streakTop}>
-            <View style={styles.streakFireIcon}>
-              <Ionicons name="flame" size={22} color={COLORS.star} />
-            </View>
-            <View style={{ flex: 1 }}>
-              {streak > 0 ? (
-                <Text style={styles.streakTitle}>
-                  {streak} {streak === 1 ? 'dia' : 'dias'} de streak!
-                </Text>
-              ) : (
-                <Text style={styles.streakTitle}>Sem streak ativo</Text>
-              )}
-              <Text style={styles.streakSub}>
-                {streak > 0
-                  ? 'Continua a cozinhar todos os dias'
-                  : 'Cozinha hoje para começar o streak'}
+        {/* Streak + Badges lado a lado */}
+        <View style={styles.rowCards}>
+          {/* Streak — calendário */}
+          <View style={styles.streakCard}>
+            {/* Header */}
+            <View style={styles.streakHeader}>
+              <Ionicons name="flame" size={14} color={COLORS.star} />
+              <Text style={styles.streakTitle}>
+                {new Date().toLocaleDateString('pt-PT', { month: 'long' })}
               </Text>
+              <Text style={styles.streakBigNumText}>{streak}🔥</Text>
             </View>
-            <View style={styles.streakBigNum}>
-              <Text style={styles.streakBigNumText}>{streak}</Text>
-            </View>
-          </View>
-          <View style={styles.streakDays}>
-            {last7.map((day) => {
-              const active = cookedDateSet.has(day.date);
-              return (
-                <View key={day.date} style={[styles.streakDay, active && styles.streakDayActive]}>
-                  <Text style={[styles.streakDayText, active && styles.streakDayTextActive]}>
-                    {day.label}
-                  </Text>
-                </View>
-              );
-            })}
-          </View>
-        </View>
 
-        {/* Badges */}
-        <View style={styles.badgesSection}>
-          <Text style={styles.sectionTitle}>Conquistas</Text>
-          <View style={styles.badgesIconRow}>
-            {badges.map((badge) => (
-              <View
-                key={badge.id}
-                {...({
-                  onMouseEnter: () => setHoveredBadge(badge),
-                  onMouseLeave: () => setHoveredBadge(null),
-                } as any)}
-                style={[
-                  styles.badgeSmallIcon,
-                  badge.earned
-                    ? { backgroundColor: `${badge.color}22`, borderColor: `${badge.color}55` }
-                    : styles.badgeSmallIconLocked,
-                ]}
-              >
-                {badge.earned
-                  ? <Ionicons name={badge.icon as any} size={18} color={badge.color} />
-                  : <Ionicons name="lock-closed-outline" size={13} color={COLORS.text3} />
+            {/* Dias da semana */}
+            <View style={styles.calWeekRow}>
+              {['D','S','T','Q','Q','S','S'].map((d, i) => (
+                <Text key={i} style={styles.calWeekLabel}>{d}</Text>
+              ))}
+            </View>
+
+            {/* Grelha do mês */}
+            <View style={styles.calGrid}>
+              {(() => {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = now.getMonth();
+                const firstDay = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const cells = [];
+                for (let i = 0; i < firstDay; i++) {
+                  cells.push(<View key={`e-${i}`} style={styles.calCell} />);
                 }
-              </View>
-            ))}
+                for (let d = 1; d <= daysInMonth; d++) {
+                  const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                  const cooked = cookedDateSet.has(dateStr);
+                  const isToday = d === now.getDate();
+                  cells.push(
+                    <View key={d} style={[styles.calCell, cooked && styles.calCellCooked, isToday && !cooked && styles.calCellToday]}>
+                      <Text style={[styles.calCellText, cooked && styles.calCellTextCooked, isToday && !cooked && styles.calCellTextToday]}>{d}</Text>
+                    </View>
+                  );
+                }
+                return cells;
+              })()}
+            </View>
+          </View>
+
+          {/* Badges */}
+          <View style={styles.badgesCard}>
+            <Text style={styles.sectionTitle}>Conquistas</Text>
+            <View style={styles.badgesIconRow}>
+              {badges.map((badge) => (
+                <View
+                  key={badge.id}
+                  {...({
+                    onMouseEnter: () => setHoveredBadge(badge),
+                    onMouseLeave: () => setHoveredBadge(null),
+                  } as any)}
+                  style={[
+                    styles.badgeSmallIcon,
+                    badge.earned
+                      ? { backgroundColor: `${badge.color}22`, borderColor: `${badge.color}55` }
+                      : styles.badgeSmallIconLocked,
+                  ]}
+                >
+                  {badge.earned
+                    ? <Ionicons name={badge.icon as any} size={16} color={badge.color} />
+                    : <Ionicons name="lock-closed-outline" size={11} color={COLORS.text3} />
+                  }
+                </View>
+              ))}
+            </View>
           </View>
         </View>
 
@@ -506,76 +516,55 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // Streak
+  // Streak + Badges row
+  rowCards: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 4,
+    gap: 10,
+  },
   streakCard: {
-    margin: 16,
+    flex: 1,
     backgroundColor: COLORS.surface1,
     borderRadius: 18,
-    padding: 16,
+    padding: 14,
     borderWidth: 1,
     borderColor: COLORS.border,
-    gap: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
+    gap: 10,
   },
-  streakTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  streakFireIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,184,0,0.14)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,184,0,0.30)',
-    shadowColor: COLORS.star,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-  },
-  streakTitle: { fontSize: 15, fontWeight: '700', color: COLORS.text1, letterSpacing: -0.2, fontFamily: FONTS.bodyBold },
-  streakSub: { fontSize: 12, color: COLORS.text3, marginTop: 2, fontFamily: FONTS.body },
-  streakBigNum: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,184,0,0.14)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,184,0,0.30)',
-  },
-  streakBigNumText: { fontSize: 22, fontWeight: '900', color: COLORS.star, letterSpacing: -0.5, fontFamily: FONTS.titleBlack },
-  streakDays: { flexDirection: 'row', gap: 6 },
-  streakDay: {
-    flex: 1,
-    aspectRatio: 1,
-    borderRadius: 10,
-    backgroundColor: COLORS.surface2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  streakDayActive: {
-    backgroundColor: COLORS.star,
-    borderColor: COLORS.star,
-    shadowColor: COLORS.star,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  streakDayText: { fontSize: 11, fontWeight: '700', color: COLORS.text3, fontFamily: FONTS.bodyBold },
+  streakHeader: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 4 },
+  streakFireIcon: {},
+  streakTitle: { fontSize: 12, fontWeight: '700', color: COLORS.text1, flex: 1, textTransform: 'capitalize', fontFamily: FONTS.bodyBold },
+  streakSub: { fontSize: 10, color: COLORS.text3, fontFamily: FONTS.body },
+  streakBigNumText: { fontSize: 13, fontWeight: '900', color: COLORS.star, fontFamily: FONTS.titleBlack },
+
+  calWeekRow: { flexDirection: 'row', marginBottom: 3 },
+  calWeekLabel: { flex: 1, textAlign: 'center', fontSize: 8, fontWeight: '700', color: COLORS.text3, fontFamily: FONTS.bodyBold },
+
+  calGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  calCell: { width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center' },
+  calCellCooked: { backgroundColor: COLORS.star, borderRadius: 4 },
+  calCellToday: { borderRadius: 4, borderWidth: 1, borderColor: COLORS.primary },
+  calCellText: { fontSize: 8, color: COLORS.text2, fontFamily: FONTS.body },
+  calCellTextCooked: { color: '#fff', fontWeight: '700' },
+  calCellTextToday: { color: COLORS.primary, fontWeight: '700' },
+
+  streakDays: { flexDirection: 'row', gap: 4 },
+  streakDay: { flex: 1, aspectRatio: 1, borderRadius: 8, backgroundColor: COLORS.surface2, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.border },
+  streakDayActive: { backgroundColor: COLORS.star, borderColor: COLORS.star },
+  streakDayText: { fontSize: 9, fontWeight: '700', color: COLORS.text3, fontFamily: FONTS.bodyBold },
   streakDayTextActive: { color: '#150F00' },
 
   // Badges
-  badgesSection: {
-    marginHorizontal: 16,
-    marginBottom: 4,
+  badgesCard: {
+    flex: 1,
+    backgroundColor: COLORS.surface1,
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    gap: 10,
   },
   sectionTitle: {
     fontSize: 11,
@@ -583,20 +572,17 @@ const styles = StyleSheet.create({
     color: COLORS.text3,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: 12,
-    marginTop: 4,
     fontFamily: FONTS.bodyBold,
   },
   badgesIconRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 4,
+    gap: 6,
   },
   badgeSmallIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,

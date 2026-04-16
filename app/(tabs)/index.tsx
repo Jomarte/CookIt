@@ -95,7 +95,7 @@ export default function FeedScreen() {
                 </View>
             }
             <View>
-              <Text style={styles.authorName}>{recipe.author_name ?? 'Utilizador'}</Text>
+              <Text style={styles.authorName}>{recipe.author_name ?? 'Cozinheiro'}</Text>
               <Text style={styles.authorUsername}>@{recipe.author_username ?? ''}</Text>
             </View>
           </TouchableOpacity>
@@ -321,31 +321,16 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingLeft: 16,
-    paddingRight: 8,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: COLORS.surface1,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
     gap: 10,
   },
   wordmark: { flexDirection: 'row', alignItems: 'center', flexShrink: 0 },
-  wordmarkCook: {
-    fontSize: 28,
-    fontWeight: '900',
-    fontStyle: 'normal',
-    color: COLORS.text1,
-    letterSpacing: -1,
-    fontFamily: FONTS.titleBlack,
-  },
-  wordmarkIt: {
-    fontSize: 28,
-    fontWeight: '900',
-    fontStyle: 'normal',
-    color: COLORS.primary,
-    letterSpacing: -1,
-    fontFamily: FONTS.titleBlack,
-  },
+  wordmarkCook: { fontSize: 28, fontWeight: '900', color: COLORS.text1, letterSpacing: -1, fontFamily: FONTS.titleBlack },
+  wordmarkIt: { fontSize: 28, fontWeight: '900', color: COLORS.primary, letterSpacing: -1, fontFamily: FONTS.titleBlack },
   notifBtn: { position: 'relative', width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
   notifBadge: {
     position: 'absolute', top: 4, right: 4,

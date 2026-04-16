@@ -207,7 +207,7 @@ export default function RecipeDetailScreen() {
               <Text style={styles.authorAvatarText}>{initial}</Text>
             </View>
             <View style={styles.authorInfo}>
-              <Text style={styles.authorName}>{recipe.author_name ?? 'Utilizador'}</Text>
+              <Text style={styles.authorName}>{recipe.author_name ?? 'Cozinheiro'}</Text>
               <Text style={styles.authorUsername}>@{recipe.author_username ?? ''}</Text>
             </View>
             <TouchableOpacity style={styles.followBtn}>
@@ -350,7 +350,7 @@ export default function RecipeDetailScreen() {
                       }
                       <View style={styles.commentBody}>
                         <View style={styles.commentHeader}>
-                          <Text style={styles.commentAuthor}>{c.author_name ?? 'Utilizador'}</Text>
+                          <Text style={styles.commentAuthor}>{c.author_name ?? 'Cozinheiro'}</Text>
                           <Text style={styles.commentDate}>{date}</Text>
                         </View>
                         <Text style={styles.commentText}>{c.text}</Text>

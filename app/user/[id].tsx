@@ -52,9 +52,8 @@ export default function UserProfileScreen() {
         : await api.followUser(token, id);
       setFollowing(res.following);
       if (res.followers !== undefined) setProfile((p: any) => ({ ...p, followers: res.followers }));
-      if (me && token) {
-        const delta = res.following ? 1 : -1;
-        setAuth({ ...me, following: (me.following ?? 0) + delta }, token);
+      if (me && token && res.myFollowing !== undefined) {
+        setAuth({ ...me, following: res.myFollowing }, token);
       }
     } catch {}
     finally { setFollowLoading(false); }
@@ -113,7 +112,7 @@ export default function UserProfileScreen() {
         </View>
       ) : !profile ? (
         <View style={styles.loadingWrap}>
-          <Text style={{ color: COLORS.text3, fontSize: 14 }}>Utilizador não encontrado</Text>
+          <Text style={{ color: COLORS.text3, fontSize: 14 }}>Cozinheiro não encontrado</Text>
         </View>
       ) : (
         <FlatList
