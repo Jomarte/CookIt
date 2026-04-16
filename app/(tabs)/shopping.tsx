@@ -56,7 +56,10 @@ export default function ShoppingScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Lista de Compras</Text>
+          <View style={styles.wordmark}>
+            <Text style={styles.wordmarkC}>C</Text>
+            <Text style={styles.wordmarkK}>K</Text>
+          </View>
         </View>
         <View style={styles.empty}>
           <View style={styles.emptyIcon}>
@@ -76,7 +79,10 @@ export default function ShoppingScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Lista de Compras</Text>
+        <View style={styles.wordmark}>
+          <Text style={styles.wordmarkC}>C</Text>
+          <Text style={styles.wordmarkK}>K</Text>
+        </View>
         <Text style={styles.headerSub}>{recipes.length} {recipes.length === 1 ? 'receita' : 'receitas'}</Text>
       </View>
 
@@ -191,6 +197,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   headerTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text1, letterSpacing: -0.4, fontFamily: FONTS.titleBold },
+  wordmark: { flexDirection: 'row', alignItems: 'center' },
+  wordmarkC: { fontSize: 28, fontWeight: '900', color: COLORS.text1, letterSpacing: -1, fontFamily: FONTS.titleBlack },
+  wordmarkK: { fontSize: 28, fontWeight: '900', color: COLORS.primary, letterSpacing: -1, fontFamily: FONTS.titleBlack },
   headerSub: { fontSize: 12, color: COLORS.text3, fontWeight: '600', letterSpacing: 0.2, fontFamily: FONTS.body },
 
   body: { flex: 1, flexDirection: 'row' },

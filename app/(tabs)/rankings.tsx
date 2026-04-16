@@ -292,8 +292,10 @@ export default function RankingsScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Ionicons name="trophy" size={20} color={COLORS.star} style={styles.headerIcon} />
-        <Text style={styles.headerTitle}>Rankings</Text>
+        <View style={styles.wordmark}>
+          <Text style={styles.wordmarkC}>C</Text>
+          <Text style={styles.wordmarkK}>K</Text>
+        </View>
         <Text style={styles.headerSub}>Top cozinheiros</Text>
       </View>
 
@@ -390,6 +392,9 @@ const styles = StyleSheet.create({
   },
   headerIcon: { marginRight: 2 },
   headerTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text1, letterSpacing: -0.3, flex: 1, fontFamily: FONTS.titleBold },
+  wordmark: { flexDirection: 'row', alignItems: 'center' },
+  wordmarkC: { fontSize: 28, fontWeight: '900', color: COLORS.text1, letterSpacing: -1, fontFamily: FONTS.titleBlack },
+  wordmarkK: { fontSize: 28, fontWeight: '900', color: COLORS.primary, letterSpacing: -1, fontFamily: FONTS.titleBlack },
   headerSub: { fontSize: 12, color: COLORS.text3, fontWeight: '600', fontFamily: FONTS.body },
 
   // Cuisine chips

@@ -177,7 +177,10 @@ export default function AddScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Nova Receita</Text>
+        <View style={styles.wordmark}>
+          <Text style={styles.wordmarkC}>C</Text>
+          <Text style={styles.wordmarkK}>K</Text>
+        </View>
         <TouchableOpacity
           style={[styles.publishBtn, publishing && styles.publishBtnDisabled]}
           onPress={handlePublish}
@@ -521,6 +524,9 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   headerTitle: { fontSize: 20, fontWeight: '900', color: COLORS.text1, letterSpacing: -0.3, fontFamily: FONTS.titleBold },
+  wordmark: { flexDirection: 'row', alignItems: 'center' },
+  wordmarkC: { fontSize: 28, fontWeight: '900', color: COLORS.text1, letterSpacing: -1, fontFamily: FONTS.titleBlack },
+  wordmarkK: { fontSize: 28, fontWeight: '900', color: COLORS.primary, letterSpacing: -1, fontFamily: FONTS.titleBlack },
   publishBtn: {
     backgroundColor: COLORS.primary,
     paddingHorizontal: 20,

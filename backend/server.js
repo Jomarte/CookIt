@@ -333,6 +333,39 @@ app.get('/api/users/:id/recipes', (req, res) => {
   }
 });
 
+// ── FOLLOWS ─────────────────────────────────────────────────────────────────
+
+// Verificar se estou a seguir
+app.get('/api/users/:id/follow', auth, (req, res) => {
+  const row = db.get('SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?', [req.user.id, req.params.id]);
+  res.json({ following: !!row });
+});
+
+// Seguir
+app.post('/api/users/:id/follow', auth, (req, res) => {
+  const targetId = req.params.id;
+  if (String(req.user.id) === String(targetId)) return res.status(400).json({ error: 'Não podes seguir-te a ti próprio' });
+  const already = db.get('SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?', [req.user.id, targetId]);
+  if (already) return res.json({ following: true });
+  db.run('INSERT INTO follows (follower_id, following_id) VALUES (?, ?)', [req.user.id, targetId]);
+  db.run('UPDATE users SET following = following + 1 WHERE id = ?', [req.user.id]);
+  db.run('UPDATE users SET followers = followers + 1 WHERE id = ?', [targetId]);
+  const updated = db.get('SELECT followers FROM users WHERE id = ?', [targetId]);
+  res.json({ following: true, followers: updated.followers });
+});
+
+// Deixar de seguir
+app.delete('/api/users/:id/follow', auth, (req, res) => {
+  const targetId = req.params.id;
+  const exists = db.get('SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?', [req.user.id, targetId]);
+  if (!exists) return res.json({ following: false });
+  db.run('DELETE FROM follows WHERE follower_id = ? AND following_id = ?', [req.user.id, targetId]);
+  db.run('UPDATE users SET following = MAX(0, following - 1) WHERE id = ?', [req.user.id]);
+  db.run('UPDATE users SET followers = MAX(0, followers - 1) WHERE id = ?', [targetId]);
+  const updated = db.get('SELECT followers FROM users WHERE id = ?', [targetId]);
+  res.json({ following: false, followers: updated.followers });
+});
+
 // ── RATINGS ─────────────────────────────────────────────────────────────────
 app.post('/api/recipes/:id/rate', auth, (req, res) => {
   try {

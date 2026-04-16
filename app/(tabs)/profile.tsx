@@ -270,15 +270,6 @@ export default function ProfileScreen() {
             <Text style={styles.bio}>{user.bio}</Text>
           ) : null}
 
-          <View style={styles.actionsRow}>
-            <TouchableOpacity
-              style={styles.editBtn}
-              onPress={() => router.push('/auth/setup-profile')}
-            >
-              <Ionicons name="pencil-outline" size={15} color={COLORS.primary} />
-              <Text style={styles.editBtnText}>Editar Perfil</Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
         {/* Streak Card */}

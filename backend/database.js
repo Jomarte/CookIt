@@ -108,6 +108,17 @@ async function init() {
     )
   `);
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS follows (
+      follower_id  INTEGER NOT NULL,
+      following_id INTEGER NOT NULL,
+      created_at   TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (follower_id, following_id),
+      FOREIGN KEY (follower_id)  REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (following_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
   // Migrate existing databases — safe to run multiple times
   try { db.run(`ALTER TABLE recipes ADD COLUMN cuisine TEXT DEFAULT 'Internacional'`); } catch (_) {}
   try { db.run(`ALTER TABLE recipes ADD COLUMN dish_type TEXT DEFAULT 'Prato Principal'`); } catch (_) {}

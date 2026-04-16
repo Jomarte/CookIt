@@ -80,5 +80,12 @@ export const api = {
 
   getUserRecipes: (id: number | string) => request(`/users/${id}/recipes`),
 
+  isFollowing: (token: string, id: number | string) =>
+    request(`/users/${id}/follow`, { headers: authHeader(token) }),
+  followUser: (token: string, id: number | string) =>
+    request(`/users/${id}/follow`, { method: 'POST', headers: authHeader(token) }),
+  unfollowUser: (token: string, id: number | string) =>
+    request(`/users/${id}/follow`, { method: 'DELETE', headers: authHeader(token) }),
+
   health: () => request('/health'),
 };

@@ -5,7 +5,6 @@ import {
   FlatList,
   Image,
   SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -20,11 +19,13 @@ import { useStore } from '../../store/useStore';
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { user: me, savedRecipes, toggleSaved } = useStore();
+  const { user: me, savedRecipes, toggleSaved, token, setAuth } = useStore();
 
   const [profile, setProfile] = useState<any>(null);
   const [recipes, setRecipes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [following, setFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
 
   // If it's the current user, redirect to own profile tab
   useEffect(() => {
@@ -32,11 +33,32 @@ export default function UserProfileScreen() {
       router.replace('/(tabs)/profile');
       return;
     }
-    Promise.all([api.getUser(id), api.getUserRecipes(id)])
-      .then(([u, r]) => { setProfile(u); setRecipes(r); })
+    Promise.all([
+      api.getUser(id),
+      api.getUserRecipes(id),
+      token ? api.isFollowing(token, id) : Promise.resolve({ following: false }),
+    ])
+      .then(([u, r, f]) => { setProfile(u); setRecipes(r); setFollowing(f.following); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [id]);
+
+  const handleFollow = async () => {
+    if (!token || followLoading) return;
+    setFollowLoading(true);
+    try {
+      const res = following
+        ? await api.unfollowUser(token, id)
+        : await api.followUser(token, id);
+      setFollowing(res.following);
+      if (res.followers !== undefined) setProfile((p: any) => ({ ...p, followers: res.followers }));
+      if (me && token) {
+        const delta = res.following ? 1 : -1;
+        setAuth({ ...me, following: (me.following ?? 0) + delta }, token);
+      }
+    } catch {}
+    finally { setFollowLoading(false); }
+  };
 
   const renderCard = ({ item: recipe }: { item: any }) => {
     if (!recipe) return <View style={[styles.card, { opacity: 0 }]} pointerEvents="none" />;
@@ -154,6 +176,27 @@ export default function UserProfileScreen() {
                 </View>
               </View>
 
+              {/* Follow button */}
+              <TouchableOpacity
+                style={[styles.followBtn, following && styles.followBtnActive]}
+                onPress={handleFollow}
+                disabled={followLoading}
+              >
+                {followLoading
+                  ? <ActivityIndicator size="small" color={following ? COLORS.primary : '#fff'} />
+                  : <>
+                      <Ionicons
+                        name={following ? 'checkmark' : 'person-add-outline'}
+                        size={16}
+                        color={following ? COLORS.primary : '#fff'}
+                      />
+                      <Text style={[styles.followBtnText, following && styles.followBtnTextActive]}>
+                        {following ? 'A seguir' : 'Seguir'}
+                      </Text>
+                    </>
+                }
+              </TouchableOpacity>
+
               {/* Section title */}
               <View style={styles.recipesHeader}>
                 <Text style={styles.recipesHeaderText}>Receitas</Text>
@@ -260,6 +303,27 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: COLORS.borderActive,
     fontFamily: FONTS.bodyBold,
   },
+
+  followBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 11,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    alignSelf: 'stretch',
+    marginTop: 4,
+  },
+  followBtnActive: {
+    backgroundColor: COLORS.primaryDim,
+    borderColor: COLORS.borderActive,
+  },
+  followBtnText: { fontSize: 14, fontWeight: '700', color: '#fff', fontFamily: FONTS.bodyBold },
+  followBtnTextActive: { color: COLORS.primary },
 
   emptyRecipes: { alignItems: 'center', paddingVertical: 40, gap: 12 },
   emptyIcon: {

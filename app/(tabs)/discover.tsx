@@ -253,7 +253,10 @@ export default function DiscoverScreen() {
     <SafeAreaView style={styles.container}>
       {/* Fixed header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Descobrir</Text>
+        <View style={styles.wordmark}>
+          <Text style={styles.wordmarkC}>C</Text>
+          <Text style={styles.wordmarkK}>K</Text>
+        </View>
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={[styles.fridgeIconBtn, fridgeMode && styles.fridgeIconBtnActive]}
@@ -353,6 +356,9 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   headerTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text1, letterSpacing: -0.3, fontFamily: FONTS.titleBlack },
+  wordmark: { flexDirection: 'row', alignItems: 'center' },
+  wordmarkC: { fontSize: 28, fontWeight: '900', color: COLORS.text1, letterSpacing: -1, fontFamily: FONTS.titleBlack },
+  wordmarkK: { fontSize: 28, fontWeight: '900', color: COLORS.primary, letterSpacing: -1, fontFamily: FONTS.titleBlack },
   headerActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
 
   fridgeIconBtn: {
