@@ -278,12 +278,6 @@ export default function ProfileScreen() {
               <Ionicons name="pencil-outline" size={15} color={COLORS.primary} />
               <Text style={styles.editBtnText}>Editar Perfil</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.logoutBtn}
-              onPress={() => { logout(); router.replace('/auth/login'); }}
-            >
-              <Ionicons name="log-out-outline" size={18} color={COLORS.accent} />
-            </TouchableOpacity>
           </View>
         </View>
 

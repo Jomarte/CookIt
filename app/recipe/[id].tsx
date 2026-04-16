@@ -125,7 +125,7 @@ export default function RecipeDetailScreen() {
           }
           <View style={styles.heroGradient} />
           <TouchableOpacity style={styles.floatBackBtn} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={20} color={COLORS.text1} />
+            <Ionicons name="arrow-back" size={20} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.floatSaveBtn, isSaved && styles.floatSaveBtnActive]}
@@ -134,7 +134,7 @@ export default function RecipeDetailScreen() {
             <Ionicons
               name={isSaved ? 'bookmark' : 'bookmark-outline'}
               size={20}
-              color={isSaved ? COLORS.primary : COLORS.text2}
+              color={isSaved ? COLORS.primary : '#fff'}
             />
           </TouchableOpacity>
         </View>
@@ -406,10 +406,10 @@ export default function RecipeDetailScreen() {
           <Ionicons
             name={isCooked ? 'checkmark-circle' : 'checkmark-circle-outline'}
             size={20}
-            color={isCooked ? COLORS.bg : COLORS.primary}
+            color={isCooked ? COLORS.primary : COLORS.bg}
           />
           <Text style={[styles.bottomBtnCookedText, isCooked && styles.bottomBtnCookedTextActive]}>
-            {isCooked ? 'Cozinhei!' : 'Já cozinhei'}
+            {isCooked ? 'Cozinhado!' : 'Cozinhar'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -460,11 +460,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(9,9,18,0.7)',
+    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255,90,90,0.3)',
   },
   floatSaveBtn: {
     position: 'absolute',
@@ -473,11 +473,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(9,9,18,0.7)',
+    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255,90,90,0.3)',
   },
   floatSaveBtnActive: {
     backgroundColor: COLORS.primaryDim,
@@ -788,19 +788,20 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: COLORS.borderActive,
-    backgroundColor: COLORS.primaryDim,
-  },
-  bottomBtnCookedActive: {
-    backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
+    backgroundColor: COLORS.primary,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.08,
     shadowRadius: 10,
   },
-  bottomBtnCookedText: { fontSize: 14, fontWeight: '700', color: COLORS.primary, fontFamily: FONTS.bodyBold },
-  bottomBtnCookedTextActive: { color: COLORS.bg },
+  bottomBtnCookedActive: {
+    backgroundColor: COLORS.primaryDim,
+    borderColor: COLORS.borderActive,
+    shadowOpacity: 0,
+  },
+  bottomBtnCookedText: { fontSize: 14, fontWeight: '700', color: COLORS.bg, fontFamily: FONTS.bodyBold },
+  bottomBtnCookedTextActive: { color: COLORS.primary },
   bottomBtnList: {
     flex: 1.2,
     flexDirection: 'row',

@@ -1,16 +1,16 @@
 export const COLORS = {
-  // Backgrounds — warm white / cream
-  bg:         '#FAFAF8',
+  // Backgrounds — terracota
+  bg:         '#FBF5EF',
   surface1:   '#FFFFFF',
-  surface2:   '#F5F0EB',
-  surface3:   '#EDE8E3',
+  surface2:   '#F5EDE3',
+  surface3:   '#EDE0D0',
 
-  // Brand — coral red
-  primary:     '#FF5A5A',
-  primaryDim:  'rgba(255,90,90,0.08)',
-  primaryGlow: 'rgba(255,90,90,0.30)',
-  accent:      '#FF8C1A',
-  accentDim:   'rgba(255,140,26,0.10)',
+  // Brand — terracota
+  primary:     '#C2622D',
+  primaryDim:  'rgba(194,98,45,0.08)',
+  primaryGlow: 'rgba(194,98,45,0.30)',
+  accent:      '#D4A853',
+  accentDim:   'rgba(212,168,83,0.10)',
 
   // Text
   white:   '#FFFFFF',
@@ -20,7 +20,7 @@ export const COLORS = {
 
   // UI
   border:       'rgba(0,0,0,0.08)',
-  borderActive: 'rgba(255,90,90,0.35)',
+  borderActive: 'rgba(194,98,45,0.35)',
   star:         '#D97706',
   green:        '#16A34A',
   greenDim:     'rgba(22,163,74,0.10)',
@@ -29,7 +29,7 @@ export const COLORS = {
   dark:         '#1A1A1A',
   medium:       '#555555',
   light:        '#999999',
-  primaryLight: 'rgba(255,90,90,0.08)',
-  primaryDark:  '#CC3333',
+  primaryLight: 'rgba(194,98,45,0.08)',
+  primaryDark:  '#8B3D18',
   greenLight:   'rgba(22,163,74,0.10)',
 };

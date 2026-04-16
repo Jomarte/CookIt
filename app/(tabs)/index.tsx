@@ -35,7 +35,7 @@ export default function FeedScreen() {
   const [menuRecipe, setMenuRecipe] = useState<any | null>(null);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const [likedRecipes, setLikedRecipes] = useState<Record<string, boolean>>({});
-  const { savedRecipes, cookedRecipes, toggleSaved, toggleCooked, addToShoppingList, notifications, markAllRead } = useStore();
+  const { savedRecipes, toggleSaved, notifications, markAllRead } = useStore();
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const loadRecipes = useCallback(async () => {
@@ -59,7 +59,6 @@ export default function FeedScreen() {
   const renderPost = ({ item: recipe }: { item: any }) => {
     const id = String(recipe.id);
     const isSaved = savedRecipes.includes(id);
-    const isCooked = cookedRecipes.includes(id);
     const isLiked = likedRecipes[id] ?? false;
     const likeCount = (recipe.likes ?? 0) + (isLiked ? 1 : 0);
     const commentCount = recipe.comments_count ?? 0;
@@ -82,7 +81,7 @@ export default function FeedScreen() {
 
     return (
       <View style={styles.post}>
-        {/* Author bar — top of post, acts as separator between posts */}
+        {/* Author bar */}
         <View style={styles.postHeader}>
           <TouchableOpacity
             style={styles.postHeaderLeft}
@@ -119,7 +118,7 @@ export default function FeedScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Full-bleed image */}
+        {/* Square image */}
         <TouchableOpacity activeOpacity={0.97} onPress={() => router.push(`/recipe/${recipe.id}`)}>
           <View style={styles.imageContainer}>
             {recipe.image
@@ -128,89 +127,29 @@ export default function FeedScreen() {
                   <Ionicons name="restaurant-outline" size={56} color={COLORS.surface3} />
                 </View>
             }
-            {/* Difficulty badge — top left */}
             <View style={[styles.diffBadge, { borderColor: diffColor }]}>
               <Text style={[styles.diffBadgeText, { color: diffColor }]}>{recipe.difficulty}</Text>
             </View>
           </View>
         </TouchableOpacity>
 
-        {/* Social actions row */}
-        <View style={styles.socialRow}>
-          <TouchableOpacity style={styles.socialBtn} onPress={handleLike} activeOpacity={0.7}>
-            <Ionicons
-              name={isLiked ? 'heart' : 'heart-outline'}
-              size={24}
-              color={isLiked ? '#E53935' : COLORS.text2}
-            />
-            {likeCount > 0 && (
-              <Text style={[styles.socialCount, isLiked && { color: '#E53935' }]}>
-                {likeCount >= 1000 ? `${(likeCount / 1000).toFixed(1)}K` : likeCount}
-              </Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.socialBtn}
-            onPress={() => router.push(`/recipe/${recipe.id}`)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="chatbubble-outline" size={22} color={COLORS.text2} />
-            {commentCount > 0 && (
-              <Text style={styles.socialCount}>{commentCount}</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.socialBtn} onPress={handleShare} activeOpacity={0.7}>
-            <Ionicons name="paper-plane-outline" size={22} color={COLORS.text2} />
-          </TouchableOpacity>
-
-          {/* Spacer — bookmark far right */}
-          <View style={{ flex: 1 }} />
-          <TouchableOpacity
-            style={[styles.socialBtn, isSaved && { opacity: 1 }]}
-            onPress={() => toggleSaved(id)}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name={isSaved ? 'bookmark' : 'bookmark-outline'}
-              size={22}
-              color={isSaved ? COLORS.primary : COLORS.text2}
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* Content below image */}
+        {/* Title + meta */}
         <View style={styles.postBody}>
           <TouchableOpacity onPress={() => router.push(`/recipe/${recipe.id}`)}>
             <Text style={styles.postTitle} numberOfLines={2}>{recipe.title}</Text>
           </TouchableOpacity>
-
           <View style={styles.metaRow}>
             <View style={styles.metaItem}>
               <Ionicons name="time-outline" size={13} color={COLORS.text3} />
-              <Text style={styles.metaText}>{totalTime}min</Text>
+              <Text style={styles.metaText}>{totalTime} min</Text>
             </View>
-            {recipe.calories ? (
-              <View style={styles.metaItem}>
-                <Ionicons name="flame-outline" size={13} color={COLORS.accent} />
-                <Text style={styles.metaText}>{recipe.calories} kcal</Text>
-              </View>
-            ) : null}
-            {recipe.cost ? (
-              <View style={styles.metaItem}>
-                <Text style={[styles.metaText, { color: COLORS.green }]}>{recipe.cost}</Text>
-              </View>
-            ) : null}
-            {recipe.rating_count > 0 ? (
+            {recipe.rating_count > 0 && (
               <View style={styles.metaItem}>
                 <Ionicons name="star" size={12} color={COLORS.star} />
                 <Text style={[styles.metaText, { color: COLORS.star }]}>{Number(recipe.rating).toFixed(1)}</Text>
-                <Text style={styles.metaCount}>({recipe.rating_count})</Text>
               </View>
-            ) : null}
+            )}
           </View>
-
           {recipe.diet?.length > 0 && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tagsScroll}>
               {recipe.diet.map((d: string) => (
@@ -220,31 +159,30 @@ export default function FeedScreen() {
               ))}
             </ScrollView>
           )}
-
-          <View style={styles.ctaRow}>
-            <TouchableOpacity
-              style={[styles.ctaCook, isCooked && styles.ctaCookActive]}
-              onPress={() => toggleCooked(id)}
-            >
-              <Ionicons
-                name={isCooked ? 'checkmark-circle' : 'checkmark-circle-outline'}
-                size={16}
-                color={isCooked ? '#fff' : COLORS.primary}
-              />
-              <Text style={[styles.ctaCookText, isCooked && styles.ctaCookTextActive]}>
-                {isCooked ? 'Cozinhei!' : 'Já cozinhei'}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.ctaCart}
-              onPress={() => addToShoppingList(id, recipe.ingredients ?? [], recipe.title)}
-            >
-              <Ionicons name="cart-outline" size={16} color={COLORS.text2} />
-              <Text style={styles.ctaCartText}>Lista</Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
+        {/* Social actions */}
+        <View style={styles.socialRow}>
+          <TouchableOpacity style={styles.socialBtn} onPress={handleLike} activeOpacity={0.7}>
+            <Ionicons name={isLiked ? 'heart' : 'heart-outline'} size={22} color={isLiked ? '#E53935' : COLORS.text2} />
+            {likeCount > 0 && (
+              <Text style={[styles.socialCount, isLiked && { color: '#E53935' }]}>
+                {likeCount >= 1000 ? `${(likeCount / 1000).toFixed(1)}K` : likeCount}
+              </Text>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.socialBtn} onPress={() => router.push(`/recipe/${recipe.id}`)} activeOpacity={0.7}>
+            <Ionicons name="chatbubble-outline" size={20} color={COLORS.text2} />
+            {commentCount > 0 && <Text style={styles.socialCount}>{commentCount}</Text>}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.socialBtn} onPress={handleShare} activeOpacity={0.7}>
+            <Ionicons name="paper-plane-outline" size={20} color={COLORS.text2} />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }} />
+          <TouchableOpacity style={styles.socialBtn} onPress={() => toggleSaved(id)} activeOpacity={0.7}>
+            <Ionicons name={isSaved ? 'bookmark' : 'bookmark-outline'} size={20} color={isSaved ? COLORS.primary : COLORS.text2} />
+          </TouchableOpacity>
+        </View>
       </View>
     );
   };
@@ -254,8 +192,8 @@ export default function FeedScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.wordmark}>
-          <Text style={styles.wordmarkCook}>Cook</Text>
-          <Text style={styles.wordmarkIt}>It</Text>
+          <Text style={styles.wordmarkCook}>C</Text>
+          <Text style={styles.wordmarkIt}>K</Text>
         </View>
 
         <View style={{ flex: 1 }} />
@@ -391,21 +329,21 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
     gap: 10,
   },
-  wordmark: { flexDirection: 'row', alignItems: 'baseline', flexShrink: 0 },
+  wordmark: { flexDirection: 'row', alignItems: 'center', flexShrink: 0 },
   wordmarkCook: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '900',
-    fontStyle: 'italic',
+    fontStyle: 'normal',
     color: COLORS.text1,
-    letterSpacing: -0.5,
+    letterSpacing: -1,
     fontFamily: FONTS.titleBlack,
   },
   wordmarkIt: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '900',
-    fontStyle: 'italic',
+    fontStyle: 'normal',
     color: COLORS.primary,
-    letterSpacing: -0.5,
+    letterSpacing: -1,
     fontFamily: FONTS.titleBlack,
   },
   notifBtn: { position: 'relative', width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
@@ -451,10 +389,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // Full-bleed image
+  // Square image
   imageContainer: {
     width: '100%',
-    aspectRatio: 4 / 5,
+    aspectRatio: 1,
     position: 'relative',
     overflow: 'hidden',
     backgroundColor: COLORS.surface2,
@@ -470,8 +408,8 @@ const styles = StyleSheet.create({
   // Difficulty badge
   diffBadge: {
     position: 'absolute',
-    top: 14,
-    left: 14,
+    top: 12,
+    left: 12,
     backgroundColor: 'rgba(0,0,0,0.52)',
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -487,8 +425,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     gap: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
   },
   socialBtn: {
     flexDirection: 'row',
@@ -541,84 +479,47 @@ const styles = StyleSheet.create({
 
   // Content below image
   postBody: {
-    paddingHorizontal: 18,
-    paddingTop: 16,
-    paddingBottom: 20,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 10,
   },
   postTitle: {
-    fontSize: 21,
-    fontFamily: FONTS.titleBold,
+    fontSize: 19,
+    fontFamily: FONTS.titleBlack,
     color: COLORS.text1,
-    marginBottom: 10,
-    lineHeight: 27,
-    letterSpacing: -0.3,
+    marginBottom: 6,
+    lineHeight: 25,
+    letterSpacing: -0.4,
   },
-
   metaRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-    flexWrap: 'wrap',
     alignItems: 'center',
+    gap: 6,
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
     backgroundColor: COLORS.surface2,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   metaText: { fontSize: 12, color: COLORS.text2, fontFamily: FONTS.body, fontWeight: '600' },
-  metaCount: { fontSize: 11, color: COLORS.text3, fontFamily: FONTS.body },
 
-  tagsScroll: { marginBottom: 14 },
+  tagsScroll: { marginTop: 10 },
   dietTag: {
     backgroundColor: COLORS.greenDim,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 20,
     marginRight: 6,
     borderWidth: 1,
     borderColor: 'rgba(22,163,74,0.22)',
   },
   dietTagText: { fontSize: 11, color: COLORS.green, fontWeight: '600', fontFamily: FONTS.body },
-
-  ctaRow: { flexDirection: 'row', gap: 10 },
-  ctaCook: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 13,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: COLORS.borderActive,
-    backgroundColor: COLORS.primaryDim,
-  },
-  ctaCookActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  ctaCookText: { fontSize: 13, fontWeight: '700', color: COLORS.primary, fontFamily: FONTS.bodyBold },
-  ctaCookTextActive: { color: '#fff' },
-  ctaCart: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-    paddingVertical: 13,
-    paddingHorizontal: 20,
-    borderRadius: 14,
-    backgroundColor: COLORS.surface2,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  ctaCartText: { fontSize: 13, fontWeight: '600', color: COLORS.text2, fontFamily: FONTS.body },
 
   // Context menu
   menuModalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)' },

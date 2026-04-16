@@ -18,6 +18,12 @@ import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 import { useStore } from '../../store/useStore';
 
+const DIFF_COLORS: Record<string, string> = {
+  'Fácil': COLORS.green,
+  'Médio': COLORS.star,
+  'Difícil': COLORS.accent,
+};
+
 const CUISINES = ['Todas', 'Portuguesa', 'Italiana', 'Japonesa', 'Mexicana', 'Indiana', 'Francesa', 'Mediterrânica', 'Americana', 'Brasileira', 'Coreana', 'Chinesa', 'Tailandesa', 'Árabe', 'Africana', 'Fusão', 'Internacional'];
 const DISH_TYPES = ['Todos', 'Entrada', 'Sopa', 'Prato Principal', 'Acompanhamento', 'Snack', 'Sobremesa', 'Pequeno-Almoço', 'Brunch', 'Lanche', 'Bebida', 'Molho', 'Pão / Pastelaria'];
 const DIFFICULTIES = ['Fácil', 'Médio', 'Difícil'];
@@ -102,9 +108,11 @@ export default function DiscoverScreen() {
   });
 
   const renderCard = ({ item: recipe }: { item: any }) => {
+    if (recipe.__placeholder) return <View style={{ flex: 1 }} />;
     const totalTime = (recipe.prep_time ?? 0) + (recipe.cook_time ?? 0);
     const initial = (recipe.author_name ?? '?')[0].toUpperCase();
     const isSaved = savedRecipes.includes(String(recipe.id));
+    const diffColor = DIFF_COLORS[recipe.difficulty] ?? COLORS.text2;
     return (
       <TouchableOpacity style={styles.card} onPress={() => router.push(`/recipe/${recipe.id}`)}>
         <View style={styles.cardImage}>
@@ -124,8 +132,8 @@ export default function DiscoverScreen() {
             />
           </TouchableOpacity>
           {/* Difficulty badge top-right */}
-          <View style={styles.cardDiffBadge}>
-            <Text style={styles.cardDiffText}>{recipe.difficulty}</Text>
+          <View style={[styles.cardDiffBadge, { borderColor: diffColor }]}>
+            <Text style={[styles.cardDiffText, { color: diffColor }]}>{recipe.difficulty}</Text>
           </View>
           {/* Cuisine badge bottom-left */}
           {recipe.cuisine ? (
@@ -302,7 +310,7 @@ export default function DiscoverScreen() {
         </View>
       ) : (
         <FlatList
-          data={filtered}
+          data={filtered.length % 2 !== 0 ? [...filtered, { id: '__placeholder__', __placeholder: true }] : filtered}
           renderItem={renderCard}
           keyExtractor={(item) => String(item.id)}
           numColumns={2}
@@ -556,7 +564,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: 'rgba(9,9,18,0.65)',
+    backgroundColor: 'rgba(0,0,0,0.52)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -566,25 +574,24 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: 'rgba(9,9,18,0.8)',
+    backgroundColor: 'rgba(0,0,0,0.52)',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 10,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
-  cardDiffText: { fontSize: 10, color: COLORS.text2, fontWeight: '700', fontFamily: FONTS.body },
+  cardDiffText: { fontSize: 10, fontWeight: '700', fontFamily: FONTS.body },
   cardCuisineBadge: {
     position: 'absolute',
     bottom: 8,
     left: 8,
-    backgroundColor: 'rgba(9,9,18,0.72)',
+    backgroundColor: 'rgba(0,0,0,0.52)',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 10,
+    borderRadius: 20,
     maxWidth: '80%',
   },
-  cardCuisineText: { fontSize: 10, color: COLORS.text2, fontWeight: '600', fontFamily: FONTS.body },
+  cardCuisineText: { fontSize: 10, color: '#fff', fontWeight: '600', fontFamily: FONTS.body },
   cardContent: { padding: 10 },
   cardTitle: { fontSize: 13, fontWeight: '700', color: COLORS.text1, marginBottom: 6, lineHeight: 18, fontFamily: FONTS.titleBold },
   cardMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
