@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -64,9 +64,13 @@ export default function DiscoverScreen() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [fridgeMode, setFridgeMode] = useState(false);
   const [fridgeIngredients, setFridgeIngredients] = useState('');
+  const [fridgeList, setFridgeList] = useState<string[]>([]);
+  const [fridgeInput, setFridgeInput] = useState('');
   const [recipes, setRecipes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('');
+  const scrollRef = useRef<ScrollView>(null);
+  const resultsRef = useRef<View>(null);
 
   useEffect(() => {
     api.getRecipes()
@@ -113,21 +117,33 @@ export default function DiscoverScreen() {
     setSelectedIngredients([]);
   };
 
-  const isFiltering = !!search || !!fridgeIngredients || activeCuisine !== 'Todas' ||
+  const addFridgeIngredient = (val: string) => {
+    const parts = val.split(',').map((s) => s.trim()).filter(Boolean);
+    if (parts.length > 0) {
+      setFridgeList((prev) => {
+        const next = [...prev];
+        parts.forEach((p) => { if (!next.includes(p)) next.push(p); });
+        return next;
+      });
+    }
+    setFridgeInput('');
+  };
+
+  const isFiltering = !!search || fridgeList.length > 0 || activeCuisine !== 'Todas' ||
     activeDishType !== 'Todos' || !!activeDifficulty || selectedIngredients.length > 0;
 
   const hasActiveChips = activeCuisine !== 'Todas' || activeDishType !== 'Todos' ||
     selectedIngredients.length > 0 || !!activeDifficulty;
 
   const filtered = recipes.filter((r) => {
-    const searchTerm = fridgeMode ? fridgeIngredients : search;
+    const searchTerm = search;
     const matchSearch = !searchTerm.trim() ||
       r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (r.tags ?? []).some((t: string) => t.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (r.ingredients ?? []).some((i: any) =>
-        fridgeMode
-          ? fridgeIngredients.split(',').some((ing) => i.name.toLowerCase().includes(ing.trim().toLowerCase()))
-          : i.name.toLowerCase().includes(searchTerm.toLowerCase())
+      (r.ingredients ?? []).some((i: any) => i.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchFridge = !fridgeMode || fridgeList.length === 0 ||
+      fridgeList.every((ing) =>
+        (r.ingredients ?? []).some((i: any) => i.name.toLowerCase().includes(ing.toLowerCase()))
       );
     const matchCuisine = activeCuisine === 'Todas' || (r.cuisine ?? '').toLowerCase() === activeCuisine.toLowerCase();
     const matchDishType = activeDishType === 'Todos' || (r.dish_type ?? '').toLowerCase() === activeDishType.toLowerCase();
@@ -136,7 +152,7 @@ export default function DiscoverScreen() {
       selectedIngredients.every((sel) =>
         (r.ingredients ?? []).some((ing: any) => (ing.canonical_name || ing.name)?.toLowerCase() === sel.toLowerCase())
       );
-    return matchSearch && matchCuisine && matchDishType && matchDifficulty && matchIngredients;
+    return matchSearch && matchFridge && matchCuisine && matchDishType && matchDifficulty && matchIngredients;
   }).sort((a, b) => {
     switch (sortBy) {
       case 'avaliado':  return (b.rating ?? 0) - (a.rating ?? 0);
@@ -200,7 +216,7 @@ export default function DiscoverScreen() {
           <ActivityIndicator color={COLORS.primary} size="large" />
         </View>
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
           {/* Filter panel */}
           {filterOpen && (
@@ -266,50 +282,134 @@ export default function DiscoverScreen() {
               </View>
               <Text style={styles.fridgeCardTitle}>O que tens{'\n'}no frigorífico?</Text>
               <Text style={styles.fridgeCardSub}>
-                Escreve os ingredientes separados por vírgula e encontramos a receita certa para ti.
+                Adiciona os ingredientes que tens e encontramos a receita perfeita para ti.
               </Text>
-              <View style={styles.fridgeCardInputWrap}>
+
+              {/* Input row */}
+              <View style={styles.fridgeInputRow}>
                 <TextInput
-                  style={styles.fridgeCardInput}
-                  placeholder="Ex: ovos, arroz, atum..."
+                  style={styles.fridgeInputField}
+                  placeholder="Ex: ovos, tomate..."
                   placeholderTextColor={COLORS.text3}
-                  value={fridgeIngredients}
-                  onChangeText={setFridgeIngredients}
+                  value={fridgeInput}
+                  onChangeText={setFridgeInput}
+                  onSubmitEditing={() => addFridgeIngredient(fridgeInput)}
+                  blurOnSubmit={false}
+                  returnKeyType="done"
                 />
+                <TouchableOpacity
+                  style={[styles.fridgeAddIconBtn, !fridgeInput.trim() && { opacity: 0.35 }]}
+                  onPress={() => addFridgeIngredient(fridgeInput)}
+                  disabled={!fridgeInput.trim()}
+                >
+                  <Ionicons name="add" size={20} color="#fff" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Ingredient chips */}
+              {fridgeList.length > 0 && (
+                <View style={styles.fridgeChips}>
+                  {fridgeList.map((ing) => (
+                    <TouchableOpacity
+                      key={ing}
+                      style={styles.fridgeChip}
+                      onPress={() => setFridgeList((prev) => prev.filter((i) => i !== ing))}
+                    >
+                      <Text style={styles.fridgeChipText}>{ing}</Text>
+                      <Ionicons name="close" size={12} color={COLORS.primary} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={[styles.fridgeFindBtn, fridgeList.length === 0 && styles.fridgeFindBtnDisabled]}
+                disabled={fridgeList.length === 0}
+                onPress={() => {
+                  resultsRef.current?.measureLayout(
+                    scrollRef.current as any,
+                    (_x, y) => scrollRef.current?.scrollTo({ y, animated: true }),
+                    () => scrollRef.current?.scrollToEnd({ animated: true }),
+                  );
+                }}
+              >
+                <Ionicons name="search-outline" size={16} color="#fff" />
+                <Text style={styles.fridgeFindBtnText}>Encontrar Receitas</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Explore Cuisines — bento grid */}
+          {!isFiltering && cuisineGroups.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Explorar Culinárias</Text>
+              <View style={styles.cuisineGrid}>
+                {cuisineGroups.map(([cuisine, recipe]: [string, any], index: number) => {
+                  const meta = CUISINE_META[cuisine] ?? { emoji: '🍽️', color: COLORS.primary };
+                  // Layout: index 0 = full width tall, 1+2 = side by side, 3 = full width, 4+5 = side by side...
+                  const posInGroup = index % 3;
+                  const isFeatured = posInGroup === 0;
+                  const isFirst = index === 0;
+
+                  if (isFeatured) {
+                    return (
+                      <TouchableOpacity
+                        key={cuisine}
+                        style={[styles.cuisineFeatured, isFirst && { marginTop: 0 }]}
+                        onPress={() => { setActiveCuisine(cuisine); }}
+                        activeOpacity={0.88}
+                      >
+                        {recipe.image
+                          ? <Image source={{ uri: recipe.image }} style={styles.cuisineCardBg} resizeMode="cover" />
+                          : <View style={[styles.cuisineCardBg, { backgroundColor: meta.color }]} />
+                        }
+                        <View style={styles.cuisineCardOverlay} />
+                        <View style={styles.cuisineCardInfo}>
+                          <Text style={styles.cuisineCardEmoji}>{meta.emoji}</Text>
+                          <Text style={styles.cuisineCardNameFeatured}>{cuisine}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  }
+                  return null; // small cards rendered in pairs below
+                })}
+                {/* Render pairs */}
+                {Array.from({ length: Math.ceil((cuisineGroups.length - 1) / 2) }).map((_, pairIdx) => {
+                  const a = cuisineGroups[pairIdx * 2 + 1];
+                  const b = cuisineGroups[pairIdx * 2 + 2];
+                  if (!a) return null;
+                  return (
+                    <View key={pairIdx} style={styles.cuisinePairRow}>
+                      {[a, b].filter(Boolean).map(([cuisine, recipe]: [string, any]) => {
+                        const meta = CUISINE_META[cuisine] ?? { emoji: '🍽️', color: COLORS.primary };
+                        return (
+                          <TouchableOpacity
+                            key={cuisine}
+                            style={styles.cuisineSmall}
+                            onPress={() => { setActiveCuisine(cuisine); }}
+                            activeOpacity={0.88}
+                          >
+                            {recipe.image
+                              ? <Image source={{ uri: recipe.image }} style={styles.cuisineCardBg} resizeMode="cover" />
+                              : <View style={[styles.cuisineCardBg, { backgroundColor: meta.color }]} />
+                            }
+                            <View style={styles.cuisineCardOverlay} />
+                            <View style={styles.cuisineCardInfo}>
+                              <Text style={styles.cuisineCardEmoji}>{meta.emoji}</Text>
+                              <Text style={styles.cuisineCardName}>{cuisine}</Text>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  );
+                })}
               </View>
             </View>
           )}
 
-          {/* Explore Cuisines */}
-          {!isFiltering && cuisineGroups.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Explorar Culinárias</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cuisineRow}>
-                {cuisineGroups.map(([cuisine, recipe]: [string, any]) => {
-                  const meta = CUISINE_META[cuisine] ?? { emoji: '🍽️', color: COLORS.primary };
-                  return (
-                    <TouchableOpacity
-                      key={cuisine}
-                      style={styles.cuisineCard}
-                      onPress={() => { setActiveCuisine(cuisine); setFilterOpen(false); }}
-                    >
-                      {recipe.image ? (
-                        <Image source={{ uri: recipe.image }} style={styles.cuisineCardBg} resizeMode="cover" />
-                      ) : (
-                        <View style={[styles.cuisineCardBg, { backgroundColor: meta.color }]} />
-                      )}
-                      <View style={styles.cuisineCardOverlay} />
-                      <Text style={styles.cuisineCardEmoji}>{meta.emoji}</Text>
-                      <Text style={styles.cuisineCardName}>{cuisine}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            </View>
-          )}
-
           {/* Sort + section header */}
-          <View style={styles.section}>
+          <View ref={resultsRef} style={styles.section}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>
                 {isFiltering ? 'Resultados' : 'Receitas'}
@@ -503,28 +603,39 @@ const styles = StyleSheet.create({
     shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08, shadowRadius: 16, elevation: 3,
   },
-  fridgeCardTag: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    marginBottom: 10,
+  fridgeCardTag: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 10 },
+  fridgeCardTagText: { fontSize: 11, fontWeight: '800', color: COLORS.primary, letterSpacing: 1, fontFamily: FONTS.bodyBold },
+  fridgeCardTitle: { fontSize: 26, fontWeight: '800', color: COLORS.text1, fontFamily: FONTS.titleBold, letterSpacing: -0.5, lineHeight: 32, marginBottom: 8 },
+  fridgeCardSub: { fontSize: 13, color: COLORS.text2, lineHeight: 20, fontFamily: FONTS.body, marginBottom: 14 },
+  fridgeInputRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12,
   },
-  fridgeCardTagText: {
-    fontSize: 11, fontWeight: '800', color: COLORS.primary,
-    letterSpacing: 1, fontFamily: FONTS.bodyBold,
-  },
-  fridgeCardTitle: {
-    fontSize: 26, fontWeight: '800', color: COLORS.text1,
-    fontFamily: FONTS.titleBold, letterSpacing: -0.5, lineHeight: 32, marginBottom: 8,
-  },
-  fridgeCardSub: {
-    fontSize: 13, color: COLORS.text2, lineHeight: 20,
-    fontFamily: FONTS.body, marginBottom: 16,
-  },
-  fridgeCardInputWrap: {
-    backgroundColor: COLORS.surface2,
+  fridgeInputField: {
+    flex: 1, backgroundColor: COLORS.surface2,
     borderRadius: 12, borderWidth: 1, borderColor: COLORS.border,
-    paddingHorizontal: 14, paddingVertical: 12,
+    paddingHorizontal: 14, paddingVertical: 11,
+    fontSize: 14, color: COLORS.text1, fontFamily: FONTS.body,
   },
-  fridgeCardInput: { fontSize: 14, color: COLORS.text1, fontFamily: FONTS.body },
+  fridgeAddIconBtn: {
+    width: 42, height: 42, borderRadius: 12,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  fridgeChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+  fridgeChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 7,
+    borderRadius: 20, borderWidth: 1, borderColor: COLORS.borderActive,
+    backgroundColor: COLORS.primaryDim,
+  },
+  fridgeChipText: { fontSize: 13, fontWeight: '600', color: COLORS.primary, fontFamily: FONTS.body },
+  fridgeFindBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: COLORS.primary, borderRadius: 14,
+    paddingVertical: 14,
+  },
+  fridgeFindBtnDisabled: { opacity: 0.4 },
+  fridgeFindBtnText: { fontSize: 15, fontWeight: '700', color: '#fff', fontFamily: FONTS.bodyBold },
 
   // Section
   section: { paddingHorizontal: 16, marginBottom: 8 },
@@ -532,22 +643,26 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 20, fontWeight: '800', color: COLORS.text1, fontFamily: FONTS.titleBold, letterSpacing: -0.3 },
   resultsCount: { fontSize: 13, color: COLORS.text3, fontWeight: '600', fontFamily: FONTS.body },
 
-  // Cuisine cards
-  cuisineRow: { gap: 10, paddingBottom: 4 },
-  cuisineCard: {
-    width: 120, height: 90, borderRadius: 16, overflow: 'hidden',
-    alignItems: 'center', justifyContent: 'center',
+  // Cuisine bento grid
+  cuisineGrid: { gap: 10 },
+  cuisineFeatured: {
+    width: '100%', height: 160, borderRadius: 18, overflow: 'hidden',
+    justifyContent: 'flex-end',
+  },
+  cuisinePairRow: { flexDirection: 'row', gap: 10 },
+  cuisineSmall: {
+    flex: 1, height: 110, borderRadius: 18, overflow: 'hidden',
+    justifyContent: 'flex-end',
   },
   cuisineCardBg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
   cuisineCardOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
-  cuisineCardEmoji: { fontSize: 24, marginBottom: 4, zIndex: 1 },
-  cuisineCardName: {
-    fontSize: 12, fontWeight: '700', color: '#fff',
-    fontFamily: FONTS.bodyBold, zIndex: 1, textAlign: 'center',
-  },
+  cuisineCardInfo: { padding: 12 },
+  cuisineCardEmoji: { fontSize: 20, marginBottom: 2 },
+  cuisineCardNameFeatured: { fontSize: 18, fontWeight: '800', color: '#fff', fontFamily: FONTS.titleBold },
+  cuisineCardName: { fontSize: 14, fontWeight: '700', color: '#fff', fontFamily: FONTS.bodyBold },
 
   // Sort pills
   sortRow: { gap: 8, flexDirection: 'row', marginBottom: 16 },
