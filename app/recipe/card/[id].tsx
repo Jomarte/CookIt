@@ -3,13 +3,13 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../../constants/Colors';
 import { FONTS } from '../../../constants/Fonts';
@@ -50,6 +50,8 @@ export default function RecipeCardScreen() {
     });
   };
 
+  const insets = useSafeAreaInsets();
+
   const formatAmount = (amount: string): string => {
     if (!recipe) return amount;
     if (amount === 'q.b.') return 'q.b.';
@@ -59,6 +61,7 @@ export default function RecipeCardScreen() {
     const result = num * ratio;
     return result % 1 === 0 ? result.toString() : result.toFixed(1);
   };
+
 
   if (loading) {
     return (
@@ -73,7 +76,7 @@ export default function RecipeCardScreen() {
   if (!recipe) {
     return (
       <SafeAreaView style={styles.container}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={[styles.backBtn, { top: insets.top + 16 }]} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
         <View style={styles.centered}>
@@ -91,7 +94,7 @@ export default function RecipeCardScreen() {
   return (
     <SafeAreaView style={styles.container}>
       {/* Back button flutuante */}
-      <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+      <TouchableOpacity style={[styles.backBtn, { top: insets.top + 16 }]} onPress={() => router.back()}>
         <Ionicons name="arrow-back" size={20} color="#fff" />
       </TouchableOpacity>
 
@@ -306,7 +309,6 @@ const styles = StyleSheet.create({
 
   backBtn: {
     position: 'absolute',
-    top: 44,
     left: 16,
     zIndex: 20,
     width: 40,

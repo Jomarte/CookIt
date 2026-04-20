@@ -6,7 +6,6 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '../../store/useStore';
 import { COLORS } from '../../constants/Colors';
@@ -50,6 +50,8 @@ export default function RecipeDetailScreen() {
     api.getComments(id).then(setComments).catch(() => {}).finally(() => setCommentsLoading(false));
   }, [activeTab, id]);
 
+  const insets = useSafeAreaInsets();
+
   const handlePostComment = async () => {
     if (!commentText.trim() || !token) return;
     setSubmitting(true);
@@ -79,7 +81,7 @@ export default function RecipeDetailScreen() {
   if (!recipe) {
     return (
       <SafeAreaView style={styles.container}>
-        <TouchableOpacity style={styles.floatBackBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={[styles.floatBackBtn, { top: insets.top + 16 }]} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={20} color={COLORS.text1} />
         </TouchableOpacity>
         <View style={styles.loadingWrap}>
@@ -112,6 +114,7 @@ export default function RecipeDetailScreen() {
       ]);
     }
   };
+
   const ratio = servings / (recipe.servings || 1);
   const initial = (recipe.author_name ?? '?')[0].toUpperCase();
 
@@ -136,7 +139,7 @@ export default function RecipeDetailScreen() {
   return (
     <SafeAreaView style={styles.container}>
       {/* Back button fixo */}
-      <TouchableOpacity style={styles.floatBackBtn} onPress={() => router.back()}>
+      <TouchableOpacity style={[styles.floatBackBtn, { top: insets.top + 16 }]} onPress={() => router.back()}>
         <Ionicons name="arrow-back" size={20} color="#fff" />
       </TouchableOpacity>
 
@@ -496,7 +499,6 @@ const styles = StyleSheet.create({
   },
   floatBackBtn: {
     position: 'absolute',
-    top: 16,
     left: 16,
     zIndex: 20,
     width: 40,

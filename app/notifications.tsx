@@ -2,13 +2,13 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import React, { useState, useCallback } from 'react';
 import {
   ActivityIndicator,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/Colors';
 import { FONTS } from '../constants/Fonts';
@@ -67,6 +67,7 @@ export default function NotificationsScreen() {
     if (diffDays < 7) return `${diffDays}d`;
     return d.toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' });
   };
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingBottom: 14,
     backgroundColor: COLORS.surface1,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,

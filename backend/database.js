@@ -129,6 +129,18 @@ async function init() {
     CREATE TABLE IF NOT EXISTS user_cooked (
       user_id   INTEGER NOT NULL,
       recipe_id INTEGER NOT NULL,
+      cooked_at TEXT DEFAULT NULL,
+      PRIMARY KEY (user_id, recipe_id),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS saved_recipes (
+      user_id   INTEGER NOT NULL,
+      recipe_id INTEGER NOT NULL,
+      saved_at  TEXT DEFAULT (datetime('now')),
       PRIMARY KEY (user_id, recipe_id),
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
       FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE
@@ -158,6 +170,7 @@ async function init() {
   try { db.run(`ALTER TABLE recipes ADD COLUMN cooking_method TEXT DEFAULT '[]'`); } catch (_) {}
   try { db.run(`ALTER TABLE ingredients ADD COLUMN canonical_name TEXT DEFAULT NULL`); } catch (_) {}
   try { db.run(`ALTER TABLE recipes ADD COLUMN comments_count INTEGER DEFAULT 0`); } catch (_) {}
+  try { db.run(`ALTER TABLE user_cooked ADD COLUMN cooked_at TEXT DEFAULT NULL`); } catch (_) {}
 
   save();
   return db;

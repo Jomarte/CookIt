@@ -1,13 +1,13 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../constants/Colors';
 import { FONTS } from '../constants/Fonts';
@@ -99,6 +99,7 @@ export default function AchievementsScreen() {
     setPinnedBadgeIds(selected);
     setSelecting(false);
   }
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -198,7 +199,7 @@ const styles = StyleSheet.create({
 
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 14,
+    paddingHorizontal: 16, paddingBottom: 14,
     backgroundColor: COLORS.surface1, borderBottomWidth: 1, borderBottomColor: COLORS.border,
   },
   backBtn: {

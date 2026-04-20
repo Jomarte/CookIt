@@ -12,31 +12,30 @@ import {
 } from '@expo-google-fonts/playfair-display';
 import { Lato_400Regular, Lato_700Bold } from '@expo-google-fonts/lato';
 import * as SplashScreen from 'expo-splash-screen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api } from '../services/api';
 
 SplashScreen.preventAutoHideAsync();
 
 const AUTH_KEY = 'cookit-auth';
 const userDataKey = (userId: number) => `cookit-data-${userId}`;
 
-function webGet(key: string): any | null {
+async function storageGet(key: string): Promise<any | null> {
   try {
-    if (typeof localStorage === 'undefined') return null;
-    const str = localStorage.getItem(key);
+    const str = await AsyncStorage.getItem(key);
     return str ? JSON.parse(str) : null;
   } catch { return null; }
 }
 
-function webSet(key: string, value: any) {
+async function storageSet(key: string, value: any) {
   try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(key, JSON.stringify(value));
-    }
+    await AsyncStorage.setItem(key, JSON.stringify(value));
   } catch {}
 }
 
-function webRemove(key: string) {
+async function storageRemove(key: string) {
   try {
-    if (typeof localStorage !== 'undefined') localStorage.removeItem(key);
+    await AsyncStorage.removeItem(key);
   } catch {}
 }
 
@@ -64,92 +63,95 @@ function AppStack() {
   );
 }
 
+async function syncFromServer(token: string) {
+  try {
+    const [saved, cooked, ratings] = await Promise.all([
+      api.getSavedRecipes(token),
+      api.getCookedRecipes(token),
+      api.getUserRatings(token),
+    ]);
+    useStore.setState({
+      savedRecipes: saved,
+      cookedRecipes: cooked.map(c => c.recipeId),
+      cookedLogs: cooked,
+      userRatings: ratings,
+    });
+  } catch {}
+}
+
 function StoreHydrator() {
   const store = useStore();
   const hydrated = useRef(false);
+  const prevUserIdRef = useRef<number | null>(null);
 
-  // On mount: restore auth + user-specific data from localStorage
+  // On mount: restore auth, then sync server data + local-only data
   useEffect(() => {
-    if (Platform.OS !== 'web') return;
+    async function load() {
+      let auth = await storageGet(AUTH_KEY);
 
-    let auth = webGet(AUTH_KEY);
-
-    // Migrate from old format if needed
-    if (!auth) {
-      const old = webGet('cookit-store');
-      if (old?.token && old?.user) {
-        auth = { token: old.token, user: old.user };
-        webSet(AUTH_KEY, auth);
-        webSet(userDataKey(old.user.id), {
-          cookedRecipes: old.cookedRecipes ?? [],
-          cookedLogs: old.cookedLogs ?? [],
-          savedRecipes: old.savedRecipes ?? [],
-          shoppingList: old.shoppingList ?? [],
-          userRatings: old.userRatings ?? {},
-          notifications: old.notifications ?? [],
-          earnedBadgeIds: old.earnedBadgeIds ?? [],
-          pinnedBadgeIds: old.pinnedBadgeIds ?? [],
-        });
-        webRemove('cookit-store');
+      // Migrate from old format if needed
+      if (!auth) {
+        const old = await storageGet('cookit-store');
+        if (old?.token && old?.user) {
+          auth = { token: old.token, user: old.user };
+          await storageSet(AUTH_KEY, auth);
+          await storageRemove('cookit-store');
+        }
       }
-    }
 
-    if (!auth?.token || !auth?.user) return;
-    store.setAuth(auth.user, auth.token);
+      if (!auth?.token || !auth?.user) return;
+      store.setAuth(auth.user, auth.token);
 
-    // Load user-specific data
-    const userData = webGet(userDataKey(auth.user.id));
-    if (userData) {
-      useStore.setState({
-        cookedRecipes: userData.cookedRecipes ?? [],
-        cookedLogs: userData.cookedLogs ?? [],
-        savedRecipes: userData.savedRecipes ?? [],
-        shoppingList: userData.shoppingList ?? [],
-        userRatings: userData.userRatings ?? {},
-        notifications: userData.notifications ?? [],
-        earnedBadgeIds: userData.earnedBadgeIds ?? [],
-        pinnedBadgeIds: userData.pinnedBadgeIds ?? [],
-      });
+      // Load local-only data (shopping list, badges)
+      const userData = await storageGet(userDataKey(auth.user.id));
+      if (userData) {
+        useStore.setState({
+          shoppingList: userData.shoppingList ?? [],
+          earnedBadgeIds: userData.earnedBadgeIds ?? [],
+          pinnedBadgeIds: userData.pinnedBadgeIds ?? [],
+        });
+      }
+
+      // Sync server data (saved, cooked, ratings)
+      await syncFromServer(auth.token);
+      hydrated.current = true;
     }
-    hydrated.current = true;
+    load();
   }, []);
 
-  const { token, user, cookedRecipes, cookedLogs, savedRecipes, shoppingList, userRatings, notifications, earnedBadgeIds, pinnedBadgeIds } = store;
+  const { token, user, shoppingList, earnedBadgeIds, pinnedBadgeIds } = store;
 
-  // When user logs in (user.id changes), load their saved data from localStorage
-  const prevUserIdRef = useRef<number | null>(null);
+  // When user logs in manually (user.id changes), sync from server
   useEffect(() => {
-    if (Platform.OS !== 'web') return;
     if (!user?.id) { prevUserIdRef.current = null; return; }
-    if (user.id === prevUserIdRef.current) return; // already loaded for this user
+    if (user.id === prevUserIdRef.current) return;
     prevUserIdRef.current = user.id;
-    const userData = webGet(userDataKey(user.id));
-    if (userData) {
-      useStore.setState({
-        cookedRecipes: userData.cookedRecipes ?? [],
-        cookedLogs: userData.cookedLogs ?? [],
-        savedRecipes: userData.savedRecipes ?? [],
-        shoppingList: userData.shoppingList ?? [],
-        userRatings: userData.userRatings ?? {},
-        notifications: userData.notifications ?? [],
-        earnedBadgeIds: userData.earnedBadgeIds ?? [],
-        pinnedBadgeIds: userData.pinnedBadgeIds ?? [],
-      });
+
+    async function loadUser() {
+      const userData = await storageGet(userDataKey(user!.id));
+      if (userData) {
+        useStore.setState({
+          shoppingList: userData.shoppingList ?? [],
+          earnedBadgeIds: userData.earnedBadgeIds ?? [],
+          pinnedBadgeIds: userData.pinnedBadgeIds ?? [],
+        });
+      }
+      if (token) await syncFromServer(token);
+      hydrated.current = true;
     }
-    hydrated.current = true;
+    loadUser();
   }, [user?.id]);
 
-  // Persist state whenever it changes
+  // Persist only local-only data
   useEffect(() => {
-    if (Platform.OS !== 'web') return;
     if (!hydrated.current && token === null) return;
     if (token && user) {
-      webSet(AUTH_KEY, { token, user });
-      webSet(userDataKey(user.id), { cookedRecipes, cookedLogs, savedRecipes, shoppingList, userRatings, notifications, earnedBadgeIds, pinnedBadgeIds });
+      storageSet(AUTH_KEY, { token, user });
+      storageSet(userDataKey(user.id), { shoppingList, earnedBadgeIds, pinnedBadgeIds });
     } else {
-      webRemove(AUTH_KEY);
+      storageRemove(AUTH_KEY);
     }
-  }, [token, user, cookedRecipes, cookedLogs, savedRecipes, shoppingList, userRatings, notifications, earnedBadgeIds, pinnedBadgeIds]);
+  }, [token, user, shoppingList, earnedBadgeIds, pinnedBadgeIds]);
 
   return null;
 }

@@ -1,11 +1,12 @@
 import { useRouter } from 'expo-router';
 import React, { useState, useRef } from 'react';
+import * as ImagePicker from 'expo-image-picker';
 import {
   ActivityIndicator,
   Alert,
   Image,
+  Modal,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/Colors';
 import { FONTS } from '../../constants/Fonts';
@@ -72,6 +74,7 @@ export default function AddScreen() {
   const [selectedDiets, setSelectedDiets] = useState<string[]>([]);
   const [selectedMethods, setSelectedMethods] = useState<string[]>([]);
   const [publishing, setPublishing] = useState(false);
+  const [unitPickerIndex, setUnitPickerIndex] = useState<number | null>(null);
 
   const toggleDiet = (diet: string) =>
     setSelectedDiets((prev) =>
@@ -216,7 +219,26 @@ export default function AddScreen() {
         )}
         <TouchableOpacity
           style={[styles.photoArea, photo ? styles.photoAreaFilled : null]}
-          onPress={() => Platform.OS === 'web' && fileInputRef.current?.click()}
+          onPress={async () => {
+            if (Platform.OS === 'web') {
+              fileInputRef.current?.click();
+            } else {
+              const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+              if (status !== 'granted') {
+                Alert.alert('Permissão necessária', 'Precisamos de acesso à galeria para escolher uma foto.');
+                return;
+              }
+              const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                quality: 0.75,
+                base64: true,
+              });
+              if (!result.canceled && result.assets[0].base64) {
+                setPhoto(`data:image/jpeg;base64,${result.assets[0].base64}`);
+              }
+            }
+          }}
           activeOpacity={0.85}
         >
           {photo ? (
@@ -418,32 +440,41 @@ export default function AddScreen() {
                       onChangeText={(v) => updateIngredientAmount(i, v)}
                     />
                   )}
-                  <select
-                    value={ing.unit}
-                    onChange={(e: any) => updateIngredientUnit(i, e.target.value)}
-                    style={{
-                      appearance: 'none' as any,
-                      WebkitAppearance: 'none' as any,
-                      backgroundColor: ing.unit !== 'g' ? (COLORS.primaryDim as any) : (COLORS.surface2 as any),
-                      border: `1px solid ${ing.unit !== 'g' ? COLORS.borderActive : COLORS.border}`,
-                      borderRadius: 10,
-                      padding: '0 20px 0 8px',
-                      height: 42,
-                      fontSize: 12,
-                      fontWeight: '700',
-                      color: ing.unit !== 'g' ? (COLORS.primary as any) : (COLORS.text2 as any),
-                      cursor: 'pointer',
-                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
-                      backgroundRepeat: 'no-repeat',
-                      backgroundPosition: 'right 6px center',
-                      outline: 'none',
-                      flexShrink: 0,
-                    } as any}
-                  >
-                    {UNITS.map((u) => (
-                      <option key={u} value={u}>{u}</option>
-                    ))}
-                  </select>
+                  {Platform.OS === 'web' ? (
+                    <select
+                      value={ing.unit}
+                      onChange={(e: any) => updateIngredientUnit(i, e.target.value)}
+                      style={{
+                        appearance: 'none' as any,
+                        WebkitAppearance: 'none' as any,
+                        backgroundColor: ing.unit !== 'g' ? (COLORS.primaryDim as any) : (COLORS.surface2 as any),
+                        border: `1px solid ${ing.unit !== 'g' ? COLORS.borderActive : COLORS.border}`,
+                        borderRadius: 10,
+                        padding: '0 20px 0 8px',
+                        height: 42,
+                        fontSize: 12,
+                        fontWeight: '700',
+                        color: ing.unit !== 'g' ? (COLORS.primary as any) : (COLORS.text2 as any),
+                        cursor: 'pointer',
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'right 6px center',
+                        outline: 'none',
+                        flexShrink: 0,
+                      } as any}
+                    >
+                      {UNITS.map((u) => (
+                        <option key={u} value={u}>{u}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <TouchableOpacity
+                      style={[styles.unitBtn, ing.unit !== 'g' && styles.unitBtnActive]}
+                      onPress={() => setUnitPickerIndex(i)}
+                    >
+                      <Text style={[styles.unitBtnText, ing.unit !== 'g' && styles.unitBtnTextActive]}>{ing.unit}</Text>
+                    </TouchableOpacity>
+                  )}
                   {ingredients.length > 1 && (
                     <TouchableOpacity onPress={() => removeIngredient(i)} style={styles.removeBtn}>
                       <Ionicons name="remove-circle-outline" size={20} color={COLORS.accent} />
@@ -506,6 +537,24 @@ export default function AddScreen() {
 
         <View style={{ height: 120 }} />
       </ScrollView>
+
+      {/* Native unit picker modal */}
+      <Modal visible={unitPickerIndex !== null} transparent animationType="slide">
+        <TouchableOpacity style={styles.unitModalOverlay} activeOpacity={1} onPress={() => setUnitPickerIndex(null)}>
+          <View style={styles.unitModalBox}>
+            <Text style={styles.unitModalTitle}>Selecionar unidade</Text>
+            {UNITS.map((u) => (
+              <TouchableOpacity
+                key={u}
+                style={[styles.unitModalItem, ingredients[unitPickerIndex!]?.unit === u && styles.unitModalItemActive]}
+                onPress={() => { updateIngredientUnit(unitPickerIndex!, u); setUnitPickerIndex(null); }}
+              >
+                <Text style={[styles.unitModalItemText, ingredients[unitPickerIndex!]?.unit === u && styles.unitModalItemTextActive]}>{u}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -779,4 +828,50 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     backgroundColor: COLORS.surface2,
   },
+  unitBtn: {
+    height: 42,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  unitBtnActive: {
+    backgroundColor: COLORS.primaryDim,
+    borderColor: COLORS.borderActive,
+  },
+  unitBtnText: { fontSize: 12, fontWeight: '700', color: COLORS.text2, fontFamily: FONTS.bodyBold },
+  unitBtnTextActive: { color: COLORS.primary },
+  unitModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  unitModalBox: {
+    backgroundColor: COLORS.surface1,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 16,
+    paddingBottom: 32,
+  },
+  unitModalTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.text3,
+    textAlign: 'center',
+    marginBottom: 12,
+    fontFamily: FONTS.bodyBold,
+  },
+  unitModalItem: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginBottom: 4,
+  },
+  unitModalItemActive: { backgroundColor: COLORS.primaryDim },
+  unitModalItemText: { fontSize: 15, color: COLORS.text1, fontFamily: FONTS.body },
+  unitModalItemTextActive: { color: COLORS.primary, fontWeight: '700' },
 });

@@ -375,7 +375,41 @@ app.delete('/api/users/:id/follow', auth, (req, res) => {
   res.json({ following: false, followers: target.followers, myFollowing: me.following });
 });
 
+// ── SAVED ───────────────────────────────────────────────────────────────────
+
+app.get('/api/users/me/saved', auth, (req, res) => {
+  try {
+    const rows = db.all('SELECT recipe_id FROM saved_recipes WHERE user_id = ?', [req.user.id]);
+    res.json(rows.map(r => String(r.recipe_id)));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/recipes/:id/save', auth, (req, res) => {
+  try {
+    const already = db.get('SELECT 1 FROM saved_recipes WHERE user_id = ? AND recipe_id = ?', [req.user.id, req.params.id]);
+    if (!already) db.run('INSERT INTO saved_recipes (user_id, recipe_id) VALUES (?, ?)', [req.user.id, req.params.id]);
+    res.json({ saved: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/recipes/:id/save', auth, (req, res) => {
+  try {
+    db.run('DELETE FROM saved_recipes WHERE user_id = ? AND recipe_id = ?', [req.user.id, req.params.id]);
+    res.json({ saved: false });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── COOKED ──────────────────────────────────────────────────────────────────
+
+app.get('/api/users/me/cooked', auth, (req, res) => {
+  try {
+    const rows = db.all('SELECT recipe_id, cooked_at FROM user_cooked WHERE user_id = ? ORDER BY cooked_at ASC', [req.user.id]);
+    res.json(rows.map(r => ({
+      recipeId: String(r.recipe_id),
+      date: r.cooked_at ? r.cooked_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
+    })));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 app.post('/api/recipes/:id/cooked', auth, (req, res) => {
   try {
@@ -384,7 +418,8 @@ app.post('/api/recipes/:id/cooked', auth, (req, res) => {
       const recipe = db.get('SELECT cooked_count FROM recipes WHERE id = ?', [req.params.id]);
       return res.json({ cooked_count: recipe?.cooked_count ?? 0 });
     }
-    db.run('INSERT INTO user_cooked (user_id, recipe_id) VALUES (?, ?)', [req.user.id, req.params.id]);
+    const cookedAt = req.body?.cooked_at ?? new Date().toISOString().slice(0, 10);
+    db.run('INSERT INTO user_cooked (user_id, recipe_id, cooked_at) VALUES (?, ?, ?)', [req.user.id, req.params.id, cookedAt]);
     db.run('UPDATE recipes SET cooked_count = cooked_count + 1 WHERE id = ?', [req.params.id]);
     const recipe = db.get('SELECT cooked_count FROM recipes WHERE id = ?', [req.params.id]);
     res.json({ cooked_count: recipe?.cooked_count ?? 0 });
@@ -410,6 +445,16 @@ app.delete('/api/recipes/:id/cooked', auth, (req, res) => {
 });
 
 // ── RATINGS ─────────────────────────────────────────────────────────────────
+
+app.get('/api/users/me/ratings', auth, (req, res) => {
+  try {
+    const rows = db.all('SELECT recipe_id, rating FROM ratings WHERE user_id = ?', [req.user.id]);
+    const result = {};
+    rows.forEach(r => { result[String(r.recipe_id)] = r.rating; });
+    res.json(result);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.post('/api/recipes/:id/rate', auth, (req, res) => {
   try {
     const { rating } = req.body;

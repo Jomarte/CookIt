@@ -7,13 +7,13 @@ import {
   FlatList,
   Image,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '../../constants/Colors';
 import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';

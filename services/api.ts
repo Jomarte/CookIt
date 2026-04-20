@@ -1,4 +1,5 @@
-const BASE_URL = 'http://localhost:3001/api';
+import { API_URL } from '../config';
+const BASE_URL = API_URL;
 
 async function request(path: string, options: RequestInit = {}) {
   const { headers: optHeaders, ...restOptions } = options;
@@ -67,11 +68,26 @@ export const api = {
   deleteRecipe: (token: string, id: number) =>
     request(`/recipes/${id}`, { method: 'DELETE', headers: authHeader(token) }),
 
-  cookRecipe: (token: string, id: number | string) =>
-    request(`/recipes/${id}/cooked`, { method: 'POST', headers: authHeader(token) }),
+  cookRecipe: (token: string, id: number | string, cookedAt?: string) =>
+    request(`/recipes/${id}/cooked`, { method: 'POST', headers: authHeader(token), body: JSON.stringify({ cooked_at: cookedAt }) }),
 
   uncookRecipe: (token: string, id: number | string) =>
     request(`/recipes/${id}/cooked`, { method: 'DELETE', headers: authHeader(token) }),
+
+  getSavedRecipes: (token: string): Promise<string[]> =>
+    request('/users/me/saved', { headers: authHeader(token) }),
+
+  saveRecipe: (token: string, id: number | string) =>
+    request(`/recipes/${id}/save`, { method: 'POST', headers: authHeader(token) }),
+
+  unsaveRecipe: (token: string, id: number | string) =>
+    request(`/recipes/${id}/save`, { method: 'DELETE', headers: authHeader(token) }),
+
+  getCookedRecipes: (token: string): Promise<{ recipeId: string; date: string }[]> =>
+    request('/users/me/cooked', { headers: authHeader(token) }),
+
+  getUserRatings: (token: string): Promise<Record<string, number>> =>
+    request('/users/me/ratings', { headers: authHeader(token) }),
 
   rateRecipe: (token: string, id: number | string, rating: number) =>
     request(`/recipes/${id}/rate`, { method: 'POST', headers: authHeader(token), body: JSON.stringify({ rating }) }),

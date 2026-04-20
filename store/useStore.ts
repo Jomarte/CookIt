@@ -211,16 +211,23 @@ export const useStore = create<AppState>()((set, get) => ({
   },
 
   toggleSaved: (recipeId) => {
+    const { token, savedRecipes } = get();
+    const isSaved = savedRecipes.includes(recipeId);
     set((state) => ({
-      savedRecipes: state.savedRecipes.includes(recipeId)
+      savedRecipes: isSaved
         ? state.savedRecipes.filter((id) => id !== recipeId)
         : [...state.savedRecipes, recipeId],
     }));
+    if (token) {
+      if (isSaved) api.unsaveRecipe(token, recipeId).catch(() => {});
+      else api.saveRecipe(token, recipeId).catch(() => {});
+    }
   },
 
   toggleCooked: (recipeId) => {
     const { token, cookedRecipes } = get();
     const isCooked = cookedRecipes.includes(recipeId);
+    const today = localToday();
     set((state) => {
       if (isCooked) {
         return {
@@ -230,13 +237,13 @@ export const useStore = create<AppState>()((set, get) => ({
       } else {
         return {
           cookedRecipes: [...state.cookedRecipes, recipeId],
-          cookedLogs: [...state.cookedLogs, { recipeId, date: localToday() }],
+          cookedLogs: [...state.cookedLogs, { recipeId, date: today }],
         };
       }
     });
     if (token) {
       if (isCooked) api.uncookRecipe(token, recipeId).catch(() => {});
-      else api.cookRecipe(token, recipeId).catch(() => {});
+      else api.cookRecipe(token, recipeId, today).catch(() => {});
     }
   },
 
