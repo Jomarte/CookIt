@@ -408,15 +408,18 @@ export default function DiscoverScreen() {
             </View>
           )}
 
-          {/* Sort + section header */}
+          {/* Trending Now / Results */}
           <View ref={resultsRef} style={styles.section}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>
-                {isFiltering ? 'Resultados' : 'Receitas'}
+                {isFiltering ? 'Resultados' : 'Trending Now'}
               </Text>
-              <Text style={styles.resultsCount}>{filtered.length}</Text>
+              {!isFiltering && (
+                <Text style={styles.viewAll}>{filtered.length} receitas</Text>
+              )}
             </View>
 
+            {/* Sort pills */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortRow}>
               {SORT_OPTIONS.map((opt) => {
                 const active = sortBy === opt.key;
@@ -433,7 +436,6 @@ export default function DiscoverScreen() {
               })}
             </ScrollView>
 
-            {/* Recipe cards */}
             {filtered.length === 0 ? (
               <View style={styles.empty}>
                 <View style={styles.emptyIcon}>
@@ -457,7 +459,6 @@ export default function DiscoverScreen() {
                       onPress={() => router.push(`/recipe/${recipe.id}`)}
                       activeOpacity={0.92}
                     >
-                      {/* Image */}
                       <View style={styles.recipeCardImage}>
                         {recipe.image ? (
                           <Image source={{ uri: recipe.image }} style={styles.recipeCardPhoto} resizeMode="cover" />
@@ -466,10 +467,7 @@ export default function DiscoverScreen() {
                             <Ionicons name="restaurant-outline" size={40} color={COLORS.text3} />
                           </View>
                         )}
-                        {/* Gradient overlay */}
                         <View style={styles.recipeCardGradient} />
-
-                        {/* Save button */}
                         <TouchableOpacity
                           style={styles.recipeCardSaveBtn}
                           onPress={(e) => { e.stopPropagation?.(); toggleSaved(String(recipe.id)); }}
@@ -480,8 +478,6 @@ export default function DiscoverScreen() {
                             color={isSaved ? '#E53935' : '#fff'}
                           />
                         </TouchableOpacity>
-
-                        {/* Info overlay */}
                         <View style={styles.recipeCardOverlay}>
                           <Text style={styles.recipeCardTitle} numberOfLines={2}>{recipe.title}</Text>
                           <View style={styles.recipeCardMeta}>
@@ -642,6 +638,7 @@ const styles = StyleSheet.create({
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   sectionTitle: { fontSize: 20, fontWeight: '800', color: COLORS.text1, fontFamily: FONTS.titleBold, letterSpacing: -0.3 },
   resultsCount: { fontSize: 13, color: COLORS.text3, fontWeight: '600', fontFamily: FONTS.body },
+  viewAll: { fontSize: 13, fontWeight: '700', color: COLORS.primary, fontFamily: FONTS.bodyBold },
 
   // Cuisine bento grid
   cuisineGrid: { gap: 10 },
