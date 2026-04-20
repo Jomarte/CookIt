@@ -2,7 +2,6 @@ import { useRouter } from 'expo-router';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
   Image,
   ScrollView,
   StyleSheet,
@@ -26,11 +25,37 @@ const DIFF_COLORS: Record<string, string> = {
 
 const CUISINES = ['Todas', 'Portuguesa', 'Italiana', 'Japonesa', 'Mexicana', 'Indiana', 'Francesa', 'Mediterrânica', 'Americana', 'Brasileira', 'Coreana', 'Chinesa', 'Tailandesa', 'Árabe', 'Africana', 'Fusão', 'Internacional'];
 const DISH_TYPES = ['Todos', 'Entrada', 'Sopa', 'Prato Principal', 'Acompanhamento', 'Snack', 'Sobremesa', 'Pequeno-Almoço', 'Brunch', 'Lanche', 'Bebida', 'Molho', 'Pão / Pastelaria'];
-const DIFFICULTIES = ['Fácil', 'Médio', 'Difícil'];
+
+const CUISINE_META: Record<string, { emoji: string; color: string }> = {
+  'Portuguesa':    { emoji: '🇵🇹', color: '#8B3A1A' },
+  'Italiana':      { emoji: '🍝', color: '#C2622D' },
+  'Japonesa':      { emoji: '🍱', color: '#C2185B' },
+  'Mexicana':      { emoji: '🌮', color: '#E67E22' },
+  'Indiana':       { emoji: '🍛', color: '#FF8F00' },
+  'Francesa':      { emoji: '🥐', color: '#6A1B9A' },
+  'Mediterrânica': { emoji: '🫒', color: '#0277BD' },
+  'Americana':     { emoji: '🍔', color: '#B71C1C' },
+  'Brasileira':    { emoji: '🇧🇷', color: '#2E7D32' },
+  'Coreana':       { emoji: '🍜', color: '#BF360C' },
+  'Chinesa':       { emoji: '🥢', color: '#C62828' },
+  'Tailandesa':    { emoji: '🍲', color: '#00695C' },
+  'Árabe':         { emoji: '🧆', color: '#E65100' },
+  'Africana':      { emoji: '🌍', color: '#4E342E' },
+  'Fusão':         { emoji: '✨', color: '#283593' },
+  'Internacional': { emoji: '🌎', color: '#37474F' },
+};
+
+const SORT_OPTIONS = [
+  { key: 'recente',   label: 'Recente',        icon: 'time-outline' },
+  { key: 'avaliado',  label: 'Melhor avaliado', icon: 'star-outline' },
+  { key: 'cozinhado', label: 'Mais cozinhado',  icon: 'flame-outline' },
+  { key: 'rapido',    label: 'Mais rápido',     icon: 'flash-outline' },
+  { key: 'popular',   label: 'Mais popular',    icon: 'heart-outline' },
+] as const;
 
 export default function DiscoverScreen() {
   const router = useRouter();
-  const { user, savedRecipes, toggleSaved } = useStore();
+  const { savedRecipes, toggleSaved } = useStore();
   const [search, setSearch] = useState('');
   const [activeCuisine, setActiveCuisine] = useState('Todas');
   const [activeDishType, setActiveDishType] = useState('Todos');
@@ -41,6 +66,7 @@ export default function DiscoverScreen() {
   const [fridgeIngredients, setFridgeIngredients] = useState('');
   const [recipes, setRecipes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState('');
 
   useEffect(() => {
     api.getRecipes()
@@ -57,10 +83,17 @@ export default function DiscoverScreen() {
         if (key?.trim()) counts[key.trim()] = (counts[key.trim()] || 0) + 1;
       });
     });
-    return Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 24)
-      .map(([name]) => name);
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 24).map(([name]) => name);
+  }, [recipes]);
+
+  const cuisineGroups = useMemo(() => {
+    const map = new Map<string, any>();
+    recipes.forEach((r) => {
+      if (r.cuisine) {
+        if (!map.has(r.cuisine)) map.set(r.cuisine, r);
+      }
+    });
+    return Array.from(map.entries()).slice(0, 10);
   }, [recipes]);
 
   const toggleIngredient = (name: string) =>
@@ -80,6 +113,12 @@ export default function DiscoverScreen() {
     setSelectedIngredients([]);
   };
 
+  const isFiltering = !!search || !!fridgeIngredients || activeCuisine !== 'Todas' ||
+    activeDishType !== 'Todos' || !!activeDifficulty || selectedIngredients.length > 0;
+
+  const hasActiveChips = activeCuisine !== 'Todas' || activeDishType !== 'Todos' ||
+    selectedIngredients.length > 0 || !!activeDifficulty;
+
   const filtered = recipes.filter((r) => {
     const searchTerm = fridgeMode ? fridgeIngredients : search;
     const matchSearch = !searchTerm.trim() ||
@@ -87,171 +126,30 @@ export default function DiscoverScreen() {
       (r.tags ?? []).some((t: string) => t.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (r.ingredients ?? []).some((i: any) =>
         fridgeMode
-          ? fridgeIngredients.split(',').some((ing) =>
-              i.name.toLowerCase().includes(ing.trim().toLowerCase())
-            )
+          ? fridgeIngredients.split(',').some((ing) => i.name.toLowerCase().includes(ing.trim().toLowerCase()))
           : i.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
-    const matchCuisine = activeCuisine === 'Todas' ||
-      (r.cuisine ?? '').toLowerCase() === activeCuisine.toLowerCase();
-    const matchDishType = activeDishType === 'Todos' ||
-      (r.dish_type ?? '').toLowerCase() === activeDishType.toLowerCase();
-    const matchDifficulty = !activeDifficulty ||
-      (r.difficulty ?? '').toLowerCase() === activeDifficulty.toLowerCase();
+    const matchCuisine = activeCuisine === 'Todas' || (r.cuisine ?? '').toLowerCase() === activeCuisine.toLowerCase();
+    const matchDishType = activeDishType === 'Todos' || (r.dish_type ?? '').toLowerCase() === activeDishType.toLowerCase();
+    const matchDifficulty = !activeDifficulty || (r.difficulty ?? '').toLowerCase() === activeDifficulty.toLowerCase();
     const matchIngredients = selectedIngredients.length === 0 ||
       selectedIngredients.every((sel) =>
-        (r.ingredients ?? []).some((ing: any) =>
-          (ing.canonical_name || ing.name)?.toLowerCase() === sel.toLowerCase()
-        )
+        (r.ingredients ?? []).some((ing: any) => (ing.canonical_name || ing.name)?.toLowerCase() === sel.toLowerCase())
       );
     return matchSearch && matchCuisine && matchDishType && matchDifficulty && matchIngredients;
+  }).sort((a, b) => {
+    switch (sortBy) {
+      case 'avaliado':  return (b.rating ?? 0) - (a.rating ?? 0);
+      case 'cozinhado': return (b.cooked_count ?? 0) - (a.cooked_count ?? 0);
+      case 'rapido':    return ((a.prep_time ?? 0) + (a.cook_time ?? 0)) - ((b.prep_time ?? 0) + (b.cook_time ?? 0));
+      case 'popular':   return (b.likes ?? 0) - (a.likes ?? 0);
+      default:          return 0;
+    }
   });
-
-  const renderCard = ({ item: recipe }: { item: any }) => {
-    if (recipe.__placeholder) return <View style={{ flex: 1 }} />;
-    const totalTime = (recipe.prep_time ?? 0) + (recipe.cook_time ?? 0);
-    const initial = (recipe.author_name ?? '?')[0].toUpperCase();
-    const isSaved = savedRecipes.includes(String(recipe.id));
-    const diffColor = DIFF_COLORS[recipe.difficulty] ?? COLORS.text2;
-    return (
-      <TouchableOpacity style={styles.card} onPress={() => router.push(`/recipe/${recipe.id}`)}>
-        <View style={styles.cardImage}>
-          {recipe.image
-            ? <Image source={{ uri: recipe.image }} style={styles.cardPhoto} resizeMode="cover" />
-            : <Ionicons name="restaurant-outline" size={32} color={COLORS.text3} />
-          }
-          {/* Save button */}
-          <TouchableOpacity
-            style={styles.cardSaveBtn}
-            onPress={(e) => { e.stopPropagation?.(); toggleSaved(String(recipe.id)); }}
-          >
-            <Ionicons
-              name={isSaved ? 'bookmark' : 'bookmark-outline'}
-              size={16}
-              color={isSaved ? COLORS.primary : '#fff'}
-            />
-          </TouchableOpacity>
-          {/* Difficulty badge top-right */}
-          <View style={[styles.cardDiffBadge, { borderColor: diffColor }]}>
-            <Text style={[styles.cardDiffText, { color: diffColor }]}>{recipe.difficulty}</Text>
-          </View>
-          {/* Cuisine badge bottom-left */}
-          {recipe.cuisine ? (
-            <View style={styles.cardCuisineBadge}>
-              <Text style={styles.cardCuisineText} numberOfLines={1}>{recipe.cuisine}</Text>
-            </View>
-          ) : null}
-        </View>
-        <View style={styles.cardContent}>
-          <Text style={styles.cardTitle} numberOfLines={2}>{recipe.title}</Text>
-          <View style={styles.cardMeta}>
-            <Ionicons name="time-outline" size={12} color={COLORS.text3} />
-            <Text style={styles.cardMetaText}>{totalTime}min</Text>
-            <View style={styles.cardAuthor}>
-              <Text style={styles.cardAuthorText}>{initial}</Text>
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
-  const ListHeader = () => (
-    <View style={styles.listHeader}>
-      {/* Filter panel (inline) */}
-      {filterOpen && (
-        <View style={styles.filterPanel}>
-          <Text style={styles.filterPanelLabel}>Culinária</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterPanelRow}>
-            {CUISINES.map((item) => (
-              <TouchableOpacity
-                key={item}
-                style={[styles.catPill, activeCuisine === item && styles.catPillActive]}
-                onPress={() => setActiveCuisine(item)}
-              >
-                <Text style={[styles.catText, activeCuisine === item && styles.catTextActive]}>{item}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          <Text style={styles.filterPanelLabel}>Tipo de Prato</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterPanelRow}>
-            {DISH_TYPES.map((item) => (
-              <TouchableOpacity
-                key={item}
-                style={[styles.catPill, activeDishType === item && styles.catPillActive]}
-                onPress={() => setActiveDishType(item)}
-              >
-                <Text style={[styles.catText, activeDishType === item && styles.catTextActive]}>{item}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          <Text style={styles.filterPanelLabel}>Ingredientes</Text>
-          {popularIngredients.length === 0 ? (
-            <Text style={styles.ingredientEmptyHint}>Adiciona receitas com ingredientes para filtrar aqui</Text>
-          ) : (
-            <View style={styles.ingredientPillsWrap}>
-              {popularIngredients.map((ing) => {
-                const isActive = selectedIngredients.includes(ing);
-                return (
-                  <TouchableOpacity
-                    key={ing}
-                    style={[styles.catPill, isActive && styles.catPillActive]}
-                    onPress={() => toggleIngredient(ing)}
-                  >
-                    <Text style={[styles.catText, isActive && styles.catTextActive]}>{ing}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          )}
-        </View>
-      )}
-
-      {/* Active filter chips */}
-      {(activeCuisine !== 'Todas' || activeDishType !== 'Todos' || selectedIngredients.length > 0 || activeDifficulty) && (
-        <View style={styles.activeChips}>
-          {activeDifficulty ? (
-            <TouchableOpacity style={styles.activeChip} onPress={() => setActiveDifficulty('')}>
-              <Text style={styles.activeChipText}>{activeDifficulty}</Text>
-              <Ionicons name="close" size={11} color={COLORS.primary} />
-            </TouchableOpacity>
-          ) : null}
-          {activeCuisine !== 'Todas' && (
-            <TouchableOpacity style={styles.activeChip} onPress={() => setActiveCuisine('Todas')}>
-              <Text style={styles.activeChipText}>{activeCuisine}</Text>
-              <Ionicons name="close" size={11} color={COLORS.primary} />
-            </TouchableOpacity>
-          )}
-          {activeDishType !== 'Todos' && (
-            <TouchableOpacity style={styles.activeChip} onPress={() => setActiveDishType('Todos')}>
-              <Text style={styles.activeChipText}>{activeDishType}</Text>
-              <Ionicons name="close" size={11} color={COLORS.primary} />
-            </TouchableOpacity>
-          )}
-          {selectedIngredients.map((ing) => (
-            <TouchableOpacity key={ing} style={styles.activeChip} onPress={() => toggleIngredient(ing)}>
-              <Text style={styles.activeChipText}>{ing}</Text>
-              <Ionicons name="close" size={11} color={COLORS.primary} />
-            </TouchableOpacity>
-          ))}
-          <TouchableOpacity style={styles.clearAllBtn} onPress={clearAllFilters}>
-            <Text style={styles.clearAllText}>Limpar</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Results count */}
-      <View style={styles.resultsHeader}>
-        <Text style={styles.resultsCount}>{filtered.length} receitas encontradas</Text>
-      </View>
-    </View>
-  );
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Fixed header */}
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.wordmark}>
           <Text style={styles.wordmarkC}>C</Text>
@@ -259,17 +157,13 @@ export default function DiscoverScreen() {
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity
-            style={[styles.fridgeIconBtn, fridgeMode && styles.fridgeIconBtnActive]}
+            style={[styles.headerBtn, fridgeMode && styles.headerBtnActive]}
             onPress={() => setFridgeMode(!fridgeMode)}
           >
-            <Ionicons
-              name="restaurant-outline"
-              size={18}
-              color={fridgeMode ? COLORS.bg : COLORS.primary}
-            />
+            <Ionicons name="restaurant-outline" size={18} color={fridgeMode ? COLORS.bg : COLORS.primary} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.filterIconBtn, filterOpen && styles.filterIconBtnActive]}
+            style={[styles.headerBtn, filterOpen && styles.headerBtnActive]}
             onPress={() => setFilterOpen(!filterOpen)}
           >
             <Ionicons name="options-outline" size={18} color={filterOpen ? COLORS.bg : COLORS.primary} />
@@ -282,13 +176,13 @@ export default function DiscoverScreen() {
         </View>
       </View>
 
-      {/* Search bar — always visible below header */}
+      {/* Search bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchWrap}>
           <Ionicons name="search-outline" size={16} color={COLORS.text3} />
           <TextInput
             style={styles.searchInput}
-            placeholder={fridgeMode ? 'Ex: ovos, arroz, atum...' : 'Pesquisar receita...'}
+            placeholder="Pesquisar receitas, ingredientes..."
             placeholderTextColor={COLORS.text3}
             value={fridgeMode ? fridgeIngredients : search}
             onChangeText={fridgeMode ? setFridgeIngredients : setSearch}
@@ -299,12 +193,6 @@ export default function DiscoverScreen() {
             </TouchableOpacity>
           ) : null}
         </View>
-        {fridgeMode && (
-          <View style={styles.fridgeHint}>
-            <Ionicons name="bulb-outline" size={13} color={COLORS.primary} />
-            <Text style={styles.fridgeHintText}>Escreve os ingredientes separados por vírgula</Text>
-          </View>
-        )}
       </View>
 
       {loading ? (
@@ -312,30 +200,215 @@ export default function DiscoverScreen() {
           <ActivityIndicator color={COLORS.primary} size="large" />
         </View>
       ) : (
-        <FlatList
-          data={filtered.length % 2 !== 0 ? [...filtered, { id: '__placeholder__', __placeholder: true }] : filtered}
-          renderItem={renderCard}
-          keyExtractor={(item) => String(item.id)}
-          numColumns={2}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          columnWrapperStyle={styles.gridRow}
-          contentContainerStyle={styles.gridContent}
-          ListHeaderComponent={ListHeader}
-          ListEmptyComponent={
-            <View style={styles.empty}>
-              <View style={styles.emptyIcon}>
-                <Ionicons name="search-outline" size={32} color={COLORS.primary} />
-              </View>
-              <Text style={styles.emptyTitle}>Sem resultados</Text>
-              <Text style={styles.emptyText}>
-                {fridgeMode
-                  ? 'Experimenta adicionar outros ingredientes'
-                  : 'Tenta pesquisar por outro termo'}
-              </Text>
+        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+
+          {/* Filter panel */}
+          {filterOpen && (
+            <View style={styles.filterPanel}>
+              <Text style={styles.filterLabel}>Culinária</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+                {CUISINES.map((item) => (
+                  <TouchableOpacity key={item} style={[styles.pill, activeCuisine === item && styles.pillActive]} onPress={() => setActiveCuisine(item)}>
+                    <Text style={[styles.pillText, activeCuisine === item && styles.pillTextActive]}>{item}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <Text style={styles.filterLabel}>Tipo de Prato</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+                {DISH_TYPES.map((item) => (
+                  <TouchableOpacity key={item} style={[styles.pill, activeDishType === item && styles.pillActive]} onPress={() => setActiveDishType(item)}>
+                    <Text style={[styles.pillText, activeDishType === item && styles.pillTextActive]}>{item}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
-          }
-        />
+          )}
+
+          {/* Active chips */}
+          {hasActiveChips && (
+            <View style={styles.activeChips}>
+              {activeDifficulty && (
+                <TouchableOpacity style={styles.chip} onPress={() => setActiveDifficulty('')}>
+                  <Text style={styles.chipText}>{activeDifficulty}</Text>
+                  <Ionicons name="close" size={11} color={COLORS.primary} />
+                </TouchableOpacity>
+              )}
+              {activeCuisine !== 'Todas' && (
+                <TouchableOpacity style={styles.chip} onPress={() => setActiveCuisine('Todas')}>
+                  <Text style={styles.chipText}>{activeCuisine}</Text>
+                  <Ionicons name="close" size={11} color={COLORS.primary} />
+                </TouchableOpacity>
+              )}
+              {activeDishType !== 'Todos' && (
+                <TouchableOpacity style={styles.chip} onPress={() => setActiveDishType('Todos')}>
+                  <Text style={styles.chipText}>{activeDishType}</Text>
+                  <Ionicons name="close" size={11} color={COLORS.primary} />
+                </TouchableOpacity>
+              )}
+              {selectedIngredients.map((ing) => (
+                <TouchableOpacity key={ing} style={styles.chip} onPress={() => toggleIngredient(ing)}>
+                  <Text style={styles.chipText}>{ing}</Text>
+                  <Ionicons name="close" size={11} color={COLORS.primary} />
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity style={styles.chipClear} onPress={clearAllFilters}>
+                <Text style={styles.chipClearText}>Limpar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Fridge Mode card */}
+          {fridgeMode && (
+            <View style={styles.fridgeCard}>
+              <View style={styles.fridgeCardTag}>
+                <Ionicons name="restaurant-outline" size={11} color={COLORS.primary} />
+                <Text style={styles.fridgeCardTagText}>FRIDGE MODE</Text>
+              </View>
+              <Text style={styles.fridgeCardTitle}>O que tens{'\n'}no frigorífico?</Text>
+              <Text style={styles.fridgeCardSub}>
+                Escreve os ingredientes separados por vírgula e encontramos a receita certa para ti.
+              </Text>
+              <View style={styles.fridgeCardInputWrap}>
+                <TextInput
+                  style={styles.fridgeCardInput}
+                  placeholder="Ex: ovos, arroz, atum..."
+                  placeholderTextColor={COLORS.text3}
+                  value={fridgeIngredients}
+                  onChangeText={setFridgeIngredients}
+                />
+              </View>
+            </View>
+          )}
+
+          {/* Explore Cuisines */}
+          {!isFiltering && cuisineGroups.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Explorar Culinárias</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cuisineRow}>
+                {cuisineGroups.map(([cuisine, recipe]: [string, any]) => {
+                  const meta = CUISINE_META[cuisine] ?? { emoji: '🍽️', color: COLORS.primary };
+                  return (
+                    <TouchableOpacity
+                      key={cuisine}
+                      style={styles.cuisineCard}
+                      onPress={() => { setActiveCuisine(cuisine); setFilterOpen(false); }}
+                    >
+                      {recipe.image ? (
+                        <Image source={{ uri: recipe.image }} style={styles.cuisineCardBg} resizeMode="cover" />
+                      ) : (
+                        <View style={[styles.cuisineCardBg, { backgroundColor: meta.color }]} />
+                      )}
+                      <View style={styles.cuisineCardOverlay} />
+                      <Text style={styles.cuisineCardEmoji}>{meta.emoji}</Text>
+                      <Text style={styles.cuisineCardName}>{cuisine}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Sort + section header */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>
+                {isFiltering ? 'Resultados' : 'Receitas'}
+              </Text>
+              <Text style={styles.resultsCount}>{filtered.length}</Text>
+            </View>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortRow}>
+              {SORT_OPTIONS.map((opt) => {
+                const active = sortBy === opt.key;
+                return (
+                  <TouchableOpacity
+                    key={opt.key}
+                    style={[styles.sortPill, active && styles.sortPillActive]}
+                    onPress={() => setSortBy(active ? '' : opt.key)}
+                  >
+                    <Ionicons name={opt.icon as any} size={13} color={active ? COLORS.primary : COLORS.text3} />
+                    <Text style={[styles.sortPillText, active && styles.sortPillTextActive]}>{opt.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {/* Recipe cards */}
+            {filtered.length === 0 ? (
+              <View style={styles.empty}>
+                <View style={styles.emptyIcon}>
+                  <Ionicons name="search-outline" size={32} color={COLORS.primary} />
+                </View>
+                <Text style={styles.emptyTitle}>Sem resultados</Text>
+                <Text style={styles.emptyText}>
+                  {fridgeMode ? 'Experimenta adicionar outros ingredientes' : 'Tenta pesquisar por outro termo'}
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.recipeList}>
+                {filtered.map((recipe) => {
+                  const totalTime = (recipe.prep_time ?? 0) + (recipe.cook_time ?? 0);
+                  const isSaved = savedRecipes.includes(String(recipe.id));
+                  const diffColor = DIFF_COLORS[recipe.difficulty] ?? COLORS.text3;
+                  return (
+                    <TouchableOpacity
+                      key={recipe.id}
+                      style={styles.recipeCard}
+                      onPress={() => router.push(`/recipe/${recipe.id}`)}
+                      activeOpacity={0.92}
+                    >
+                      {/* Image */}
+                      <View style={styles.recipeCardImage}>
+                        {recipe.image ? (
+                          <Image source={{ uri: recipe.image }} style={styles.recipeCardPhoto} resizeMode="cover" />
+                        ) : (
+                          <View style={[styles.recipeCardPhoto, { backgroundColor: COLORS.surface3, alignItems: 'center', justifyContent: 'center' }]}>
+                            <Ionicons name="restaurant-outline" size={40} color={COLORS.text3} />
+                          </View>
+                        )}
+                        {/* Gradient overlay */}
+                        <View style={styles.recipeCardGradient} />
+
+                        {/* Save button */}
+                        <TouchableOpacity
+                          style={styles.recipeCardSaveBtn}
+                          onPress={(e) => { e.stopPropagation?.(); toggleSaved(String(recipe.id)); }}
+                        >
+                          <Ionicons
+                            name={isSaved ? 'heart' : 'heart-outline'}
+                            size={18}
+                            color={isSaved ? '#E53935' : '#fff'}
+                          />
+                        </TouchableOpacity>
+
+                        {/* Info overlay */}
+                        <View style={styles.recipeCardOverlay}>
+                          <Text style={styles.recipeCardTitle} numberOfLines={2}>{recipe.title}</Text>
+                          <View style={styles.recipeCardMeta}>
+                            <View style={styles.recipeCardMetaItem}>
+                              <Ionicons name="time-outline" size={13} color="rgba(255,255,255,0.8)" />
+                              <Text style={styles.recipeCardMetaText}>{totalTime}min</Text>
+                            </View>
+                            <View style={[styles.recipeCardDiff, { borderColor: diffColor }]}>
+                              <Text style={[styles.recipeCardDiffText, { color: diffColor }]}>{recipe.difficulty}</Text>
+                            </View>
+                            {recipe.cuisine ? (
+                              <View style={styles.recipeCardCuisine}>
+                                <Text style={styles.recipeCardCuisineText}>{recipe.cuisine}</Text>
+                              </View>
+                            ) : null}
+                          </View>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+
+          <View style={{ height: 24 }} />
+        </ScrollView>
       )}
     </SafeAreaView>
   );
@@ -344,282 +417,201 @@ export default function DiscoverScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
 
+  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: COLORS.bg,
-    borderBottomWidth: 0,
   },
-  headerTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text1, letterSpacing: -0.3, fontFamily: FONTS.titleBlack },
   wordmark: { flexDirection: 'row', alignItems: 'center' },
   wordmarkC: { fontSize: 28, fontWeight: '900', color: COLORS.text1, letterSpacing: -1, fontFamily: FONTS.titleBlack },
   wordmarkK: { fontSize: 28, fontWeight: '900', color: COLORS.primary, letterSpacing: -1, fontFamily: FONTS.titleBlack },
-  headerActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-
-  fridgeIconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
+  headerActions: { flexDirection: 'row', gap: 8 },
+  headerBtn: {
+    width: 38, height: 38, borderRadius: 19,
+    alignItems: 'center', justifyContent: 'center',
     backgroundColor: COLORS.primaryDim,
-    borderWidth: 1.5,
-    borderColor: COLORS.borderActive,
+    borderWidth: 1.5, borderColor: COLORS.borderActive,
   },
-  fridgeIconBtnActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-
-  filterIconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.primaryDim,
-    borderWidth: 1.5,
-    borderColor: COLORS.borderActive,
-  },
-  filterIconBtnActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
+  headerBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   filterBadge: {
-    position: 'absolute',
-    top: -3,
-    right: -3,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    position: 'absolute', top: -3, right: -3,
+    width: 16, height: 16, borderRadius: 8,
     backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: COLORS.bg,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, borderColor: COLORS.bg,
   },
   filterBadgeText: { fontSize: 9, fontWeight: '800', color: COLORS.bg, fontFamily: FONTS.bodyBold },
 
-  searchContainer: {
-    backgroundColor: COLORS.bg,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 10,
-  },
+  // Search
+  searchContainer: { paddingHorizontal: 16, paddingBottom: 12 },
   searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: COLORS.surface2,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    gap: 8,
+    paddingHorizontal: 12, paddingVertical: 11,
+    borderRadius: 14, borderWidth: 1, borderColor: COLORS.border,
   },
   searchInput: { flex: 1, fontSize: 14, color: COLORS.text1, fontFamily: FONTS.body },
 
-  fridgeHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 8,
-    padding: 8,
-    backgroundColor: COLORS.primaryDim,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.borderActive,
-  },
-  fridgeHintText: { flex: 1, fontSize: 11, color: COLORS.primary, fontWeight: '500', fontFamily: FONTS.body },
-
-  listHeader: { backgroundColor: COLORS.bg },
-
-  filterPanel: {
-    backgroundColor: COLORS.surface1,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    paddingTop: 12,
-    paddingBottom: 4,
-  },
-  filterPanelLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: COLORS.text3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    paddingHorizontal: 16,
-    marginBottom: 6,
-    fontFamily: FONTS.bodyBold,
-  },
-  filterPanelRow: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    gap: 8,
-    flexDirection: 'row',
-  },
-
-  ingredientPillsWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 7,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-  },
-  ingredientEmptyHint: {
-    fontSize: 12,
-    color: COLORS.text3,
-    fontStyle: 'italic',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    fontFamily: FONTS.body,
-  },
-
-  activeChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 4,
-  },
-  activeChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: COLORS.primaryDim,
-    borderWidth: 1,
-    borderColor: COLORS.borderActive,
-  },
-  activeChipText: { fontSize: 12, fontWeight: '700', color: COLORS.primary, fontFamily: FONTS.bodyBold },
-  clearAllBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: COLORS.surface2,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  clearAllText: { fontSize: 12, fontWeight: '600', color: COLORS.text3, fontFamily: FONTS.body },
-
-  catPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: COLORS.surface2,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignSelf: 'flex-start',
-  },
-  catPillActive: {
-    backgroundColor: COLORS.primaryDim,
-    borderColor: COLORS.borderActive,
-  },
-  catText: { fontSize: 13, fontWeight: '600', color: COLORS.text3, fontFamily: FONTS.body },
-  catTextActive: { color: COLORS.primary, fontWeight: '700', fontFamily: FONTS.bodyBold },
-
-  resultsHeader: { paddingHorizontal: 20, paddingVertical: 10 },
-  resultsCount: { fontSize: 12, color: COLORS.text3, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, fontFamily: FONTS.body },
-
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  gridContent: { paddingHorizontal: 16, paddingBottom: 24, gap: 12 },
-  gridRow: { gap: 12 },
-
-  card: {
-    flex: 1,
+  // Filter panel
+  filterPanel: {
     backgroundColor: COLORS.surface1,
-    borderRadius: 18,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    elevation: 3,
+    borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    paddingTop: 12, paddingBottom: 4,
   },
-  cardImage: {
-    width: '100%',
-    height: 200,
-    backgroundColor: COLORS.surface2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    overflow: 'hidden',
+  filterLabel: {
+    fontSize: 11, fontWeight: '800', color: COLORS.text3,
+    textTransform: 'uppercase', letterSpacing: 0.6,
+    paddingHorizontal: 16, marginBottom: 6, fontFamily: FONTS.bodyBold,
   },
-  cardPhoto: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    width: '100%',
-    height: '100%',
-  },
-  cardSaveBtn: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: 'rgba(0,0,0,0.52)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-  },
-  cardDiffBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(0,0,0,0.52)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  cardDiffText: { fontSize: 10, fontWeight: '700', fontFamily: FONTS.body },
-  cardCuisineBadge: {
-    position: 'absolute',
-    bottom: 8,
-    left: 8,
-    backgroundColor: 'rgba(0,0,0,0.52)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 20,
-    maxWidth: '80%',
-  },
-  cardCuisineText: { fontSize: 10, color: '#fff', fontWeight: '600', fontFamily: FONTS.body },
-  cardContent: { padding: 10 },
-  cardTitle: { fontSize: 13, fontWeight: '700', color: COLORS.text1, marginBottom: 6, lineHeight: 18, fontFamily: FONTS.titleBold },
-  cardMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  cardMetaText: { fontSize: 12, color: COLORS.text3, fontWeight: '500', flex: 1, fontFamily: FONTS.body },
-  cardAuthor: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: COLORS.primaryDim,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.borderActive,
-  },
-  cardAuthorText: { fontSize: 9, fontWeight: '800', color: COLORS.primary },
+  filterRow: { paddingHorizontal: 16, paddingBottom: 12, gap: 8, flexDirection: 'row' },
+  filterEmptyHint: { fontSize: 12, color: COLORS.text3, fontStyle: 'italic', paddingHorizontal: 16, paddingBottom: 12, fontFamily: FONTS.body },
+  ingredientWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, paddingHorizontal: 16, paddingBottom: 12 },
 
-  empty: { alignItems: 'center', paddingTop: 60, gap: 14 },
+  pill: {
+    paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20,
+    backgroundColor: COLORS.surface2, borderWidth: 1, borderColor: COLORS.border, alignSelf: 'flex-start',
+  },
+  pillActive: { backgroundColor: COLORS.primaryDim, borderColor: COLORS.borderActive },
+  pillText: { fontSize: 13, fontWeight: '600', color: COLORS.text3, fontFamily: FONTS.body },
+  pillTextActive: { color: COLORS.primary, fontWeight: '700', fontFamily: FONTS.bodyBold },
+
+  // Active chips
+  activeChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 16, paddingBottom: 8 },
+  chip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
+    backgroundColor: COLORS.primaryDim, borderWidth: 1, borderColor: COLORS.borderActive,
+  },
+  chipText: { fontSize: 12, fontWeight: '700', color: COLORS.primary, fontFamily: FONTS.bodyBold },
+  chipClear: {
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
+    backgroundColor: COLORS.surface2, borderWidth: 1, borderColor: COLORS.border,
+  },
+  chipClearText: { fontSize: 12, fontWeight: '600', color: COLORS.text3, fontFamily: FONTS.body },
+
+  // Fridge Mode card
+  fridgeCard: {
+    marginHorizontal: 16, marginBottom: 20,
+    backgroundColor: COLORS.surface1,
+    borderRadius: 20, padding: 20,
+    borderWidth: 1, borderColor: COLORS.borderActive,
+    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08, shadowRadius: 16, elevation: 3,
+  },
+  fridgeCardTag: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    marginBottom: 10,
+  },
+  fridgeCardTagText: {
+    fontSize: 11, fontWeight: '800', color: COLORS.primary,
+    letterSpacing: 1, fontFamily: FONTS.bodyBold,
+  },
+  fridgeCardTitle: {
+    fontSize: 26, fontWeight: '800', color: COLORS.text1,
+    fontFamily: FONTS.titleBold, letterSpacing: -0.5, lineHeight: 32, marginBottom: 8,
+  },
+  fridgeCardSub: {
+    fontSize: 13, color: COLORS.text2, lineHeight: 20,
+    fontFamily: FONTS.body, marginBottom: 16,
+  },
+  fridgeCardInputWrap: {
+    backgroundColor: COLORS.surface2,
+    borderRadius: 12, borderWidth: 1, borderColor: COLORS.border,
+    paddingHorizontal: 14, paddingVertical: 12,
+  },
+  fridgeCardInput: { fontSize: 14, color: COLORS.text1, fontFamily: FONTS.body },
+
+  // Section
+  section: { paddingHorizontal: 16, marginBottom: 8 },
+  sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  sectionTitle: { fontSize: 20, fontWeight: '800', color: COLORS.text1, fontFamily: FONTS.titleBold, letterSpacing: -0.3 },
+  resultsCount: { fontSize: 13, color: COLORS.text3, fontWeight: '600', fontFamily: FONTS.body },
+
+  // Cuisine cards
+  cuisineRow: { gap: 10, paddingBottom: 4 },
+  cuisineCard: {
+    width: 120, height: 90, borderRadius: 16, overflow: 'hidden',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  cuisineCardBg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
+  cuisineCardOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  cuisineCardEmoji: { fontSize: 24, marginBottom: 4, zIndex: 1 },
+  cuisineCardName: {
+    fontSize: 12, fontWeight: '700', color: '#fff',
+    fontFamily: FONTS.bodyBold, zIndex: 1, textAlign: 'center',
+  },
+
+  // Sort pills
+  sortRow: { gap: 8, flexDirection: 'row', marginBottom: 16 },
+  sortPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20,
+    backgroundColor: COLORS.surface1, borderWidth: 1, borderColor: COLORS.border,
+  },
+  sortPillActive: { backgroundColor: COLORS.primaryDim, borderColor: COLORS.borderActive },
+  sortPillText: { fontSize: 12, fontWeight: '600', color: COLORS.text3, fontFamily: FONTS.body },
+  sortPillTextActive: { color: COLORS.primary, fontWeight: '700', fontFamily: FONTS.bodyBold },
+
+  // Recipe cards (full width editorial)
+  recipeList: { gap: 16 },
+  recipeCard: {
+    borderRadius: 20, overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1, shadowRadius: 12, elevation: 4,
+  },
+  recipeCardImage: { width: '100%', height: 220, position: 'relative' },
+  recipeCardPhoto: { width: '100%', height: '100%' },
+  recipeCardGradient: {
+    position: 'absolute', bottom: 0, left: 0, right: 0, height: '65%',
+    backgroundColor: 'transparent',
+    // Simulated gradient via background — real gradient needs expo-linear-gradient
+    backgroundImage: 'linear-gradient(transparent, rgba(0,0,0,0.75))' as any,
+  },
+  recipeCardSaveBtn: {
+    position: 'absolute', top: 12, right: 12,
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+  },
+  recipeCardOverlay: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    padding: 16,
+    backgroundColor: 'rgba(0,0,0,0)',
+    backgroundImage: 'linear-gradient(transparent, rgba(0,0,0,0.72))' as any,
+  },
+  recipeCardTitle: {
+    fontSize: 18, fontWeight: '800', color: '#fff',
+    fontFamily: FONTS.titleBold, letterSpacing: -0.3, marginBottom: 8, lineHeight: 24,
+  },
+  recipeCardMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  recipeCardMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  recipeCardMetaText: { fontSize: 12, color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.body },
+  recipeCardDiff: {
+    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10,
+    borderWidth: 1, backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  recipeCardDiffText: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.bodyBold },
+  recipeCardCuisine: {
+    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  recipeCardCuisineText: { fontSize: 11, color: 'rgba(255,255,255,0.9)', fontWeight: '600', fontFamily: FONTS.body },
+
+  // Empty
+  empty: { alignItems: 'center', paddingTop: 48, gap: 14 },
   emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: COLORS.primaryDim,
-    borderWidth: 1,
-    borderColor: COLORS.borderActive,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 64, height: 64, borderRadius: 32,
+    backgroundColor: COLORS.primaryDim, borderWidth: 1, borderColor: COLORS.borderActive,
+    alignItems: 'center', justifyContent: 'center',
   },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.titleBold },
   emptyText: { fontSize: 14, color: COLORS.text2, textAlign: 'center', fontFamily: FONTS.body },

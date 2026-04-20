@@ -25,7 +25,7 @@ export default function RecipeCardScreen() {
   const [servings, setServings] = useState(2);
   const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
   const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set());
-  const { cookedRecipes, toggleCooked, addToShoppingList } = useStore();
+  const { cookedRecipes, shoppingList, toggleCooked, addToShoppingList } = useStore();
 
   useEffect(() => {
     api.getRecipe(id)
@@ -273,6 +273,7 @@ export default function RecipeCardScreen() {
       {/* Bottom bar */}
       {recipe && (() => {
         const isCooked = cookedRecipes.includes(String(recipe.id));
+        const isInList = shoppingList.some((i) => i.recipeId === String(recipe.id));
         return (
           <View style={styles.bottomBar}>
             <TouchableOpacity
@@ -289,11 +290,13 @@ export default function RecipeCardScreen() {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.bottomBtnList}
-              onPress={() => addToShoppingList(String(recipe.id), recipe.ingredients ?? [], recipe.title)}
+              style={[styles.bottomBtnList, isInList && styles.bottomBtnListActive]}
+              onPress={() => addToShoppingList(String(recipe.id), recipe.ingredients ?? [], recipe.title, recipe.image)}
             >
-              <Ionicons name="cart-outline" size={20} color={COLORS.bg} />
-              <Text style={styles.bottomBtnListText}>Adicionar à lista</Text>
+              <Ionicons name={isInList ? 'cart' : 'cart-outline'} size={20} color={isInList ? COLORS.primary : COLORS.bg} />
+              <Text style={[styles.bottomBtnListText, isInList && styles.bottomBtnListTextActive]}>
+                {isInList ? 'Na lista!' : 'Adicionar à lista'}
+              </Text>
             </TouchableOpacity>
           </View>
         );
@@ -582,5 +585,11 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: COLORS.primary,
   },
+  bottomBtnListActive: {
+    backgroundColor: COLORS.primaryDim,
+    borderColor: COLORS.borderActive,
+    shadowOpacity: 0,
+  },
   bottomBtnListText: { fontSize: 14, fontWeight: '700', color: COLORS.bg, fontFamily: FONTS.bodyBold },
+  bottomBtnListTextActive: { color: COLORS.primary },
 });

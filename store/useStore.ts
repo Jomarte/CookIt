@@ -13,6 +13,7 @@ export interface ShoppingItem extends Ingredient {
   itemId: string;
   recipeId: string;
   recipeTitle: string;
+  recipeImage?: string;
   checked: boolean;
 }
 
@@ -119,11 +120,12 @@ interface AppState {
   setEarnedBadgeIds: (ids: string[]) => void;
   setPinnedBadgeIds: (ids: string[]) => void;
 
-  addToShoppingList: (recipeId: string, ingredients: Ingredient[], recipeTitle?: string) => void;
+  addToShoppingList: (recipeId: string, ingredients: Ingredient[], recipeTitle?: string, recipeImage?: string) => void;
   toggleShoppingItem: (itemId: string) => void;
   removeShoppingItem: (itemId: string) => void;
   removeRecipeFromList: (recipeId: string) => void;
   clearChecked: () => void;
+  clearShoppingList: () => void;
   toggleSaved: (recipeId: string) => void;
   toggleCooked: (recipeId: string) => void;
   setRating: (recipeId: string, rating: number) => void;
@@ -169,13 +171,14 @@ export const useStore = create<AppState>()((set, get) => ({
   setEarnedBadgeIds: (ids) => set({ earnedBadgeIds: ids }),
   setPinnedBadgeIds: (ids) => set({ pinnedBadgeIds: ids }),
 
-  addToShoppingList: (recipeId, ingredients, recipeTitle = '') => {
+  addToShoppingList: (recipeId, ingredients, recipeTitle = '', recipeImage) => {
     set((state) => {
       const newItems: ShoppingItem[] = ingredients.map((ing) => ({
         ...ing,
         itemId: `${recipeId}-${ing.id ?? ing.name}`,
         recipeId,
         recipeTitle,
+        recipeImage,
         checked: false,
       }));
       const existingIds = new Set(state.shoppingList.map((i) => i.itemId));
@@ -209,6 +212,8 @@ export const useStore = create<AppState>()((set, get) => ({
       shoppingList: state.shoppingList.filter((i) => !i.checked),
     }));
   },
+
+  clearShoppingList: () => set({ shoppingList: [] }),
 
   toggleSaved: (recipeId) => {
     const { token, savedRecipes } = get();

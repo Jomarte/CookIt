@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -29,13 +30,14 @@ export default function RecipeDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Receita');
   const [servings, setServings] = useState(2);
-  const { savedRecipes, cookedRecipes, toggleSaved, toggleCooked, addToShoppingList, setRating, userRatings, token, user } = useStore();
+  const { savedRecipes, cookedRecipes, shoppingList, toggleSaved, toggleCooked, addToShoppingList, setRating, userRatings, token, user } = useStore();
   const userRating = userRatings[String(id)] ?? 0;
   const [comments, setComments] = useState<any[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [cookedCountOffset, setCookedCountOffset] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     api.getRecipe(id).then((data) => {
@@ -93,6 +95,7 @@ export default function RecipeDetailScreen() {
 
   const isSaved = savedRecipes.includes(String(recipe.id));
   const isCooked = cookedRecipes.includes(String(recipe.id));
+  const isInList = shoppingList.some((i) => i.recipeId === String(recipe.id));
   const isOwn = user && String(recipe.author_id) === String(user.id);
 
   const handleDelete = () => {
@@ -143,6 +146,48 @@ export default function RecipeDetailScreen() {
         <Ionicons name="arrow-back" size={20} color="#fff" />
       </TouchableOpacity>
 
+      {/* 3 pontos fixo */}
+      <TouchableOpacity style={[styles.floatMenuBtn, { top: insets.top + 16 }]} onPress={() => setMenuOpen(true)}>
+        <Ionicons name="ellipsis-horizontal" size={20} color="#fff" />
+      </TouchableOpacity>
+
+      {/* Menu overlay */}
+      {menuOpen && (
+        <>
+          <TouchableOpacity style={styles.menuBackdrop} activeOpacity={1} onPress={() => setMenuOpen(false)} />
+          <View style={[styles.menuCard, { top: insets.top + 56, right: 16 }]}>
+            {!isOwn && (
+              <>
+                <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuOpen(false); router.push(`/user/${recipe.author_id}`); }}>
+                  <Ionicons name="person-outline" size={15} color={COLORS.text2} />
+                  <Text style={styles.menuItemText}>Ver perfil</Text>
+                </TouchableOpacity>
+                <View style={styles.menuDivider} />
+              </>
+            )}
+            <TouchableOpacity style={styles.menuItem} onPress={() => { toggleSaved(String(recipe.id)); setMenuOpen(false); }}>
+              <Ionicons name={isSaved ? 'bookmark' : 'bookmark-outline'} size={15} color={isSaved ? COLORS.primary : COLORS.text2} />
+              <Text style={[styles.menuItemText, isSaved && { color: COLORS.primary }]}>
+                {isSaved ? 'Remover dos guardados' : 'Guardar receita'}
+              </Text>
+            </TouchableOpacity>
+            <View style={styles.menuDivider} />
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={async () => {
+                setMenuOpen(false);
+                try {
+                  await Share.share({ message: `Experimenta esta receita: "${recipe.title}" — no CookIt! 🍽️`, title: recipe.title });
+                } catch {}
+              }}
+            >
+              <Ionicons name="share-social-outline" size={15} color={COLORS.text2} />
+              <Text style={styles.menuItemText}>Partilhar receita</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
+
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Hero */}
         <View style={styles.hero}>
@@ -153,16 +198,6 @@ export default function RecipeDetailScreen() {
               </View>
           }
           <View style={styles.heroGradient} />
-          <TouchableOpacity
-            style={[styles.floatSaveBtn, isSaved && styles.floatSaveBtnActive]}
-            onPress={() => toggleSaved(String(recipe.id))}
-          >
-            <Ionicons
-              name={isSaved ? 'bookmark' : 'bookmark-outline'}
-              size={20}
-              color={isSaved ? COLORS.primary : '#fff'}
-            />
-          </TouchableOpacity>
         </View>
 
         <View style={styles.content}>
@@ -457,11 +492,13 @@ export default function RecipeDetailScreen() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.bottomBtnList}
-          onPress={() => addToShoppingList(String(recipe.id), recipe.ingredients ?? [], recipe.title)}
+          style={[styles.bottomBtnList, isInList && styles.bottomBtnListActive]}
+          onPress={() => addToShoppingList(String(recipe.id), recipe.ingredients ?? [], recipe.title, recipe.image)}
         >
-          <Ionicons name="cart-outline" size={20} color={COLORS.bg} />
-          <Text style={styles.bottomBtnListText}>Adicionar à lista</Text>
+          <Ionicons name={isInList ? 'cart' : 'cart-outline'} size={20} color={isInList ? COLORS.primary : COLORS.bg} />
+          <Text style={[styles.bottomBtnListText, isInList && styles.bottomBtnListTextActive]}>
+            {isInList ? 'Na lista!' : 'Adicionar à lista'}
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -510,6 +547,47 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,90,90,0.3)',
   },
+  floatMenuBtn: {
+    position: 'absolute',
+    right: 16,
+    zIndex: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuBackdrop: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    zIndex: 30,
+  },
+  menuCard: {
+    position: 'absolute',
+    zIndex: 40,
+    backgroundColor: COLORS.surface1,
+    borderRadius: 16,
+    paddingVertical: 6,
+    minWidth: 210,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+  },
+  menuItemText: { fontSize: 14, fontWeight: '600', color: COLORS.text2, fontFamily: FONTS.body },
+  menuDivider: { height: 1, backgroundColor: COLORS.border, marginHorizontal: 12 },
+
   floatSaveBtn: {
     position: 'absolute',
     top: 16,
@@ -893,5 +971,11 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 3,
   },
+  bottomBtnListActive: {
+    backgroundColor: COLORS.primaryDim,
+    borderColor: COLORS.borderActive,
+    shadowOpacity: 0,
+  },
   bottomBtnListText: { fontSize: 14, fontWeight: '700', color: COLORS.bg, fontFamily: FONTS.bodyBold },
+  bottomBtnListTextActive: { color: COLORS.primary },
 });

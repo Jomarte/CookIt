@@ -272,6 +272,23 @@ export default function FeedScreen() {
                 {savedRecipes.includes(String(menuRecipe?.id)) ? 'Remover dos guardados' : 'Guardar receita'}
               </Text>
             </TouchableOpacity>
+            <View style={styles.cardMenuDivider} />
+            <TouchableOpacity
+              style={styles.cardMenuItem}
+              onPress={async () => {
+                const recipe = menuRecipe;
+                setMenuRecipe(null);
+                try {
+                  await Share.share({
+                    message: `Experimenta esta receita: "${recipe?.title}" — no CookIt! 🍽️`,
+                    title: recipe?.title,
+                  });
+                } catch {}
+              }}
+            >
+              <Ionicons name="share-social-outline" size={15} color={COLORS.text2} />
+              <Text style={styles.cardMenuText}>Partilhar receita</Text>
+            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
