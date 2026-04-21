@@ -1,16 +1,18 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   Image,
+  ScrollView,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '../../constants/Colors';
 import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
@@ -31,20 +33,23 @@ const FLAG_CODES: Record<string, string> = {
   'Tailândia':'th','Tunísia':'tn','Turquia':'tr','Ucrânia':'ua','Venezuela':'ve','Vietname':'vn',
 };
 
-const AVATAR_SIZE = 108;
-const BANNER_HEIGHT = 120;
+const TABS = [
+  { key: 'Receitas', icon: 'chef-hat', lib: 'mci' },
+  { key: 'Cozinhei', icon: 'pot-steam-outline', lib: 'mci' },
+];
 
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { user: me, token, setAuth } = useStore();
 
   const [profile, setProfile] = useState<any>(null);
-  const [recipes, setRecipes] = useState<any[]>([]);
+  const [publishedRecipes, setPublishedRecipes] = useState<any[]>([]);
+  const [cookedRecipes, setCookedRecipes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('Receitas');
 
   useEffect(() => {
     if (me && String(me.id) === String(id)) {
@@ -55,8 +60,14 @@ export default function UserProfileScreen() {
       api.getUser(id),
       api.getUserRecipes(id),
       token ? api.isFollowing(token, id) : Promise.resolve({ following: false }),
+      api.getUserCookedRecipes(id).catch(() => []),
     ])
-      .then(([u, r, f]) => { setProfile(u); setRecipes(r); setFollowing(f.following); })
+      .then(([u, r, f, c]) => {
+        setProfile(u);
+        setPublishedRecipes(r);
+        setFollowing(f.following);
+        setCookedRecipes(Array.isArray(c) ? c : []);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [id]);
@@ -77,39 +88,35 @@ export default function UserProfileScreen() {
     finally { setFollowLoading(false); }
   };
 
-  const renderCard = ({ item: recipe }: { item: any }) => {
-    if (!recipe) return <View style={[styles.card, { opacity: 0 }]} pointerEvents="none" />;
-    const totalTime = (recipe.prep_time ?? 0) + (recipe.cook_time ?? 0);
+  const streak = profile?.streak ?? 0;
+  const cookedCount = profile?.cooked_count ?? cookedRecipes.length;
+
+  const badges = [
+    { id: 'cook_1',   label: 'Primeiro Prato',   icon: 'flame-outline',    color: COLORS.star,  earned: cookedCount >= 1 },
+    { id: 'cook_5',   label: 'Cozinheiro Ativo',  icon: 'restaurant-outline', color: COLORS.green, earned: cookedCount >= 5 },
+    { id: 'cook_10',  label: 'Chef em Progresso', icon: 'ribbon-outline',   color: COLORS.primary, earned: cookedCount >= 10 },
+    { id: 'cook_25',  label: 'Chef Experiente',   icon: 'trophy-outline',   color: COLORS.star,  earned: cookedCount >= 25 },
+    { id: 'streak_3', label: 'Fogo Aceso',        icon: 'flame',            color: '#FF8C00',    earned: streak >= 3 },
+    { id: 'streak_7', label: 'Semana em Chamas',  icon: 'flame',            color: COLORS.accent, earned: streak >= 7 },
+    { id: 'publisher',label: 'Publicador',        icon: 'paper-plane-outline', color: COLORS.green, earned: publishedRecipes.length >= 1 },
+    { id: 'publish_5',label: 'Criador',           icon: 'create-outline',   color: COLORS.green, earned: publishedRecipes.length >= 5 },
+  ];
+
+  const displayList = activeTab === 'Receitas' ? publishedRecipes : cookedRecipes;
+
+  const renderRecipeCard = ({ item }: { item: any }) => {
+    if (!item) return <View style={styles.gridCell} />;
     return (
-      <TouchableOpacity style={styles.card} activeOpacity={0.88} onPress={() => router.push(`/recipe/${recipe.id}`)}>
-        {/* Full-bleed image */}
-        {recipe.image
-          ? <Image source={{ uri: recipe.image }} style={styles.cardPhoto} resizeMode="cover" />
-          : (
-            <View style={[styles.cardPhoto, styles.cardPhotoPlaceholder]}>
-              <Ionicons name="restaurant-outline" size={30} color={COLORS.text3} />
-            </View>
-          )
-        }
-
-        {/* Gradient overlay */}
-        <View style={styles.cardOverlay} />
-
-        {/* Rating pill top-right */}
-        {recipe.rating > 0 && (
-          <View style={styles.cardRating}>
-            <Ionicons name="star" size={10} color={COLORS.star} />
-            <Text style={styles.cardRatingText}>{Number(recipe.rating).toFixed(1)}</Text>
-          </View>
-        )}
-
-        {/* Title + meta at bottom */}
-        <View style={styles.cardInfo}>
-          <Text style={styles.cardTitle} numberOfLines={2}>{recipe.title}</Text>
-          {totalTime > 0 && (
-            <View style={styles.cardTimePill}>
-              <Ionicons name="time-outline" size={10} color="rgba(255,255,255,0.8)" />
-              <Text style={styles.cardTimeText}>{totalTime} min</Text>
+      <TouchableOpacity style={styles.gridCell} activeOpacity={0.88} onPress={() => router.push(`/recipe/${item.id}`)}>
+        <View style={styles.gridImageWrap}>
+          {item.image
+            ? <Image source={{ uri: item.image }} style={styles.gridPhoto} resizeMode="cover" />
+            : <View style={styles.gridPlaceholder}><Ionicons name="restaurant-outline" size={22} color={COLORS.text3} /></View>
+          }
+          {item.rating > 0 && (
+            <View style={styles.gridRating}>
+              <Ionicons name="star" size={9} color={COLORS.star} />
+              <Text style={styles.gridRatingText}>{Number(item.rating).toFixed(1)}</Text>
             </View>
           )}
         </View>
@@ -117,155 +124,225 @@ export default function UserProfileScreen() {
     );
   };
 
-  const ListHeader = () => (
-    <View>
-      {/* Banner + avatar overlap */}
-      <View>
-        <View style={styles.banner} />
-        <View style={styles.avatarSection}>
-          <View style={styles.avatarOuter}>
-            {profile.avatar
-              ? <Image source={{ uri: profile.avatar }} style={styles.avatarImg} />
-              : (
-                <View style={styles.avatarCircle}>
-                  <Text style={styles.avatarLetter}>{(profile.name ?? '?')[0].toUpperCase()}</Text>
-                </View>
-              )
-            }
-          </View>
-        </View>
-      </View>
-
-      {/* Profile info */}
-      <View style={styles.infoSection}>
-        <Text style={styles.name}>{profile.name}</Text>
-        <Text style={styles.username}>@{profile.username}</Text>
-
-        {/* Badges */}
-        {(profile.cooking_type || profile.nationality) && (
-          <View style={styles.badgeRow}>
-            {profile.cooking_type ? (
-              <View style={styles.typeBadge}>
-                <Ionicons name="flame-outline" size={11} color={COLORS.primary} />
-                <Text style={styles.typeBadgeText}>{profile.cooking_type}</Text>
-              </View>
-            ) : null}
-            {profile.nationality ? (
-              <View style={styles.nationalityBadge}>
-                {FLAG_CODES[profile.nationality] && (
-                  <Image
-                    source={{ uri: `https://flagcdn.com/w40/${FLAG_CODES[profile.nationality]}.png` }}
-                    style={styles.nationalityFlag}
-                  />
-                )}
-                <Text style={styles.nationalityText}>{profile.nationality}</Text>
-              </View>
-            ) : null}
-          </View>
-        )}
-
-        {profile.bio ? (
-          <Text style={styles.bio}>{profile.bio}</Text>
-        ) : null}
-      </View>
-
-      {/* Stats card */}
-      <View style={styles.statsCard}>
-        <View style={styles.stat}>
-          <Text style={styles.statNum}>{recipes.length}</Text>
-          <Text style={styles.statLabel}>Receitas</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.stat}>
-          <Text style={styles.statNum}>{profile.followers ?? 0}</Text>
-          <Text style={styles.statLabel}>Seguidores</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.stat}>
-          <Text style={styles.statNum}>{profile.following ?? 0}</Text>
-          <Text style={styles.statLabel}>A seguir</Text>
-        </View>
-      </View>
-
-      {/* Follow button */}
-      <TouchableOpacity
-        style={[styles.followBtn, following && styles.followBtnActive]}
-        onPress={handleFollow}
-        disabled={followLoading}
-        activeOpacity={0.85}
-      >
-        {followLoading
-          ? <ActivityIndicator size="small" color={following ? COLORS.primary : COLORS.white} />
-          : <>
-              <Ionicons
-                name={following ? 'checkmark-circle' : 'person-add-outline'}
-                size={17}
-                color={following ? COLORS.primary : COLORS.white}
-              />
-              <Text style={[styles.followBtnText, following && styles.followBtnTextActive]}>
-                {following ? 'A seguir' : 'Seguir'}
-              </Text>
-            </>
-        }
-      </TouchableOpacity>
-
-      {/* Section header */}
-      <View style={styles.sectionRow}>
-        <Text style={styles.sectionTitle}>Receitas</Text>
-        {recipes.length > 0 && (
-          <View style={styles.countPill}>
-            <Text style={styles.countPillText}>{recipes.length}</Text>
-          </View>
-        )}
-      </View>
-
-      {recipes.length === 0 && (
-        <View style={styles.emptyWrap}>
-          <View style={styles.emptyIcon}>
-            <Ionicons name="restaurant-outline" size={32} color={COLORS.primary} />
-          </View>
-          <Text style={styles.emptyTitle}>Ainda sem receitas</Text>
-          <Text style={styles.emptySubtitle}>Este cozinheiro ainda não publicou nenhuma receita</Text>
-        </View>
-      )}
-    </View>
-  );
-
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Floating back button */}
-      <TouchableOpacity
-        style={[styles.backBtn, { top: insets.top > 0 ? 12 : 44 }]}
-        onPress={() => router.back()}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="arrow-back" size={20} color={COLORS.text2} />
-      </TouchableOpacity>
-
-      {loading ? (
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
         <View style={styles.loadingWrap}>
           <ActivityIndicator color={COLORS.primary} size="large" />
         </View>
-      ) : !profile ? (
+      </SafeAreaView>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
+              <Ionicons name="arrow-back" size={17} color={COLORS.text2} />
+            </TouchableOpacity>
+            <View style={{ width: 34 }} />
+          </View>
+        </View>
         <View style={styles.loadingWrap}>
-          <View style={styles.emptyIcon}>
+          <View style={styles.emptyTabIcon}>
             <Ionicons name="person-outline" size={32} color={COLORS.primary} />
           </View>
-          <Text style={styles.emptyTitle}>Cozinheiro não encontrado</Text>
+          <Text style={styles.emptyTabText}>Cozinheiro não encontrado</Text>
         </View>
-      ) : (
-        <FlatList
-          data={recipes.length % 2 !== 0 ? [...recipes, null] : recipes}
-          keyExtractor={(item, i) => item ? String(item.id) : `spacer-${i}`}
-          renderItem={renderCard}
-          numColumns={2}
-          showsVerticalScrollIndicator={false}
-          columnWrapperStyle={styles.gridRow}
-          contentContainerStyle={styles.gridContent}
-          ListHeaderComponent={<ListHeader />}
-          ListEmptyComponent={null}
-        />
-      )}
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          {/* Top row: back | @username | share */}
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
+              <Ionicons name="arrow-back" size={17} color={COLORS.text2} />
+            </TouchableOpacity>
+            <Text style={styles.profileUsername}>@{profile.username}</Text>
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => Share.share({ message: `Vê o perfil de @${profile.username} no CookIt!` })}
+            >
+              <Ionicons name="share-outline" size={17} color={COLORS.text2} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Avatar + info */}
+          <View style={styles.avatarSection}>
+            <View style={styles.avatarWrap}>
+              {profile.avatar
+                ? <Image source={{ uri: profile.avatar }} style={styles.avatarImg} />
+                : (
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarLetter}>
+                      {(profile.first_name ?? profile.name ?? '?')[0].toUpperCase()}
+                    </Text>
+                  </View>
+                )
+              }
+              <View style={styles.avatarRing} />
+            </View>
+
+            <View style={styles.nameBlock}>
+              <View style={styles.nameRow}>
+                <Text style={styles.name}>
+                  {profile.first_name || profile.last_name
+                    ? [profile.first_name, profile.last_name].filter(Boolean).join(' ')
+                    : (profile.name ?? '')}
+                </Text>
+                {streak > 0 && (
+                  <View style={styles.streakPill}>
+                    <Ionicons name="flame" size={12} color={COLORS.star} />
+                    <Text style={styles.streakPillText}>{streak}</Text>
+                  </View>
+                )}
+              </View>
+              <View style={styles.badgeRow}>
+                {profile.cooking_type ? (
+                  <View style={styles.cookingTypeBadge}>
+                    <Text style={styles.cookingTypeText}>{profile.cooking_type}</Text>
+                  </View>
+                ) : null}
+                {profile.nationality ? (
+                  <View style={styles.nationalityBadge}>
+                    {FLAG_CODES[profile.nationality] && (
+                      <Image
+                        source={{ uri: `https://flagcdn.com/w40/${FLAG_CODES[profile.nationality]}.png` }}
+                        style={styles.nationalityFlag}
+                      />
+                    )}
+                    <Text style={styles.nationalityText}>{profile.nationality}</Text>
+                  </View>
+                ) : null}
+              </View>
+            </View>
+          </View>
+
+          {/* Bio */}
+          {profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
+
+          {/* Stats */}
+          <View style={styles.statsRow}>
+            <View style={styles.stat}>
+              <Text style={styles.statNumber}>{profile.recipes_count ?? publishedRecipes.length}</Text>
+              <Text style={styles.statLabel}>Receitas</Text>
+            </View>
+            <View style={styles.stat}>
+              <Text style={styles.statNumber}>{profile.followers ?? 0}</Text>
+              <Text style={styles.statLabel}>Seguidores</Text>
+            </View>
+            <View style={styles.stat}>
+              <Text style={styles.statNumber}>{profile.following ?? 0}</Text>
+              <Text style={styles.statLabel}>A seguir</Text>
+            </View>
+          </View>
+
+          {/* Follow button */}
+          <TouchableOpacity
+            style={[styles.followBtn, following && styles.followBtnActive]}
+            onPress={handleFollow}
+            disabled={followLoading}
+            activeOpacity={0.85}
+          >
+            {followLoading
+              ? <ActivityIndicator size="small" color={following ? COLORS.primary : COLORS.white} />
+              : (
+                <>
+                  <Ionicons
+                    name={following ? 'checkmark-circle' : 'person-add-outline'}
+                    size={17}
+                    color={following ? COLORS.primary : COLORS.white}
+                  />
+                  <Text style={[styles.followBtnText, following && styles.followBtnTextActive]}>
+                    {following ? 'A seguir' : 'Seguir'}
+                  </Text>
+                </>
+              )
+            }
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.headerDivider} />
+
+        {/* Conquistas */}
+        <View style={styles.cardSection}>
+          <View style={styles.cardSectionHeader}>
+            <Text style={styles.cardSectionTitle}>Conquistas</Text>
+            {streak > 0 && (
+              <View style={styles.streakChip}>
+                <Ionicons name="flame" size={12} color={COLORS.star} />
+                <Text style={styles.streakChipText}>{streak} dias</Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.badgesIconRow}>
+            {badges.map((badge) => (
+              <View
+                key={badge.id}
+                style={[
+                  styles.badgeSmallIcon,
+                  badge.earned
+                    ? { backgroundColor: `${badge.color}22`, borderColor: `${badge.color}55` }
+                    : styles.badgeSmallIconLocked,
+                ]}
+              >
+                {badge.earned
+                  ? <Ionicons name={badge.icon as any} size={16} color={badge.color} />
+                  : <Ionicons name="lock-closed-outline" size={11} color={COLORS.text3} />
+                }
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Tabs */}
+        <View style={styles.tabs}>
+          {TABS.map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tab, activeTab === tab.key && styles.tabActive]}
+              onPress={() => setActiveTab(tab.key)}
+            >
+              <MaterialCommunityIcons
+                name={tab.icon as any}
+                size={22}
+                color={activeTab === tab.key ? COLORS.primary : COLORS.text3}
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Grid */}
+        {displayList.length === 0 ? (
+          <View style={styles.emptyTab}>
+            <View style={styles.emptyTabIcon}>
+              <Ionicons name="restaurant-outline" size={32} color={COLORS.primary} />
+            </View>
+            <Text style={styles.emptyTabText}>
+              {activeTab === 'Cozinhei' ? 'Ainda sem receitas marcadas' : 'Ainda sem receitas publicadas'}
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={displayList.length % 3 !== 0 ? [...displayList, ...Array(3 - (displayList.length % 3)).fill(null)] : displayList}
+            renderItem={renderRecipeCard}
+            keyExtractor={(item, index) => item ? String(item.id) : `spacer-${index}`}
+            numColumns={3}
+            scrollEnabled={false}
+            columnWrapperStyle={styles.gridRow}
+            contentContainerStyle={styles.gridContent}
+          />
+        )}
+
+        <View style={{ height: 60 }} />
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -273,269 +350,190 @@ export default function UserProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
 
-  /* ── Floating back button ── */
-  backBtn: {
-    position: 'absolute',
-    left: 16,
-    zIndex: 50,
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: COLORS.surface1,
-    borderWidth: 1, borderColor: COLORS.border,
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.10,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
 
-  /* ── Banner + avatar overlap ── */
-  banner: {
-    height: BANNER_HEIGHT,
-    backgroundColor: COLORS.surface2,
-    // subtle warm tone
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-
-  avatarSection: {
-    alignItems: 'center',
-    marginTop: -(AVATAR_SIZE / 2),
-  },
-
-  avatarOuter: {
-    width: AVATAR_SIZE + 8,
-    height: AVATAR_SIZE + 8,
-    borderRadius: (AVATAR_SIZE + 8) / 2,
+  header: {
     backgroundColor: COLORS.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
-    elevation: 6,
+    padding: 20,
+    paddingTop: 24,
+    paddingBottom: 8,
+  },
+  headerDivider: {
+    height: 0.5,
+    backgroundColor: COLORS.border,
+    marginHorizontal: 14,
   },
 
-  avatarImg: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
-    borderWidth: 3,
-    borderColor: COLORS.primary,
-  },
-
-  avatarCircle: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: COLORS.primaryDim,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: COLORS.primary,
-  },
-  avatarLetter: {
-    fontSize: 44,
-    fontWeight: '900',
-    color: COLORS.primary,
-    fontFamily: FONTS.bodyBold,
-  },
-
-  /* ── Profile info ── */
-  infoSection: {
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 20,
-    gap: 5,
-  },
-
-  name: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: COLORS.text1,
-    letterSpacing: -0.6,
-    fontFamily: FONTS.titleBlack,
-  },
-  username: {
-    fontSize: 14,
-    color: COLORS.text3,
-    fontFamily: FONTS.body,
-    letterSpacing: 0.2,
-  },
-
-  badgeRow: {
+  headerTopRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    justifyContent: 'center',
-    marginTop: 8,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
-  typeBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
+  profileUsername: {
+    fontSize: 22,
+    color: COLORS.text1,
+    fontFamily: FONTS.titleBold,
+    letterSpacing: -0.3,
+  },
+  iconBtn: {
+    width: 34, height: 34, borderRadius: 17,
+    backgroundColor: COLORS.surface2,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: COLORS.border,
+  },
+
+  avatarSection: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 12 },
+  avatarWrap: { position: 'relative', width: 76, height: 76, flexShrink: 0 },
+  avatar: {
+    width: 76, height: 76, borderRadius: 38,
     backgroundColor: COLORS.primaryDim,
-    paddingHorizontal: 12, paddingVertical: 5,
-    borderRadius: 20, borderWidth: 1, borderColor: COLORS.borderActive,
+    alignItems: 'center', justifyContent: 'center',
   },
-  typeBadgeText: {
-    fontSize: 12, color: COLORS.primary, fontWeight: '700', fontFamily: FONTS.bodyBold,
+  avatarImg: { width: 76, height: 76, borderRadius: 38 },
+  avatarLetter: { fontSize: 30, fontWeight: '900', color: COLORS.primary, fontFamily: FONTS.titleBlack },
+  avatarRing: {
+    position: 'absolute', top: -3, left: -3, right: -3, bottom: -3,
+    borderRadius: 42, borderWidth: 2.5, borderColor: COLORS.primary,
+    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.08, shadowRadius: 10,
   },
+
+  nameBlock: { flex: 1, gap: 2 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  name: { fontSize: 18, fontWeight: '900', color: COLORS.text1, letterSpacing: -0.3, fontFamily: FONTS.bodyBold },
+  streakPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: 'rgba(217,119,6,0.12)',
+    paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: 10, borderWidth: 1, borderColor: 'rgba(217,119,6,0.3)',
+  },
+  streakPillText: { fontSize: 13, fontWeight: '800', color: COLORS.star, fontFamily: FONTS.bodyBold },
+
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 4 },
+  cookingTypeBadge: {
+    backgroundColor: COLORS.primaryDim,
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 10, borderWidth: 1, borderColor: COLORS.borderActive,
+  },
+  cookingTypeText: { fontSize: 12, color: COLORS.primary, fontWeight: '700', fontFamily: FONTS.bodyBold },
   nationalityBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: COLORS.surface2,
-    paddingHorizontal: 12, paddingVertical: 5,
-    borderRadius: 20, borderWidth: 1, borderColor: COLORS.border,
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 10, borderWidth: 1, borderColor: COLORS.border,
   },
   nationalityFlag: { width: 20, height: 14, borderRadius: 2 },
   nationalityText: { fontSize: 12, color: COLORS.text2, fontWeight: '600', fontFamily: FONTS.body },
 
-  bio: {
-    fontSize: 14, color: COLORS.text2, textAlign: 'center',
-    lineHeight: 21, paddingHorizontal: 8, fontFamily: FONTS.body,
-    marginTop: 6,
-  },
+  bio: { fontSize: 13, color: COLORS.text2, lineHeight: 20, marginBottom: 12, fontFamily: FONTS.body },
 
-  /* ── Stats ── */
-  statsCard: {
-    flexDirection: 'row', alignItems: 'center',
-    marginHorizontal: 16, marginBottom: 12,
-    backgroundColor: COLORS.surface1,
-    borderRadius: 18, borderWidth: 1, borderColor: COLORS.border,
-    paddingVertical: 18,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
-  },
+  statsRow: { flexDirection: 'row', marginBottom: 14 },
   stat: { flex: 1, alignItems: 'center', gap: 3 },
-  statNum: {
-    fontSize: 24, fontWeight: '900', color: COLORS.primary,
-    letterSpacing: -0.5, fontFamily: FONTS.bodyBold,
-  },
-  statLabel: {
-    fontSize: 11, color: COLORS.text3, fontWeight: '700',
-    textTransform: 'uppercase', letterSpacing: 0.5, fontFamily: FONTS.bodyBold,
-  },
-  statDivider: { width: 1, height: 28, backgroundColor: COLORS.border },
+  statNumber: { fontSize: 20, fontWeight: '800', color: COLORS.primary, letterSpacing: -0.5, fontFamily: FONTS.bodyBold },
+  statLabel: { fontSize: 14, color: COLORS.primary, fontWeight: '500', fontFamily: FONTS.body },
 
-  /* ── Follow button ── */
   followBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    marginHorizontal: 16, paddingVertical: 14,
-    borderRadius: 16,
+    paddingVertical: 12,
+    borderRadius: 14,
     backgroundColor: COLORS.primary,
     borderWidth: 1.5, borderColor: COLORS.primary,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOpacity: 0.20,
+    shadowRadius: 10,
+    elevation: 3,
   },
   followBtnActive: {
     backgroundColor: COLORS.primaryDim,
     borderColor: COLORS.borderActive,
-    shadowOpacity: 0,
-    elevation: 0,
+    shadowOpacity: 0, elevation: 0,
   },
-  followBtnText: {
-    fontSize: 15, fontWeight: '700', color: COLORS.white, fontFamily: FONTS.bodyBold,
-  },
+  followBtnText: { fontSize: 15, fontWeight: '700', color: COLORS.white, fontFamily: FONTS.bodyBold },
   followBtnTextActive: { color: COLORS.primary },
 
-  /* ── Section row ── */
-  sectionRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 16, paddingTop: 24, paddingBottom: 12,
+  cardSection: {
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 2,
+    backgroundColor: COLORS.bg,
+    borderRadius: 18,
+    padding: 12,
+    gap: 8,
   },
-  sectionTitle: {
-    fontSize: 13, fontWeight: '700', color: COLORS.text3,
-    textTransform: 'uppercase', letterSpacing: 0.9, fontFamily: FONTS.bodyBold,
+  cardSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  countPill: {
-    backgroundColor: COLORS.primaryDim, borderRadius: 8,
-    paddingHorizontal: 8, paddingVertical: 2,
-    borderWidth: 1, borderColor: COLORS.borderActive,
+  cardSectionTitle: {
+    fontSize: 11, fontWeight: '700', color: COLORS.text3,
+    textTransform: 'uppercase', letterSpacing: 1, fontFamily: FONTS.bodyBold,
   },
-  countPillText: {
-    fontSize: 11, fontWeight: '700', color: COLORS.primary, fontFamily: FONTS.bodyBold,
+  streakChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(217,119,6,0.12)',
+    paddingHorizontal: 9, paddingVertical: 4,
+    borderRadius: 10, borderWidth: 1, borderColor: 'rgba(217,119,6,0.3)',
+  },
+  streakChipText: { fontSize: 11, fontWeight: '700', color: COLORS.star, fontFamily: FONTS.bodyBold },
+
+  badgesIconRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  badgeSmallIcon: {
+    width: 36, height: 36, borderRadius: 18,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5,
+  },
+  badgeSmallIconLocked: {
+    backgroundColor: COLORS.surface2,
+    borderColor: COLORS.border,
+    opacity: 0.35,
   },
 
-  /* ── Empty state ── */
-  emptyWrap: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 32, gap: 10 },
-  emptyIcon: {
-    width: 72, height: 72, borderRadius: 36,
-    backgroundColor: COLORS.primaryDim, borderWidth: 1.5, borderColor: COLORS.borderActive,
+  tabs: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.bg,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    marginTop: 4,
+  },
+  tab: {
+    flex: 1, paddingVertical: 14,
+    alignItems: 'center',
+    borderBottomWidth: 2.5,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: { borderBottomColor: COLORS.primary },
+
+  gridContent: { gap: 2 },
+  gridRow: { gap: 2 },
+  gridCell: { flex: 1 },
+  gridImageWrap: {
+    width: '100%', aspectRatio: 1,
+    overflow: 'hidden',
+    backgroundColor: COLORS.surface2,
+    position: 'relative',
+  },
+  gridPhoto: { width: '100%', height: '100%' },
+  gridPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surface2 },
+  gridRating: {
+    position: 'absolute', top: 5, right: 5,
+    flexDirection: 'row', alignItems: 'center', gap: 2,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 5, paddingVertical: 2,
+    borderRadius: 6,
+  },
+  gridRatingText: { fontSize: 9, fontWeight: '700', color: COLORS.star, fontFamily: FONTS.bodyBold },
+
+  emptyTab: { alignItems: 'center', paddingVertical: 52, gap: 14 },
+  emptyTabIcon: {
+    width: 68, height: 68, borderRadius: 34,
+    backgroundColor: COLORS.primaryDim,
+    borderWidth: 1.5, borderColor: COLORS.borderActive,
     alignItems: 'center', justifyContent: 'center',
     shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.08, shadowRadius: 12,
-    marginBottom: 4,
   },
-  emptyTitle: { fontSize: 17, fontWeight: '800', color: COLORS.text1, fontFamily: FONTS.titleBold },
-  emptySubtitle: { fontSize: 13, color: COLORS.text3, textAlign: 'center', lineHeight: 20, fontFamily: FONTS.body },
-
-  /* ── Recipe grid ── */
-  gridContent: { paddingHorizontal: 12, paddingBottom: 40, gap: 10 },
-  gridRow: { gap: 10 },
-
-  /* Overlay-style cards */
-  card: {
-    flex: 1,
-    height: 190,
-    borderRadius: 18,
-    overflow: 'hidden',
-    backgroundColor: COLORS.surface2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  cardPhoto: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-  },
-  cardPhotoPlaceholder: {
-    backgroundColor: COLORS.surface2,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  cardOverlay: {
-    position: 'absolute', left: 0, right: 0, bottom: 0,
-    height: 100,
-    // Simulated gradient: semi-transparent black fading up
-    backgroundColor: 'transparent',
-    // We stack two views to fake gradient
-  },
-
-  cardRating: {
-    position: 'absolute', top: 8, right: 8,
-    flexDirection: 'row', alignItems: 'center', gap: 3,
-    backgroundColor: 'rgba(10,10,10,0.55)',
-    paddingHorizontal: 7, paddingVertical: 3,
-    borderRadius: 8,
-  },
-  cardRatingText: { fontSize: 11, fontWeight: '700', color: COLORS.star, fontFamily: FONTS.bodyBold },
-
-  cardInfo: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    padding: 10,
-    paddingTop: 28,
-    backgroundColor: 'rgba(0,0,0,0.52)',
-    gap: 5,
-  },
-  cardTitle: {
-    fontSize: 13, fontWeight: '700', color: '#fff',
-    lineHeight: 17, fontFamily: FONTS.bodyBold,
-    letterSpacing: -0.1,
-  },
-  cardTimePill: {
-    flexDirection: 'row', alignItems: 'center', gap: 3,
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    paddingHorizontal: 7, paddingVertical: 3,
-    borderRadius: 6,
-  },
-  cardTimeText: { fontSize: 10, fontWeight: '600', color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.bodyBold },
+  emptyTabText: { fontSize: 14, color: COLORS.text2, textAlign: 'center', paddingHorizontal: 40, fontFamily: FONTS.body },
 });

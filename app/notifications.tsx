@@ -130,9 +130,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 14,
-    backgroundColor: COLORS.surface1,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.bg,
   },
   backBtn: {
     width: 40, height: 40, borderRadius: 20,

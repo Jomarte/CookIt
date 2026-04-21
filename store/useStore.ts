@@ -120,6 +120,9 @@ interface AppState {
   setEarnedBadgeIds: (ids: string[]) => void;
   setPinnedBadgeIds: (ids: string[]) => void;
 
+  recipes: any[];
+  setRecipes: (recipes: any[]) => void;
+
   addToShoppingList: (recipeId: string, ingredients: Ingredient[], recipeTitle?: string, recipeImage?: string) => void;
   toggleShoppingItem: (itemId: string) => void;
   removeShoppingItem: (itemId: string) => void;
@@ -148,6 +151,7 @@ export const useStore = create<AppState>()((set, get) => ({
   }),
 
   // App
+  recipes: [],
   shoppingList: [],
   savedRecipes: [],
   cookedRecipes: [],
@@ -215,13 +219,21 @@ export const useStore = create<AppState>()((set, get) => ({
 
   clearShoppingList: () => set({ shoppingList: [] }),
 
+  setRecipes: (recipes) => set({ recipes }),
+
   toggleSaved: (recipeId) => {
     const { token, savedRecipes } = get();
     const isSaved = savedRecipes.includes(recipeId);
+    const delta = isSaved ? -1 : 1;
     set((state) => ({
       savedRecipes: isSaved
         ? state.savedRecipes.filter((id) => id !== recipeId)
         : [...state.savedRecipes, recipeId],
+      recipes: state.recipes.map((r) =>
+        String(r.id) === recipeId
+          ? { ...r, likes: Math.max(0, (r.likes ?? 0) + delta) }
+          : r
+      ),
     }));
     if (token) {
       if (isSaved) api.unsaveRecipe(token, recipeId).catch(() => {});

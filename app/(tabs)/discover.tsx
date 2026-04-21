@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -55,7 +55,7 @@ const SORT_OPTIONS = [
 
 export default function DiscoverScreen() {
   const router = useRouter();
-  const { savedRecipes, toggleSaved } = useStore();
+  const { savedRecipes, toggleSaved, recipes, setRecipes } = useStore();
   const [search, setSearch] = useState('');
   const [activeCuisine, setActiveCuisine] = useState('Todas');
   const [activeDishType, setActiveDishType] = useState('Todos');
@@ -66,8 +66,7 @@ export default function DiscoverScreen() {
   const [fridgeIngredients, setFridgeIngredients] = useState('');
   const [fridgeList, setFridgeList] = useState<string[]>([]);
   const [fridgeInput, setFridgeInput] = useState('');
-  const [recipes, setRecipes] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(recipes.length === 0);
   const [sortBy, setSortBy] = useState('');
   const scrollRef = useRef<ScrollView>(null);
   const resultsRef = useRef<View>(null);
@@ -128,6 +127,10 @@ export default function DiscoverScreen() {
     }
     setFridgeInput('');
   };
+
+  const handleSave = useCallback((recipeId: string) => {
+    toggleSaved(recipeId);
+  }, [toggleSaved]);
 
   const isFiltering = !!search || fridgeList.length > 0 || activeCuisine !== 'Todas' ||
     activeDishType !== 'Todos' || !!activeDifficulty || selectedIngredients.length > 0;
@@ -470,7 +473,7 @@ export default function DiscoverScreen() {
                         <View style={styles.recipeCardGradient} />
                         <TouchableOpacity
                           style={styles.recipeCardSaveBtn}
-                          onPress={(e) => { e.stopPropagation?.(); toggleSaved(String(recipe.id)); }}
+                          onPress={() => handleSave(String(recipe.id))}
                         >
                           <Ionicons
                             name={isSaved ? 'heart' : 'heart-outline'}

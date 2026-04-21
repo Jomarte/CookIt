@@ -102,6 +102,8 @@ export const api = {
 
   getUserRecipes: (id: number | string) => request(`/users/${id}/recipes`),
 
+  getUserCookedRecipes: (id: number | string) => request(`/users/${id}/cooked`),
+
   isFollowing: (token: string, id: number | string) =>
     request(`/users/${id}/follow`, { headers: authHeader(token) }),
   followUser: (token: string, id: number | string) =>
