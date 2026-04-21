@@ -3,7 +3,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   Image,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -68,6 +70,7 @@ export default function EditRecipeScreen() {
   const [ingredients, setIngredients] = useState<{ name: string; amount: string; unit: string; canonical: string; category: string }[]>([]);
   const [steps, setSteps] = useState<string[]>(['']);
   const [focusedIngredient, setFocusedIngredient] = useState<number | null>(null);
+  const [unitPickerIndex, setUnitPickerIndex] = useState<number | null>(null);
 
   useEffect(() => {
     api.getRecipe(id).then((r) => {
@@ -158,6 +161,45 @@ export default function EditRecipeScreen() {
     }
   };
 
+  const UnitPickerModal = () => (
+    <Modal
+      visible={unitPickerIndex !== null}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setUnitPickerIndex(null)}
+    >
+      <TouchableOpacity style={styles.unitModalOverlay} activeOpacity={1} onPress={() => setUnitPickerIndex(null)}>
+        <View style={styles.unitModalSheet}>
+          <View style={styles.unitModalHeader}>
+            <Text style={styles.unitModalTitle}>Unidade</Text>
+            <TouchableOpacity onPress={() => setUnitPickerIndex(null)}>
+              <Ionicons name="close" size={22} color={COLORS.text2} />
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={UNITS}
+            keyExtractor={(u) => u}
+            renderItem={({ item: u }) => {
+              const selected = unitPickerIndex !== null && ingredients[unitPickerIndex]?.unit === u;
+              return (
+                <TouchableOpacity
+                  style={[styles.unitOption, selected && styles.unitOptionSelected]}
+                  onPress={() => {
+                    if (unitPickerIndex !== null) updateIngredientUnit(unitPickerIndex, u);
+                    setUnitPickerIndex(null);
+                  }}
+                >
+                  <Text style={[styles.unitOptionText, selected && styles.unitOptionTextSelected]}>{u}</Text>
+                  {selected && <Ionicons name="checkmark" size={16} color={COLORS.primary} />}
+                </TouchableOpacity>
+              );
+            }}
+          />
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -170,6 +212,7 @@ export default function EditRecipeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <UnitPickerModal />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={20} color={COLORS.text2} />
@@ -364,30 +407,40 @@ export default function EditRecipeScreen() {
                       onChangeText={(v) => updateIngredientAmount(i, v)}
                     />
                   )}
-                  <select
-                    value={ing.unit}
-                    onChange={(e: any) => updateIngredientUnit(i, e.target.value)}
-                    style={{
-                      appearance: 'none' as any,
-                      WebkitAppearance: 'none' as any,
-                      backgroundColor: ing.unit !== 'g' ? (COLORS.primaryDim as any) : (COLORS.surface2 as any),
-                      border: `1px solid ${ing.unit !== 'g' ? COLORS.borderActive : COLORS.border}`,
-                      borderRadius: 10,
-                      padding: '0 20px 0 8px',
-                      height: 42,
-                      fontSize: 12,
-                      fontWeight: '700',
-                      color: ing.unit !== 'g' ? (COLORS.primary as any) : (COLORS.text2 as any),
-                      cursor: 'pointer',
-                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
-                      backgroundRepeat: 'no-repeat',
-                      backgroundPosition: 'right 6px center',
-                      outline: 'none',
-                      flexShrink: 0,
-                    } as any}
-                  >
-                    {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
-                  </select>
+                  {Platform.OS === 'web' ? (
+                    <select
+                      value={ing.unit}
+                      onChange={(e: any) => updateIngredientUnit(i, e.target.value)}
+                      style={{
+                        appearance: 'none' as any,
+                        WebkitAppearance: 'none' as any,
+                        backgroundColor: ing.unit !== 'g' ? (COLORS.primaryDim as any) : (COLORS.surface2 as any),
+                        border: `1px solid ${ing.unit !== 'g' ? COLORS.borderActive : COLORS.border}`,
+                        borderRadius: 10,
+                        padding: '0 20px 0 8px',
+                        height: 42,
+                        fontSize: 12,
+                        fontWeight: '700',
+                        color: ing.unit !== 'g' ? (COLORS.primary as any) : (COLORS.text2 as any),
+                        cursor: 'pointer',
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'right 6px center',
+                        outline: 'none',
+                        flexShrink: 0,
+                      } as any}
+                    >
+                      {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+                    </select>
+                  ) : (
+                    <TouchableOpacity
+                      style={[styles.unitBtn, ing.unit !== 'g' && styles.unitBtnActive]}
+                      onPress={() => setUnitPickerIndex(i)}
+                    >
+                      <Text style={[styles.unitBtnText, ing.unit !== 'g' && styles.unitBtnTextActive]}>{ing.unit}</Text>
+                      <Ionicons name="chevron-down" size={10} color={ing.unit !== 'g' ? COLORS.primary : COLORS.text3} />
+                    </TouchableOpacity>
+                  )}
                   {ingredients.length > 1 && (
                     <TouchableOpacity onPress={() => removeIngredient(i)} style={styles.removeBtn}>
                       <Ionicons name="remove-circle-outline" size={20} color={COLORS.accent} />
@@ -552,6 +605,35 @@ const styles = StyleSheet.create({
   suggestionItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   suggestionName: { fontSize: 14, fontWeight: '600', color: COLORS.text1, fontFamily: FONTS.body },
   suggestionCategory: { fontSize: 11, color: COLORS.text3, fontWeight: '500', fontFamily: FONTS.body },
+
+  unitBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    height: 42, paddingHorizontal: 8, borderRadius: 10,
+    borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surface2, flexShrink: 0,
+  },
+  unitBtnActive: { backgroundColor: COLORS.primaryDim, borderColor: COLORS.borderActive },
+  unitBtnText: { fontSize: 12, fontWeight: '700', color: COLORS.text2, fontFamily: FONTS.bodyBold },
+  unitBtnTextActive: { color: COLORS.primary },
+
+  unitModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  unitModalSheet: {
+    backgroundColor: COLORS.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    paddingBottom: 30, maxHeight: '60%',
+  },
+  unitModalHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingVertical: 16,
+    borderBottomWidth: 1, borderBottomColor: COLORS.border,
+  },
+  unitModalTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.bodyBold },
+  unitOption: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: COLORS.border,
+  },
+  unitOptionSelected: { backgroundColor: COLORS.primaryDim },
+  unitOptionText: { fontSize: 15, color: COLORS.text1, fontFamily: FONTS.body },
+  unitOptionTextSelected: { color: COLORS.primary, fontWeight: '700', fontFamily: FONTS.bodyBold },
 
   addBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 8 },
   addBtnText: { fontSize: 14, fontWeight: '600', color: COLORS.primary, fontFamily: FONTS.body },
