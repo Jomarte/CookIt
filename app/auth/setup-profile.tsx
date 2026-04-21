@@ -247,51 +247,72 @@ export default function EditProfileScreen() {
 
           {/* Avatar */}
           <View style={styles.avatarSection}>
-            <TouchableOpacity
-              style={styles.avatarWrap}
-              onPress={() => Platform.OS === 'web' && fileInputRef.current?.click()}
-              activeOpacity={0.8}
-            >
-              {avatarLoading ? (
-                <View style={styles.avatarCircle}>
-                  <ActivityIndicator color={COLORS.primary} />
+            {Platform.OS === 'web' ? (
+              <label htmlFor="avatar-file-input" style={{ cursor: 'pointer', position: 'relative', width: 96, height: 96 } as any}>
+                {avatarLoading ? (
+                  <View style={styles.avatarCircle}>
+                    <ActivityIndicator color={COLORS.primary} />
+                  </View>
+                ) : avatarPreview ? (
+                  <Image source={{ uri: avatarPreview }} style={styles.avatarImg} />
+                ) : (
+                  <View style={styles.avatarCircle}>
+                    <Text style={styles.avatarLetter}>{(name || '?')[0].toUpperCase()}</Text>
+                  </View>
+                )}
+                <View style={styles.avatarCameraBadge}>
+                  <Ionicons name="camera" size={13} color={COLORS.bg} />
                 </View>
-              ) : avatarPreview ? (
-                <Image source={{ uri: avatarPreview }} style={styles.avatarImg} />
-              ) : (
-                <View style={styles.avatarCircle}>
-                  <Text style={styles.avatarLetter}>{(name || '?')[0].toUpperCase()}</Text>
-                </View>
-              )}
-              <View style={styles.avatarCameraBadge}>
-                <Ionicons name="camera" size={13} color={COLORS.bg} />
-              </View>
-            </TouchableOpacity>
-            <View style={styles.avatarActions}>
+                <input
+                  id="avatar-file-input"
+                  type="file"
+                  accept="image/*"
+                  style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' } as any}
+                  onChange={handleAvatarChange}
+                />
+              </label>
+            ) : (
               <TouchableOpacity
-                onPress={() => Platform.OS === 'web' && fileInputRef.current?.click()}
-                disabled={avatarLoading}
+                style={styles.avatarWrap}
+                onPress={() => fileInputRef.current?.click()}
+                activeOpacity={0.8}
               >
-                <Text style={styles.avatarChangeText}>
-                  {avatarPreview ? 'Alterar foto' : 'Adicionar foto'}
-                </Text>
+                {avatarLoading ? (
+                  <View style={styles.avatarCircle}>
+                    <ActivityIndicator color={COLORS.primary} />
+                  </View>
+                ) : avatarPreview ? (
+                  <Image source={{ uri: avatarPreview }} style={styles.avatarImg} />
+                ) : (
+                  <View style={styles.avatarCircle}>
+                    <Text style={styles.avatarLetter}>{(name || '?')[0].toUpperCase()}</Text>
+                  </View>
+                )}
+                <View style={styles.avatarCameraBadge}>
+                  <Ionicons name="camera" size={13} color={COLORS.bg} />
+                </View>
               </TouchableOpacity>
+            )}
+            <View style={styles.avatarActions}>
+              {Platform.OS === 'web' ? (
+                <label htmlFor="avatar-file-input" style={{ cursor: 'pointer' } as any}>
+                  <Text style={styles.avatarChangeText}>
+                    {avatarPreview ? 'Alterar foto' : 'Adicionar foto'}
+                  </Text>
+                </label>
+              ) : (
+                <TouchableOpacity onPress={() => fileInputRef.current?.click()} disabled={avatarLoading}>
+                  <Text style={styles.avatarChangeText}>
+                    {avatarPreview ? 'Alterar foto' : 'Adicionar foto'}
+                  </Text>
+                </TouchableOpacity>
+              )}
               {avatarPreview ? (
                 <TouchableOpacity onPress={removeAvatar}>
                   <Text style={styles.avatarRemoveText}>Remover</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
-
-            {Platform.OS === 'web' && (
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                style={{ display: 'none' }}
-                onChange={handleAvatarChange}
-              />
-            )}
           </View>
 
           {/* Username */}
@@ -417,6 +438,7 @@ export default function EditProfileScreen() {
       {showCountryPicker && (
         <View style={styles.modalOverlay}>
           <TouchableOpacity style={styles.modalBackdrop} onPress={() => setShowCountryPicker(false)} activeOpacity={1} />
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ width: '100%' }}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Seleciona o país</Text>
@@ -433,7 +455,6 @@ export default function EditProfileScreen() {
                 placeholderTextColor={COLORS.text3}
                 value={countrySearch}
                 onChangeText={setCountrySearch}
-                autoFocus
               />
               {countrySearch.length > 0 && (
                 <TouchableOpacity onPress={() => setCountrySearch('')}>
@@ -465,6 +486,7 @@ export default function EditProfileScreen() {
               }}
             />
           </View>
+          </KeyboardAvoidingView>
         </View>
       )}
     </SafeAreaView>

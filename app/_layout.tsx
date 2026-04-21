@@ -102,13 +102,14 @@ function StoreHydrator() {
       if (!auth?.token || !auth?.user) return;
       store.setAuth(auth.user, auth.token);
 
-      // Load local-only data (shopping list, badges)
+      // Load local-only data (shopping list, badges, notifications)
       const userData = await storageGet(userDataKey(auth.user.id));
       if (userData) {
         useStore.setState({
           shoppingList: userData.shoppingList ?? [],
           earnedBadgeIds: userData.earnedBadgeIds ?? [],
           pinnedBadgeIds: userData.pinnedBadgeIds ?? [],
+          notifications: userData.notifications ?? [],
         });
       }
 
@@ -119,7 +120,7 @@ function StoreHydrator() {
     load();
   }, []);
 
-  const { token, user, shoppingList, earnedBadgeIds, pinnedBadgeIds } = store;
+  const { token, user, shoppingList, earnedBadgeIds, pinnedBadgeIds, notifications } = store;
 
   // When user logs in manually (user.id changes), sync from server
   useEffect(() => {
@@ -134,6 +135,7 @@ function StoreHydrator() {
           shoppingList: userData.shoppingList ?? [],
           earnedBadgeIds: userData.earnedBadgeIds ?? [],
           pinnedBadgeIds: userData.pinnedBadgeIds ?? [],
+          notifications: userData.notifications ?? [],
         });
       }
       if (token) await syncFromServer(token);
@@ -142,16 +144,16 @@ function StoreHydrator() {
     loadUser();
   }, [user?.id]);
 
-  // Persist only local-only data
+  // Persist local-only data
   useEffect(() => {
     if (!hydrated.current && token === null) return;
     if (token && user) {
       storageSet(AUTH_KEY, { token, user });
-      storageSet(userDataKey(user.id), { shoppingList, earnedBadgeIds, pinnedBadgeIds });
+      storageSet(userDataKey(user.id), { shoppingList, earnedBadgeIds, pinnedBadgeIds, notifications });
     } else {
       storageRemove(AUTH_KEY);
     }
-  }, [token, user, shoppingList, earnedBadgeIds, pinnedBadgeIds]);
+  }, [token, user, shoppingList, earnedBadgeIds, pinnedBadgeIds, notifications]);
 
   return null;
 }

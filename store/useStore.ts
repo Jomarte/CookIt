@@ -236,8 +236,20 @@ export const useStore = create<AppState>()((set, get) => ({
       ),
     }));
     if (token) {
-      if (isSaved) api.unsaveRecipe(token, recipeId).catch(() => {});
-      else api.saveRecipe(token, recipeId).catch(() => {});
+      const call = isSaved ? api.unsaveRecipe(token, recipeId) : api.saveRecipe(token, recipeId);
+      call.catch(() => {
+        // Revert on failure
+        set((state) => ({
+          savedRecipes: isSaved
+            ? [...state.savedRecipes, recipeId]
+            : state.savedRecipes.filter((id) => id !== recipeId),
+          recipes: state.recipes.map((r) =>
+            String(r.id) === recipeId
+              ? { ...r, likes: Math.max(0, (r.likes ?? 0) - delta) }
+              : r
+          ),
+        }));
+      });
     }
   },
 
@@ -259,8 +271,23 @@ export const useStore = create<AppState>()((set, get) => ({
       }
     });
     if (token) {
-      if (isCooked) api.uncookRecipe(token, recipeId).catch(() => {});
-      else api.cookRecipe(token, recipeId, today).catch(() => {});
+      const call = isCooked ? api.uncookRecipe(token, recipeId) : api.cookRecipe(token, recipeId, today);
+      call.catch(() => {
+        // Revert on failure
+        set((state) => {
+          if (isCooked) {
+            return {
+              cookedRecipes: [...state.cookedRecipes, recipeId],
+              cookedLogs: [...state.cookedLogs, { recipeId, date: today }],
+            };
+          } else {
+            return {
+              cookedRecipes: state.cookedRecipes.filter((id) => id !== recipeId),
+              cookedLogs: state.cookedLogs.filter((l) => l.recipeId !== recipeId),
+            };
+          }
+        });
+      });
     }
   },
 
