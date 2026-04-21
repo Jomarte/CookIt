@@ -89,12 +89,15 @@ export default function FeedScreen() {
             onPress={() => router.push(`/user/${recipe.author_id}`)}
             activeOpacity={0.7}
           >
-            {recipe.author_avatar
-              ? <Image source={{ uri: recipe.author_avatar }} style={styles.authorAvatar} />
-              : <View style={styles.authorAvatarPlaceholder}>
-                  <Text style={styles.authorAvatarLetter}>{initial}</Text>
-                </View>
-            }
+            <View style={styles.authorAvatarWrap}>
+              {recipe.author_avatar
+                ? <Image source={{ uri: recipe.author_avatar }} style={styles.authorAvatar} />
+                : <View style={styles.authorAvatarPlaceholder}>
+                    <Text style={styles.authorAvatarLetter}>{initial}</Text>
+                  </View>
+              }
+              <View style={styles.authorAvatarRing} />
+            </View>
             <View>
               <Text style={styles.authorName}>{recipe.author_name ?? 'Cozinheiro'}</Text>
               <Text style={styles.authorUsername}>@{recipe.author_username ?? ''}</Text>
@@ -401,20 +404,28 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
+  authorAvatarWrap: {
+    position: 'relative',
+    width: 40,
+    height: 40,
+  },
+  authorAvatarRing: {
+    position: 'absolute',
+    top: -2, left: -2, right: -2, bottom: -2,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+  },
   authorAvatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.85)',
   },
   authorAvatarPlaceholder: {
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: COLORS.primary,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.85)',
     alignItems: 'center',
     justifyContent: 'center',
   },

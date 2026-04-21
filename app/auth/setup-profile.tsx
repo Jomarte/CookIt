@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { COLORS } from '../../constants/Colors';
 import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
@@ -128,6 +129,21 @@ function compressToBase64(file: File): Promise<string> {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+async function pickImageNative(): Promise<string | null> {
+  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (status !== 'granted') return null;
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsEditing: true,
+    aspect: [1, 1],
+    quality: 0.75,
+    base64: true,
+  });
+  if (result.canceled || !result.assets[0]) return null;
+  const asset = result.assets[0];
+  return `data:image/jpeg;base64,${asset.base64}`;
 }
 
 export default function EditProfileScreen() {
@@ -274,7 +290,15 @@ export default function EditProfileScreen() {
             ) : (
               <TouchableOpacity
                 style={styles.avatarWrap}
-                onPress={() => fileInputRef.current?.click()}
+                onPress={async () => {
+                  setAvatarLoading(true);
+                  try {
+                    const b64 = await pickImageNative();
+                    if (b64) setAvatarPreview(b64);
+                  } finally {
+                    setAvatarLoading(false);
+                  }
+                }}
                 activeOpacity={0.8}
               >
                 {avatarLoading ? (
@@ -301,7 +325,15 @@ export default function EditProfileScreen() {
                   </Text>
                 </label>
               ) : (
-                <TouchableOpacity onPress={() => fileInputRef.current?.click()} disabled={avatarLoading}>
+                <TouchableOpacity onPress={async () => {
+                  setAvatarLoading(true);
+                  try {
+                    const b64 = await pickImageNative();
+                    if (b64) setAvatarPreview(b64);
+                  } finally {
+                    setAvatarLoading(false);
+                  }
+                }} disabled={avatarLoading}>
                   <Text style={styles.avatarChangeText}>
                     {avatarPreview ? 'Alterar foto' : 'Adicionar foto'}
                   </Text>

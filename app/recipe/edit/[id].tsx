@@ -511,9 +511,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingBottom: 14,
-    backgroundColor: COLORS.surface1,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.bg,
   },
   backBtn: {
     width: 36, height: 36, borderRadius: 10,
