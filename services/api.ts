@@ -89,6 +89,9 @@ export const api = {
   clearShoppingListServer: (token: string, checkedOnly = false) =>
     request(`/users/me/shopping${checkedOnly ? '?checked_only=true' : ''}`, { method: 'DELETE', headers: authHeader(token) }),
 
+  getRankings: (): Promise<any[]> =>
+    request('/rankings'),
+
   getLikedRecipes: (token: string): Promise<string[]> =>
     request('/users/me/liked', { headers: authHeader(token) }),
 

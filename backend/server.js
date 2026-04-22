@@ -390,6 +390,64 @@ app.get('/api/users/:id/cooked', async (req, res) => {
   }
 });
 
+// ── RANKINGS ─────────────────────────────────────────────────────────────────
+
+app.get('/api/rankings', async (req, res) => {
+  try {
+    const users = await db.all(`
+      SELECT
+        u.id, u.name, u.username, u.avatar, u.nationality, u.cooking_type,
+        COUNT(DISTINCT r.id) as recipe_count,
+        COALESCE(SUM(r.likes), 0) + COALESCE(SUM(r.cooked_count), 0) as score,
+        COALESCE(AVG(rat.rating), 0) as avg_rating,
+        COUNT(DISTINCT rat.user_id) as total_ratings
+      FROM users u
+      JOIN recipes r ON r.author_id = u.id
+      LEFT JOIN ratings rat ON rat.recipe_id = r.id
+      GROUP BY u.id
+      HAVING COUNT(DISTINCT r.id) >= 1
+      ORDER BY score DESC, avg_rating DESC
+      LIMIT 50
+    `);
+
+    const result = await Promise.all(users.map(async (u, i) => {
+      const best = await db.get(`
+        SELECT r.id, r.title, r.difficulty, r.prep_time, r.cook_time, r.dish_type,
+               COALESCE(AVG(rat.rating), 0) as avg_r, r.likes
+        FROM recipes r
+        LEFT JOIN ratings rat ON rat.recipe_id = r.id
+        WHERE r.author_id = ?
+        GROUP BY r.id
+        ORDER BY avg_r DESC, r.likes DESC
+        LIMIT 1
+      `, [u.id]);
+
+      return {
+        id: String(u.id),
+        rank: i + 1,
+        name: u.name,
+        username: u.username,
+        avatar: u.avatar,
+        nationality: u.nationality,
+        cookingType: u.cooking_type,
+        averageRating: parseFloat(u.avg_rating) || 0,
+        totalRatingsCount: parseInt(u.total_ratings) || 0,
+        recipeCount: parseInt(u.recipe_count) || 0,
+        score: parseInt(u.score) || 0,
+        bestRecipe: best ? {
+          id: String(best.id),
+          title: best.title,
+          difficulty: best.difficulty,
+          totalTime: (best.prep_time || 0) + (best.cook_time || 0),
+          dishType: best.dish_type,
+        } : null,
+      };
+    }));
+
+    res.json(result);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── FOLLOWS ─────────────────────────────────────────────────────────────────
 
 app.get('/api/users/:id/follow', auth, async (req, res) => {
