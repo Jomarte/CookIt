@@ -139,7 +139,14 @@ export const useStore = create<AppState>()((set, get) => ({
   user: null,
   token: null,
   setAuth: (user, token) => set({ user, token }),
-  updateUser: (user) => set({ user }),
+  updateUser: (user) => set((state) => ({
+    user,
+    recipes: state.recipes.map((r) =>
+      String(r.author_id) === String(user.id)
+        ? { ...r, author_avatar: user.avatar, author_name: user.name, author_username: user.username }
+        : r
+    ),
+  })),
   logout: () => set({
     user: null,
     token: null,

@@ -51,7 +51,7 @@ export default function LoginScreen() {
       >
         {/* Logo */}
         <View style={styles.wordmarkWrap}>
-          <Image source={require('../../assets/images/logo.jpeg')} style={styles.logoImage} />
+          <Image source={require('../../assets/images/logo-new.png')} style={styles.logoImage} />
           <View style={styles.wordmark}>
             <Text style={styles.wordmarkCook}>Cook</Text>
             <Text style={styles.wordmarkIt}>It</Text>
