@@ -74,6 +74,15 @@ export const api = {
   uncookRecipe: (token: string, id: number | string) =>
     request(`/recipes/${id}/cooked`, { method: 'DELETE', headers: authHeader(token) }),
 
+  getLikedRecipes: (token: string): Promise<string[]> =>
+    request('/users/me/liked', { headers: authHeader(token) }),
+
+  likeRecipe: (token: string, id: number | string) =>
+    request(`/recipes/${id}/like`, { method: 'POST', headers: authHeader(token) }),
+
+  unlikeRecipe: (token: string, id: number | string) =>
+    request(`/recipes/${id}/like`, { method: 'DELETE', headers: authHeader(token) }),
+
   getSavedRecipes: (token: string): Promise<string[]> =>
     request('/users/me/saved', { headers: authHeader(token) }),
 

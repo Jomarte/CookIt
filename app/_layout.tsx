@@ -64,19 +64,21 @@ function AppStack() {
 }
 
 async function syncFromServer(token: string) {
-  try {
-    const [saved, cooked, ratings] = await Promise.all([
-      api.getSavedRecipes(token),
-      api.getCookedRecipes(token),
-      api.getUserRatings(token),
-    ]);
-    useStore.setState({
-      savedRecipes: saved,
-      cookedRecipes: cooked.map(c => c.recipeId),
-      cookedLogs: cooked,
-      userRatings: ratings,
-    });
-  } catch {}
+  const [saved, liked, cooked, ratings] = await Promise.allSettled([
+    api.getSavedRecipes(token),
+    api.getLikedRecipes(token),
+    api.getCookedRecipes(token),
+    api.getUserRatings(token),
+  ]);
+  const update: Record<string, any> = {};
+  if (saved.status === 'fulfilled') update.savedRecipes = saved.value;
+  if (liked.status === 'fulfilled') update.likedRecipes = liked.value;
+  if (cooked.status === 'fulfilled') {
+    update.cookedRecipes = cooked.value.map((c: any) => c.recipeId);
+    update.cookedLogs = cooked.value;
+  }
+  if (ratings.status === 'fulfilled') update.userRatings = ratings.value;
+  if (Object.keys(update).length > 0) useStore.setState(update);
 }
 
 function StoreHydrator() {
@@ -102,7 +104,7 @@ function StoreHydrator() {
       if (!auth?.token || !auth?.user) return;
       store.setAuth(auth.user, auth.token);
 
-      // Load local-only data (shopping list, badges, notifications, ratings backup)
+      // Restore cached data immediately (works even if server is sleeping)
       const userData = await storageGet(userDataKey(auth.user.id));
       if (userData) {
         useStore.setState({
@@ -111,17 +113,21 @@ function StoreHydrator() {
           pinnedBadgeIds: userData.pinnedBadgeIds ?? [],
           notifications: userData.notifications ?? [],
           userRatings: userData.userRatings ?? {},
+          savedRecipes: userData.savedRecipes ?? [],
+          likedRecipes: userData.likedRecipes ?? [],
+          cookedRecipes: userData.cookedRecipes ?? [],
+          cookedLogs: userData.cookedLogs ?? [],
         });
       }
-
-      // Sync server data (saved, cooked, ratings)
-      await syncFromServer(auth.token);
       hydrated.current = true;
+
+      // Sync from server in background to get latest data
+      syncFromServer(auth.token);
     }
     load();
   }, []);
 
-  const { token, user, shoppingList, earnedBadgeIds, pinnedBadgeIds, notifications, userRatings } = store;
+  const { token, user, shoppingList, earnedBadgeIds, pinnedBadgeIds, notifications, userRatings, savedRecipes, likedRecipes, cookedRecipes, cookedLogs } = store;
 
   // When user logs in manually (user.id changes), sync from server
   useEffect(() => {
@@ -138,24 +144,38 @@ function StoreHydrator() {
           pinnedBadgeIds: userData.pinnedBadgeIds ?? [],
           notifications: userData.notifications ?? [],
           userRatings: userData.userRatings ?? {},
+          savedRecipes: userData.savedRecipes ?? [],
+          likedRecipes: userData.likedRecipes ?? [],
+          cookedRecipes: userData.cookedRecipes ?? [],
+          cookedLogs: userData.cookedLogs ?? [],
         });
       }
-      if (token) await syncFromServer(token);
       hydrated.current = true;
+      if (token) syncFromServer(token);
     }
     loadUser();
   }, [user?.id]);
 
-  // Persist local-only data
+  // Persist all user data locally
   useEffect(() => {
     if (!hydrated.current) return;
     if (token && user) {
       storageSet(AUTH_KEY, { token, user });
-      storageSet(userDataKey(user.id), { shoppingList, earnedBadgeIds, pinnedBadgeIds, notifications, userRatings });
+      storageSet(userDataKey(user.id), {
+        shoppingList,
+        earnedBadgeIds,
+        pinnedBadgeIds,
+        notifications,
+        userRatings,
+        savedRecipes,
+        likedRecipes,
+        cookedRecipes,
+        cookedLogs,
+      });
     } else {
       storageRemove(AUTH_KEY);
     }
-  }, [token, user, shoppingList, earnedBadgeIds, pinnedBadgeIds, notifications, userRatings]);
+  }, [token, user, shoppingList, earnedBadgeIds, pinnedBadgeIds, notifications, userRatings, savedRecipes, likedRecipes, cookedRecipes, cookedLogs]);
 
   return null;
 }

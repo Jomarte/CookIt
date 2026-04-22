@@ -33,7 +33,7 @@ export default function FeedScreen() {
   const [menuRecipe, setMenuRecipe] = useState<any | null>(null);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const [serverUnread, setServerUnread] = useState(0);
-  const { savedRecipes, toggleSaved, notifications, token, recipes, setRecipes } = useStore();
+  const { savedRecipes, toggleSaved, likedRecipes, toggleLiked, notifications, token, recipes, setRecipes } = useStore();
   const localUnread = notifications.filter((n) => !n.read).length;
   const unreadCount = localUnread + serverUnread;
 
@@ -63,13 +63,14 @@ export default function FeedScreen() {
   const renderPost = ({ item: recipe }: { item: any }) => {
     const id = String(recipe.id);
     const isSaved = savedRecipes.includes(id);
+    const isLiked = likedRecipes.includes(id);
     const likeCount = recipe.likes ?? 0;
     const commentCount = recipe.comments_count ?? 0;
     const totalTime = (recipe.prep_time ?? 0) + (recipe.cook_time ?? 0);
     const diffColor = DIFF_COLORS[recipe.difficulty] ?? COLORS.text2;
     const initial = (recipe.author_name ?? '?')[0].toUpperCase();
 
-    const handleLikeToggle = () => toggleSaved(id);
+    const handleLikeToggle = () => toggleLiked(id);
 
     const handleShare = async () => {
       try {
@@ -168,8 +169,8 @@ export default function FeedScreen() {
         {/* Social actions */}
         <View style={styles.socialRow}>
           <TouchableOpacity style={styles.socialBtn} onPress={handleLikeToggle} activeOpacity={0.7}>
-            <Ionicons name={isSaved ? 'heart' : 'heart-outline'} size={22} color={isSaved ? '#E53935' : COLORS.text2} />
-            <Text style={[styles.socialCount, isSaved && { color: '#E53935' }]}>
+            <Ionicons name={isLiked ? 'heart' : 'heart-outline'} size={22} color={isLiked ? '#E53935' : COLORS.text2} />
+            <Text style={[styles.socialCount, isLiked && { color: '#E53935' }]}>
               {likeCount >= 1000 ? `${(likeCount / 1000).toFixed(1)}K` : likeCount}
             </Text>
           </TouchableOpacity>

@@ -108,6 +108,7 @@ interface AppState {
   // App
   shoppingList: ShoppingItem[];
   savedRecipes: string[];
+  likedRecipes: string[];
   cookedRecipes: string[];
   cookedLogs: CookLog[];
   userRatings: Record<string, number>;
@@ -130,6 +131,7 @@ interface AppState {
   clearChecked: () => void;
   clearShoppingList: () => void;
   toggleSaved: (recipeId: string) => void;
+  toggleLiked: (recipeId: string) => void;
   toggleCooked: (recipeId: string) => void;
   setRating: (recipeId: string, rating: number) => void;
 }
@@ -153,6 +155,7 @@ export const useStore = create<AppState>()((set, get) => ({
     cookedRecipes: [],
     cookedLogs: [],
     savedRecipes: [],
+    likedRecipes: [],
     shoppingList: [],
     userRatings: {},
   }),
@@ -161,6 +164,7 @@ export const useStore = create<AppState>()((set, get) => ({
   recipes: [],
   shoppingList: [],
   savedRecipes: [],
+  likedRecipes: [],
   cookedRecipes: [],
   cookedLogs: [],
   userRatings: {},
@@ -231,11 +235,31 @@ export const useStore = create<AppState>()((set, get) => ({
   toggleSaved: (recipeId) => {
     const { token, savedRecipes } = get();
     const isSaved = savedRecipes.includes(recipeId);
-    const delta = isSaved ? -1 : 1;
     set((state) => ({
       savedRecipes: isSaved
         ? state.savedRecipes.filter((id) => id !== recipeId)
         : [...state.savedRecipes, recipeId],
+    }));
+    if (token) {
+      const call = isSaved ? api.unsaveRecipe(token, recipeId) : api.saveRecipe(token, recipeId);
+      call.catch(() => {
+        set((state) => ({
+          savedRecipes: isSaved
+            ? [...state.savedRecipes, recipeId]
+            : state.savedRecipes.filter((id) => id !== recipeId),
+        }));
+      });
+    }
+  },
+
+  toggleLiked: (recipeId) => {
+    const { token, likedRecipes } = get();
+    const isLiked = likedRecipes.includes(recipeId);
+    const delta = isLiked ? -1 : 1;
+    set((state) => ({
+      likedRecipes: isLiked
+        ? state.likedRecipes.filter((id) => id !== recipeId)
+        : [...state.likedRecipes, recipeId],
       recipes: state.recipes.map((r) =>
         String(r.id) === recipeId
           ? { ...r, likes: Math.max(0, (r.likes ?? 0) + delta) }
@@ -243,13 +267,12 @@ export const useStore = create<AppState>()((set, get) => ({
       ),
     }));
     if (token) {
-      const call = isSaved ? api.unsaveRecipe(token, recipeId) : api.saveRecipe(token, recipeId);
+      const call = isLiked ? api.unlikeRecipe(token, recipeId) : api.likeRecipe(token, recipeId);
       call.catch(() => {
-        // Revert on failure
         set((state) => ({
-          savedRecipes: isSaved
-            ? [...state.savedRecipes, recipeId]
-            : state.savedRecipes.filter((id) => id !== recipeId),
+          likedRecipes: isLiked
+            ? [...state.likedRecipes, recipeId]
+            : state.likedRecipes.filter((id) => id !== recipeId),
           recipes: state.recipes.map((r) =>
             String(r.id) === recipeId
               ? { ...r, likes: Math.max(0, (r.likes ?? 0) - delta) }

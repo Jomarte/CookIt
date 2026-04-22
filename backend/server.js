@@ -434,6 +434,34 @@ app.delete('/api/users/:id/follow', auth, async (req, res) => {
   }
 });
 
+// ── LIKES ───────────────────────────────────────────────────────────────────
+
+app.get('/api/users/me/liked', auth, async (req, res) => {
+  try {
+    const rows = await db.all('SELECT recipe_id FROM recipe_likes WHERE user_id = ?', [req.user.id]);
+    res.json(rows.map(r => String(r.recipe_id)));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/recipes/:id/like', auth, async (req, res) => {
+  try {
+    const already = await db.get('SELECT 1 FROM recipe_likes WHERE user_id = ? AND recipe_id = ?', [req.user.id, req.params.id]);
+    if (!already) {
+      await db.run('INSERT INTO recipe_likes (user_id, recipe_id) VALUES (?, ?)', [req.user.id, req.params.id]);
+      await db.run('UPDATE recipes SET likes = likes + 1 WHERE id = ?', [req.params.id]);
+    }
+    res.json({ liked: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/recipes/:id/like', auth, async (req, res) => {
+  try {
+    await db.run('DELETE FROM recipe_likes WHERE user_id = ? AND recipe_id = ?', [req.user.id, req.params.id]);
+    await db.run('UPDATE recipes SET likes = GREATEST(0, likes - 1) WHERE id = ?', [req.params.id]);
+    res.json({ liked: false });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── SAVED ───────────────────────────────────────────────────────────────────
 
 app.get('/api/users/me/saved', auth, async (req, res) => {
