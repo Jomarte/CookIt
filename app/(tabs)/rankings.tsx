@@ -118,7 +118,7 @@ const CUISINES = ['Global', 'Portuguesa', 'Italiana', 'Japonesa', 'Mexicana', 'I
 const DIFF_COLORS: Record<string, string> = {
   'Fácil': COLORS.green,
   'Médio': COLORS.star,
-  'Difícil': COLORS.accent,
+  'Difícil': COLORS.red,
 };
 
 const DISH_ICONS: Record<string, string> = {

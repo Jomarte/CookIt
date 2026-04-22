@@ -1,4 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   ActivityIndicator,
@@ -23,7 +24,7 @@ import { useStore } from '../../../store/useStore';
 import { getIngredientSuggestions, type IngredientEntry } from '../../../data/ingredients';
 
 const DIFFICULTIES = ['Fácil', 'Médio', 'Difícil'];
-const DIFF_COLORS: Record<string, string> = { 'Fácil': COLORS.green, 'Médio': COLORS.star, 'Difícil': COLORS.accent };
+const DIFF_COLORS: Record<string, string> = { 'Fácil': COLORS.green, 'Médio': COLORS.star, 'Difícil': COLORS.red };
 const CUISINES = ['Portuguesa', 'Italiana', 'Japonesa', 'Mexicana', 'Indiana', 'Francesa', 'Mediterrânica', 'Americana', 'Brasileira', 'Coreana', 'Chinesa', 'Tailandesa', 'Árabe', 'Africana', 'Fusão', 'Internacional'];
 const DISH_TYPES = ['Entrada', 'Sopa', 'Prato Principal', 'Acompanhamento', 'Snack', 'Sobremesa', 'Pequeno-Almoço', 'Brunch', 'Lanche', 'Bebida', 'Molho', 'Pão / Pastelaria'];
 const DIETS = ['Vegetariano', 'Vegan', 'Pescetariano', 'Sem Glúten', 'Sem Lactose', 'Low Carb', 'Keto', 'Alta Proteína', 'Saudável', 'Meal Prep', 'Comfort Food', 'Light'];
@@ -56,6 +57,7 @@ export default function EditRecipeScreen() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showErrors, setShowErrors] = useState(false);
 
   const [photo, setPhoto] = useState<string | null>(null);
   const [title, setTitle] = useState('');
@@ -117,10 +119,57 @@ export default function EditRecipeScreen() {
   const updateStep = (i: number, val: string) => { const u = [...steps]; u[i] = val; setSteps(u); };
   const removeStep = (i: number) => setSteps((p) => p.filter((_, idx) => idx !== i));
 
+  const handlePickPhoto = async () => {
+    if (Platform.OS === 'web') {
+      fileInputRef.current?.click();
+      return;
+    }
+    Alert.alert('Foto', 'Como queres adicionar a foto?', [
+      {
+        text: 'Câmara',
+        onPress: async () => {
+          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert('Permissão necessária', 'Precisamos de acesso à câmara.');
+            return;
+          }
+          const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.75, base64: true });
+          if (!result.canceled && result.assets[0].base64) {
+            setPhoto(`data:image/jpeg;base64,${result.assets[0].base64}`);
+          }
+        },
+      },
+      {
+        text: 'Galeria',
+        onPress: async () => {
+          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert('Permissão necessária', 'Precisamos de acesso à galeria.');
+            return;
+          }
+          const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.75, base64: true });
+          if (!result.canceled && result.assets[0].base64) {
+            setPhoto(`data:image/jpeg;base64,${result.assets[0].base64}`);
+          }
+        },
+      },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
+  };
+
   const handleSave = async () => {
     if (!title.trim()) {
       if (Platform.OS === 'web') alert('O título é obrigatório.');
       else Alert.alert('Erro', 'O título é obrigatório.');
+      return;
+    }
+    const missingAmount = ingredients.some(
+      (i) => i.name.trim() && !NO_AMOUNT_UNITS.includes(i.unit) && !i.amount.trim()
+    );
+    if (missingAmount) {
+      setShowErrors(true);
+      if (Platform.OS === 'web') alert('Indica a quantidade de todos os ingredientes.');
+      else Alert.alert('Quantidade em falta', 'Indica a quantidade de todos os ingredientes.');
       return;
     }
     const filledIngredients = ingredients
@@ -254,7 +303,7 @@ export default function EditRecipeScreen() {
         )}
         <TouchableOpacity
           style={[styles.photoArea, photo ? styles.photoAreaFilled : null]}
-          onPress={() => Platform.OS === 'web' && fileInputRef.current?.click()}
+          onPress={handlePickPhoto}
           activeOpacity={0.85}
         >
           {photo ? (
@@ -283,10 +332,7 @@ export default function EditRecipeScreen() {
 
         {/* Culinária */}
         <View style={styles.section}>
-          <View style={styles.labelRow}>
-            <Text style={styles.label}>Culinária</Text>
-            {cuisine ? <Text style={styles.labelSelected}>{cuisine}</Text> : null}
-          </View>
+          <Text style={styles.label}>Culinária</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillsRow}>
             {CUISINES.map((c) => (
               <TouchableOpacity key={c} style={[styles.pill, cuisine === c && styles.pillActive]} onPress={() => setCuisine(c)}>
@@ -298,10 +344,7 @@ export default function EditRecipeScreen() {
 
         {/* Tipo de Prato */}
         <View style={styles.section}>
-          <View style={styles.labelRow}>
-            <Text style={styles.label}>Tipo de Prato</Text>
-            {dishType ? <Text style={styles.labelSelected}>{dishType}</Text> : null}
-          </View>
+          <Text style={styles.label}>Tipo de Prato</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillsRow}>
             {DISH_TYPES.map((dt) => (
               <TouchableOpacity key={dt} style={[styles.pill, dishType === dt && styles.pillActive]} onPress={() => setDishType(dt)}>
@@ -399,7 +442,10 @@ export default function EditRecipeScreen() {
                   />
                   {!noAmount && (
                     <TextInput
-                      style={styles.ingredientAmountInput}
+                      style={[
+                        styles.ingredientAmountInput,
+                        showErrors && ing.name.trim() && !ing.amount.trim() && styles.ingredientAmountError,
+                      ]}
                       placeholder="qtd"
                       placeholderTextColor={COLORS.text3}
                       keyboardType="decimal-pad"
@@ -601,6 +647,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
   },
   ingredientInputMatched: { borderColor: COLORS.borderActive, backgroundColor: COLORS.primaryDim },
+  ingredientAmountError: { borderColor: COLORS.red, backgroundColor: COLORS.redDim },
   suggestionsBox: { marginLeft: 18, marginTop: 4, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surface1, overflow: 'hidden' },
   suggestionItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   suggestionName: { fontSize: 14, fontWeight: '600', color: COLORS.text1, fontFamily: FONTS.body },

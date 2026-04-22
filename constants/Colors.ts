@@ -24,6 +24,8 @@ export const COLORS = {
   star:         '#D97706',
   green:        '#16A34A',
   greenDim:     'rgba(22,163,74,0.10)',
+  red:          '#DC2626',
+  redDim:       'rgba(220,38,38,0.10)',
 
   // Legacy aliases kept for compat
   dark:         '#1A1A1A',

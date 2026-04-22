@@ -16,11 +16,12 @@ import { COLORS } from '../../constants/Colors';
 import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 import { useStore } from '../../store/useStore';
+import { getIngredientSuggestions, type IngredientEntry } from '../../data/ingredients';
 
 const DIFF_COLORS: Record<string, string> = {
   'Fácil': COLORS.green,
   'Médio': COLORS.star,
-  'Difícil': COLORS.accent,
+  'Difícil': COLORS.red,
 };
 
 const CUISINES = ['Todas', 'Portuguesa', 'Italiana', 'Japonesa', 'Mexicana', 'Indiana', 'Francesa', 'Mediterrânica', 'Americana', 'Brasileira', 'Coreana', 'Chinesa', 'Tailandesa', 'Árabe', 'Africana', 'Fusão', 'Internacional'];
@@ -66,7 +67,13 @@ export default function DiscoverScreen() {
   const [fridgeIngredients, setFridgeIngredients] = useState('');
   const [fridgeList, setFridgeList] = useState<string[]>([]);
   const [fridgeInput, setFridgeInput] = useState('');
+  const [fridgeFocused, setFridgeFocused] = useState(false);
   const [loading, setLoading] = useState(recipes.length === 0);
+
+  const fridgeSuggestions = useMemo<IngredientEntry[]>(
+    () => (fridgeInput.trim().length > 0 ? getIngredientSuggestions(fridgeInput) : []),
+    [fridgeInput]
+  );
   const [sortBy, setSortBy] = useState('');
   const scrollRef = useRef<ScrollView>(null);
   const resultsRef = useRef<View>(null);
@@ -296,6 +303,8 @@ export default function DiscoverScreen() {
                   placeholderTextColor={COLORS.text3}
                   value={fridgeInput}
                   onChangeText={setFridgeInput}
+                  onFocus={() => setFridgeFocused(true)}
+                  onBlur={() => setTimeout(() => setFridgeFocused(false), 150)}
                   onSubmitEditing={() => addFridgeIngredient(fridgeInput)}
                   blurOnSubmit={false}
                   returnKeyType="done"
@@ -308,6 +317,26 @@ export default function DiscoverScreen() {
                   <Ionicons name="add" size={20} color="#fff" />
                 </TouchableOpacity>
               </View>
+
+              {/* Autocomplete suggestions */}
+              {fridgeFocused && fridgeSuggestions.length > 0 && (
+                <View style={styles.fridgeSuggestions}>
+                  {fridgeSuggestions.map((s) => (
+                    <TouchableOpacity
+                      key={s.name}
+                      style={styles.fridgeSuggestionItem}
+                      onPress={() => {
+                        setFridgeList((prev) => prev.includes(s.name) ? prev : [...prev, s.name]);
+                        setFridgeInput('');
+                        setFridgeFocused(false);
+                      }}
+                    >
+                      <Text style={styles.fridgeSuggestionName}>{s.name}</Text>
+                      <Text style={styles.fridgeSuggestionCategory}>{s.category}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
 
               {/* Ingredient chips */}
               {fridgeList.length > 0 && (
@@ -620,6 +649,18 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     alignItems: 'center', justifyContent: 'center',
   },
+  fridgeSuggestions: {
+    borderRadius: 12, borderWidth: 1, borderColor: COLORS.border,
+    backgroundColor: COLORS.surface1, overflow: 'hidden', marginBottom: 12,
+  },
+  fridgeSuggestionItem: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 14, paddingVertical: 11,
+    borderBottomWidth: 1, borderBottomColor: COLORS.border,
+  },
+  fridgeSuggestionName: { fontSize: 14, fontWeight: '600', color: COLORS.text1, fontFamily: FONTS.body },
+  fridgeSuggestionCategory: { fontSize: 11, color: COLORS.text3, fontWeight: '500', fontFamily: FONTS.body },
+
   fridgeChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
   fridgeChip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,

@@ -102,7 +102,7 @@ function StoreHydrator() {
       if (!auth?.token || !auth?.user) return;
       store.setAuth(auth.user, auth.token);
 
-      // Load local-only data (shopping list, badges, notifications)
+      // Load local-only data (shopping list, badges, notifications, ratings backup)
       const userData = await storageGet(userDataKey(auth.user.id));
       if (userData) {
         useStore.setState({
@@ -110,6 +110,7 @@ function StoreHydrator() {
           earnedBadgeIds: userData.earnedBadgeIds ?? [],
           pinnedBadgeIds: userData.pinnedBadgeIds ?? [],
           notifications: userData.notifications ?? [],
+          userRatings: userData.userRatings ?? {},
         });
       }
 
@@ -120,7 +121,7 @@ function StoreHydrator() {
     load();
   }, []);
 
-  const { token, user, shoppingList, earnedBadgeIds, pinnedBadgeIds, notifications } = store;
+  const { token, user, shoppingList, earnedBadgeIds, pinnedBadgeIds, notifications, userRatings } = store;
 
   // When user logs in manually (user.id changes), sync from server
   useEffect(() => {
@@ -136,6 +137,7 @@ function StoreHydrator() {
           earnedBadgeIds: userData.earnedBadgeIds ?? [],
           pinnedBadgeIds: userData.pinnedBadgeIds ?? [],
           notifications: userData.notifications ?? [],
+          userRatings: userData.userRatings ?? {},
         });
       }
       if (token) await syncFromServer(token);
@@ -146,14 +148,14 @@ function StoreHydrator() {
 
   // Persist local-only data
   useEffect(() => {
-    if (!hydrated.current && token === null) return;
+    if (!hydrated.current) return;
     if (token && user) {
       storageSet(AUTH_KEY, { token, user });
-      storageSet(userDataKey(user.id), { shoppingList, earnedBadgeIds, pinnedBadgeIds, notifications });
+      storageSet(userDataKey(user.id), { shoppingList, earnedBadgeIds, pinnedBadgeIds, notifications, userRatings });
     } else {
       storageRemove(AUTH_KEY);
     }
-  }, [token, user, shoppingList, earnedBadgeIds, pinnedBadgeIds, notifications]);
+  }, [token, user, shoppingList, earnedBadgeIds, pinnedBadgeIds, notifications, userRatings]);
 
   return null;
 }

@@ -26,7 +26,7 @@ const DIFFICULTIES = ['Fácil', 'Médio', 'Difícil'];
 const DIFF_COLORS: Record<string, string> = {
   'Fácil': COLORS.green,
   'Médio': COLORS.star,
-  'Difícil': COLORS.accent,
+  'Difícil': COLORS.red,
 };
 const CUISINES = ['Portuguesa', 'Italiana', 'Japonesa', 'Mexicana', 'Indiana', 'Francesa', 'Mediterrânica', 'Americana', 'Brasileira', 'Coreana', 'Chinesa', 'Tailandesa', 'Árabe', 'Africana', 'Fusão', 'Internacional'];
 const DISH_TYPES = ['Entrada', 'Sopa', 'Prato Principal', 'Acompanhamento', 'Snack', 'Sobremesa', 'Pequeno-Almoço', 'Brunch', 'Lanche', 'Bebida', 'Molho', 'Pão / Pastelaria'];
@@ -75,6 +75,45 @@ export default function AddScreen() {
   const [selectedMethods, setSelectedMethods] = useState<string[]>([]);
   const [publishing, setPublishing] = useState(false);
   const [unitPickerIndex, setUnitPickerIndex] = useState<number | null>(null);
+  const [showErrors, setShowErrors] = useState(false);
+
+  const handlePickPhoto = async () => {
+    if (Platform.OS === 'web') {
+      fileInputRef.current?.click();
+      return;
+    }
+    Alert.alert('Foto', 'Como queres adicionar a foto?', [
+      {
+        text: 'Câmara',
+        onPress: async () => {
+          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert('Permissão necessária', 'Precisamos de acesso à câmara.');
+            return;
+          }
+          const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.75, base64: true });
+          if (!result.canceled && result.assets[0].base64) {
+            setPhoto(`data:image/jpeg;base64,${result.assets[0].base64}`);
+          }
+        },
+      },
+      {
+        text: 'Galeria',
+        onPress: async () => {
+          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert('Permissão necessária', 'Precisamos de acesso à galeria.');
+            return;
+          }
+          const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.75, base64: true });
+          if (!result.canceled && result.assets[0].base64) {
+            setPhoto(`data:image/jpeg;base64,${result.assets[0].base64}`);
+          }
+        },
+      },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
+  };
 
   const toggleDiet = (diet: string) =>
     setSelectedDiets((prev) =>
@@ -125,6 +164,21 @@ export default function AddScreen() {
     if (!title.trim()) {
       if (Platform.OS === 'web') { alert('O título é obrigatório.'); }
       else { Alert.alert('Erro', 'O título é obrigatório.'); }
+      return;
+    }
+    if (!photo) {
+      setShowErrors(true);
+      if (Platform.OS === 'web') { alert('A foto é obrigatória.'); }
+      else { Alert.alert('Foto em falta', 'Adiciona uma foto à receita antes de publicar.'); }
+      return;
+    }
+    const missingAmount = ingredients.some(
+      (i) => i.name.trim() && !NO_AMOUNT_UNITS.includes(i.unit) && !i.amount.trim()
+    );
+    if (missingAmount) {
+      setShowErrors(true);
+      if (Platform.OS === 'web') { alert('Indica a quantidade de todos os ingredientes.'); }
+      else { Alert.alert('Quantidade em falta', 'Indica a quantidade de todos os ingredientes.'); }
       return;
     }
     const filledIngredients = ingredients
@@ -218,27 +272,8 @@ export default function AddScreen() {
           />
         )}
         <TouchableOpacity
-          style={[styles.photoArea, photo ? styles.photoAreaFilled : null]}
-          onPress={async () => {
-            if (Platform.OS === 'web') {
-              fileInputRef.current?.click();
-            } else {
-              const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-              if (status !== 'granted') {
-                Alert.alert('Permissão necessária', 'Precisamos de acesso à galeria para escolher uma foto.');
-                return;
-              }
-              const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                quality: 0.75,
-                base64: true,
-              });
-              if (!result.canceled && result.assets[0].base64) {
-                setPhoto(`data:image/jpeg;base64,${result.assets[0].base64}`);
-              }
-            }
-          }}
+          style={[styles.photoArea, photo ? styles.photoAreaFilled : null, showErrors && !photo && styles.photoAreaError]}
+          onPress={handlePickPhoto}
           activeOpacity={0.85}
         >
           {photo ? (
@@ -252,9 +287,9 @@ export default function AddScreen() {
           ) : (
             <>
               <View style={styles.photoIcon}>
-                <Ionicons name="camera-outline" size={32} color={COLORS.primary} />
+                <Ionicons name="camera-outline" size={32} color={showErrors ? COLORS.red : COLORS.primary} />
               </View>
-              <Text style={styles.photoText}>Adicionar foto</Text>
+              <Text style={[styles.photoText, showErrors && styles.photoTextError]}>Adicionar foto *</Text>
               <Text style={styles.photoSubtext}>Clica para selecionar uma imagem</Text>
             </>
           )}
@@ -274,10 +309,7 @@ export default function AddScreen() {
 
         {/* Culinária */}
         <View style={styles.section}>
-          <View style={styles.labelRow}>
-            <Text style={styles.label}>Culinária *</Text>
-            {cuisine ? <Text style={styles.labelSelected}>{cuisine}</Text> : <Text style={styles.labelHint}>Seleciona a origem</Text>}
-          </View>
+          <Text style={styles.label}>Culinária *</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillsRow}>
             {CUISINES.map((c) => (
               <TouchableOpacity
@@ -293,10 +325,7 @@ export default function AddScreen() {
 
         {/* Tipo de Prato */}
         <View style={styles.section}>
-          <View style={styles.labelRow}>
-            <Text style={styles.label}>Tipo de Prato *</Text>
-            {dishType ? <Text style={styles.labelSelected}>{dishType}</Text> : <Text style={styles.labelHint}>Seleciona o tipo</Text>}
-          </View>
+          <Text style={styles.label}>Tipo de Prato *</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillsRow}>
             {DISH_TYPES.map((dt) => (
               <TouchableOpacity
@@ -432,7 +461,10 @@ export default function AddScreen() {
                   />
                   {!noAmount && (
                     <TextInput
-                      style={styles.ingredientAmountInput}
+                      style={[
+                        styles.ingredientAmountInput,
+                        showErrors && ing.name.trim() && !ing.amount.trim() && styles.ingredientAmountError,
+                      ]}
                       placeholder="qtd"
                       placeholderTextColor={COLORS.text3}
                       keyboardType="decimal-pad"
@@ -607,6 +639,11 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     padding: 0,
   },
+  photoAreaError: {
+    borderColor: COLORS.red,
+    backgroundColor: COLORS.redDim,
+  },
+  photoTextError: { color: COLORS.red },
   photoPreview: {
     width: '100%',
     height: '100%',
@@ -774,6 +811,10 @@ const styles = StyleSheet.create({
   ingredientInputMatched: {
     borderColor: COLORS.borderActive,
     backgroundColor: COLORS.primaryDim,
+  },
+  ingredientAmountError: {
+    borderColor: COLORS.red,
+    backgroundColor: COLORS.redDim,
   },
   suggestionsBox: {
     marginLeft: 18,

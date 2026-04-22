@@ -23,7 +23,7 @@ import { api } from '../../services/api';
 const DIFF_COLORS: Record<string, string> = {
   'Fácil': COLORS.green,
   'Médio': COLORS.star,
-  'Difícil': COLORS.accent,
+  'Difícil': COLORS.red,
 };
 
 export default function FeedScreen() {
