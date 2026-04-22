@@ -402,10 +402,9 @@ app.get('/api/rankings', async (req, res) => {
         COALESCE(AVG(rat.rating), 0) as avg_rating,
         COUNT(DISTINCT rat.user_id) as total_ratings
       FROM users u
-      JOIN recipes r ON r.author_id = u.id
+      LEFT JOIN recipes r ON r.author_id = u.id
       LEFT JOIN ratings rat ON rat.recipe_id = r.id
       GROUP BY u.id
-      HAVING COUNT(DISTINCT r.id) >= 1
       ORDER BY score DESC, avg_rating DESC
       LIMIT 50
     `);
