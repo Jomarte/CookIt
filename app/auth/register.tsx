@@ -18,9 +18,12 @@ import { COLORS } from '../../constants/Colors';
 import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 import { useStore } from '../../store/useStore';
+import { useT } from '../../i18n';
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const t = useT();
+  const au = t.auth;
   const { setAuth } = useStore();
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
@@ -59,8 +62,8 @@ export default function RegisterScreen() {
             <Text style={styles.wordmarkIt}>It</Text>
           </View>
 
-          <Text style={styles.title}>Cria a tua conta</Text>
-          <Text style={styles.subtitle}>Começa a partilhar as tuas receitas</Text>
+          <Text style={styles.title}>{au.registerTitle}</Text>
+          <Text style={styles.subtitle}>{au.registerSubtitle}</Text>
 
           {error ? (
             <View style={styles.errorBox}>
@@ -71,12 +74,12 @@ export default function RegisterScreen() {
 
           <View style={styles.form}>
             <View style={styles.inputWrap}>
-              <Text style={styles.label}>Nome</Text>
+              <Text style={styles.label}>{au.name}</Text>
               <View style={styles.inputRow}>
                 <Ionicons name="person-outline" size={17} color={COLORS.text3} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="O teu nome"
+                  placeholder={au.namePlaceholder}
                   placeholderTextColor={COLORS.text3}
                   value={name}
                   onChangeText={setName}
@@ -85,12 +88,12 @@ export default function RegisterScreen() {
             </View>
 
             <View style={styles.inputWrap}>
-              <Text style={styles.label}>Username</Text>
+              <Text style={styles.label}>{au.username}</Text>
               <View style={styles.inputRow}>
                 <Ionicons name="at-outline" size={17} color={COLORS.text3} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="@username"
+                  placeholder={au.usernamePlaceholder}
                   placeholderTextColor={COLORS.text3}
                   autoCapitalize="none"
                   value={username}
@@ -100,12 +103,12 @@ export default function RegisterScreen() {
             </View>
 
             <View style={styles.inputWrap}>
-              <Text style={styles.label}>Email</Text>
+              <Text style={styles.label}>{au.email}</Text>
               <View style={styles.inputRow}>
                 <Ionicons name="mail-outline" size={17} color={COLORS.text3} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="o@teu.email"
+                  placeholder={au.emailPlaceholder}
                   placeholderTextColor={COLORS.text3}
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -116,12 +119,12 @@ export default function RegisterScreen() {
             </View>
 
             <View style={styles.inputWrap}>
-              <Text style={styles.label}>Password</Text>
+              <Text style={styles.label}>{au.password}</Text>
               <View style={styles.inputRow}>
                 <Ionicons name="lock-closed-outline" size={17} color={COLORS.text3} style={styles.inputIcon} />
                 <TextInput
                   style={[styles.input, { flex: 1 }]}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder={au.passwordMinChars}
                   placeholderTextColor={COLORS.text3}
                   secureTextEntry={!showPassword}
                   value={password}
@@ -144,14 +147,14 @@ export default function RegisterScreen() {
             >
               {loading
                 ? <ActivityIndicator color={COLORS.bg} />
-                : <Text style={styles.btnText}>Criar conta</Text>
+                : <Text style={styles.btnText}>{au.registerBtn}</Text>
               }
             </TouchableOpacity>
           </View>
 
           <TouchableOpacity style={styles.loginLink} onPress={() => router.push('/auth/login')}>
             <Text style={styles.loginLinkText}>
-              Já tens conta? <Text style={styles.loginLinkBold}>Entra aqui</Text>
+              {au.hasAccount} <Text style={styles.loginLinkBold}>{au.signInHere}</Text>
             </Text>
           </TouchableOpacity>
 

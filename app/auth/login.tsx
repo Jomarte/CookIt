@@ -17,9 +17,12 @@ import { COLORS } from '../../constants/Colors';
 import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 import { useStore } from '../../store/useStore';
+import { useT } from '../../i18n';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const t = useT();
+  const au = t.auth;
   const { setAuth, token } = useStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -58,8 +61,8 @@ export default function LoginScreen() {
           </View>
         </View>
 
-        <Text style={styles.title}>Bem-vindo de volta</Text>
-        <Text style={styles.subtitle}>Entra na tua conta para continuar</Text>
+        <Text style={styles.title}>{au.loginTitle}</Text>
+        <Text style={styles.subtitle}>{au.loginSubtitle}</Text>
 
         {error ? (
           <View style={styles.errorBox}>
@@ -70,12 +73,12 @@ export default function LoginScreen() {
 
         <View style={styles.form}>
           <View style={styles.inputWrap}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>{au.email}</Text>
             <View style={styles.inputRow}>
               <Ionicons name="mail-outline" size={18} color={COLORS.text3} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="o@teu.email"
+                placeholder={au.emailPlaceholder}
                 placeholderTextColor={COLORS.text3}
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -86,7 +89,7 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.inputWrap}>
-            <Text style={styles.label}>Password</Text>
+            <Text style={styles.label}>{au.password}</Text>
             <View style={styles.inputRow}>
               <Ionicons name="lock-closed-outline" size={18} color={COLORS.text3} style={styles.inputIcon} />
               <TextInput
@@ -114,14 +117,14 @@ export default function LoginScreen() {
           >
             {loading
               ? <ActivityIndicator color={COLORS.bg} />
-              : <Text style={styles.btnText}>Entrar</Text>
+              : <Text style={styles.btnText}>{au.loginBtn}</Text>
             }
           </TouchableOpacity>
         </View>
 
         <View style={styles.dividerRow}>
           <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>ou</Text>
+          <Text style={styles.dividerText}>{au.or}</Text>
           <View style={styles.dividerLine} />
         </View>
 
@@ -129,9 +132,7 @@ export default function LoginScreen() {
           style={styles.registerBtn}
           onPress={() => router.push('/auth/register')}
         >
-          <Text style={styles.registerBtnText}>
-            Criar nova conta
-          </Text>
+          <Text style={styles.registerBtnText}>{au.createNewAccount}</Text>
         </TouchableOpacity>
       </KeyboardAvoidingView>
     </SafeAreaView>

@@ -12,11 +12,10 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../constants/Colors';
 import { FONTS } from '../constants/Fonts';
 import { useStore, computeStreak } from '../store/useStore';
+import { useT } from '../i18n';
 
-interface Achievement {
+interface AchievementMeta {
   id: string;
-  label: string;
-  desc: string;
   icon: string;
   lib: 'ion' | 'mci';
   color: string;
@@ -25,12 +24,46 @@ interface Achievement {
   special?: boolean;
 }
 
-const CATEGORIES = ['Cozinheiro', 'Streak', 'Coleção', 'Social', 'Lendário'];
+interface Achievement extends AchievementMeta {
+  label: string;
+  desc: string;
+}
+
+const PT_CATEGORIES = ['Cozinheiro', 'Streak', 'Coleção', 'Social', 'Lendário'];
 const OWNER_EMAIL = 'jmgpcl@gmail.com';
 const MAX_PINNED = 8;
 
+const ACHIEVEMENT_META: AchievementMeta[] = [
+  { id: 'cook_1', icon: 'flame-outline', lib: 'ion', color: '#D97706', category: 'Cozinheiro', check: ({ cookedRecipes }) => cookedRecipes.length >= 1 },
+  { id: 'cook_5', icon: 'restaurant-outline', lib: 'ion', color: '#22C55E', category: 'Cozinheiro', check: ({ cookedRecipes }) => cookedRecipes.length >= 5 },
+  { id: 'cook_10', icon: 'ribbon-outline', lib: 'ion', color: '#FF5A5A', category: 'Cozinheiro', check: ({ cookedRecipes }) => cookedRecipes.length >= 10 },
+  { id: 'cook_25', icon: 'trophy-outline', lib: 'ion', color: '#D97706', category: 'Cozinheiro', check: ({ cookedRecipes }) => cookedRecipes.length >= 25 },
+  { id: 'cook_50', icon: 'chef-hat', lib: 'mci', color: '#E07B39', category: 'Cozinheiro', check: ({ cookedRecipes }) => cookedRecipes.length >= 50 },
+  { id: 'cook_100', icon: 'fire', lib: 'mci', color: '#3B8BFF', category: 'Cozinheiro', special: true, check: ({ cookedRecipes }) => cookedRecipes.length >= 100 },
+  { id: 'cook_250', icon: 'fire', lib: 'mci', color: '#9B30FF', category: 'Cozinheiro', special: true, check: ({ cookedRecipes }) => cookedRecipes.length >= 250 },
+  { id: 'cook_500', icon: 'crown', lib: 'mci', color: '#FFD700', category: 'Cozinheiro', special: true, check: ({ cookedRecipes }) => cookedRecipes.length >= 500 },
+  { id: 'streak_3', icon: 'flame', lib: 'ion', color: '#FF8C00', category: 'Streak', check: ({ streak }) => streak >= 3 },
+  { id: 'streak_7', icon: 'flame', lib: 'ion', color: '#EF4444', category: 'Streak', check: ({ streak }) => streak >= 7 },
+  { id: 'streak_14', icon: 'fire', lib: 'mci', color: '#FF4500', category: 'Streak', check: ({ streak }) => streak >= 14 },
+  { id: 'streak_30', icon: 'fire', lib: 'mci', color: '#E91E63', category: 'Streak', check: ({ streak }) => streak >= 30 },
+  { id: 'streak_100', icon: 'fire', lib: 'mci', color: '#3B8BFF', category: 'Streak', special: true, check: ({ streak }) => streak >= 100 },
+  { id: 'streak_365', icon: 'earth', lib: 'mci', color: '#FFD700', category: 'Streak', special: true, check: ({ streak }) => streak >= 365 },
+  { id: 'saved_1', icon: 'bookmark-outline', lib: 'ion', color: '#FF5A5A', category: 'Coleção', check: ({ savedRecipes }) => savedRecipes.length >= 1 },
+  { id: 'saved_5', icon: 'bookmark', lib: 'ion', color: '#FF5A5A', category: 'Coleção', check: ({ savedRecipes }) => savedRecipes.length >= 5 },
+  { id: 'saved_20', icon: 'library-outline', lib: 'ion', color: '#6366F1', category: 'Coleção', check: ({ savedRecipes }) => savedRecipes.length >= 20 },
+  { id: 'saved_50', icon: 'book-outline', lib: 'ion', color: '#8B5CF6', category: 'Coleção', check: ({ savedRecipes }) => savedRecipes.length >= 50 },
+  { id: 'publisher', icon: 'paper-plane-outline', lib: 'ion', color: '#22C55E', category: 'Social', check: ({ myRecipesCount }) => myRecipesCount >= 1 },
+  { id: 'publish_5', icon: 'create-outline', lib: 'ion', color: '#22C55E', category: 'Social', check: ({ myRecipesCount }) => myRecipesCount >= 5 },
+  { id: 'publish_20', icon: 'megaphone-outline', lib: 'ion', color: '#EC4899', category: 'Social', check: ({ myRecipesCount }) => myRecipesCount >= 20 },
+  { id: 'publish_50', icon: 'star', lib: 'ion', color: '#D97706', category: 'Social', check: ({ myRecipesCount }) => myRecipesCount >= 50 },
+  { id: 'legend_all', icon: 'diamond-outline', lib: 'ion', color: '#3B8BFF', category: 'Lendário', special: true, check: ({ isOwner }) => isOwner },
+  { id: 'legend_diamond', icon: 'diamond', lib: 'mci', color: '#67E8F9', category: 'Lendário', special: true, check: ({ cookedRecipes }) => cookedRecipes.length >= 1000 },
+];
+
 export default function AchievementsScreen() {
   const router = useRouter();
+  const t = useT();
+  const ac = t.achievements;
   const { cookedRecipes, cookedLogs, savedRecipes, user, pinnedBadgeIds, setPinnedBadgeIds } = useStore();
   const streak = computeStreak(cookedLogs);
   const myRecipesCount = user?.recipes_count ?? 0;
@@ -43,45 +76,16 @@ export default function AchievementsScreen() {
     ? { cookedRecipes: { length: 9999 }, savedRecipes: { length: 9999 }, streak: 9999, myRecipesCount: 9999, isOwner: true }
     : { cookedRecipes, savedRecipes, streak, myRecipesCount, isOwner: false };
 
-  const achievements: Achievement[] = [
-    // ── Cozinheiro ──
-    { id: 'cook_1', label: 'Primeiro Prato', desc: 'Cozinha a tua primeira receita', icon: 'flame-outline', lib: 'ion', color: COLORS.star, category: 'Cozinheiro', check: ({ cookedRecipes }) => cookedRecipes.length >= 1 },
-    { id: 'cook_5', label: 'Cozinheiro Ativo', desc: '5 receitas cozinhadas', icon: 'restaurant-outline', lib: 'ion', color: COLORS.green, category: 'Cozinheiro', check: ({ cookedRecipes }) => cookedRecipes.length >= 5 },
-    { id: 'cook_10', label: 'Chef em Progresso', desc: '10 receitas cozinhadas', icon: 'ribbon-outline', lib: 'ion', color: COLORS.primary, category: 'Cozinheiro', check: ({ cookedRecipes }) => cookedRecipes.length >= 10 },
-    { id: 'cook_25', label: 'Chef Experiente', desc: '25 receitas cozinhadas', icon: 'trophy-outline', lib: 'ion', color: COLORS.star, category: 'Cozinheiro', check: ({ cookedRecipes }) => cookedRecipes.length >= 25 },
-    { id: 'cook_50', label: 'Mestre da Cozinha', desc: '50 receitas cozinhadas', icon: 'chef-hat', lib: 'mci', color: '#E07B39', category: 'Cozinheiro', check: ({ cookedRecipes }) => cookedRecipes.length >= 50 },
-    { id: 'cook_100', label: 'Fogo Azul', desc: '100 receitas cozinhadas — lendário', icon: 'fire', lib: 'mci', color: '#3B8BFF', category: 'Cozinheiro', special: true, check: ({ cookedRecipes }) => cookedRecipes.length >= 100 },
-    { id: 'cook_250', label: 'Chama Imortal', desc: '250 receitas cozinhadas', icon: 'fire', lib: 'mci', color: '#9B30FF', category: 'Cozinheiro', special: true, check: ({ cookedRecipes }) => cookedRecipes.length >= 250 },
-    { id: 'cook_500', label: 'Deus da Cozinha', desc: '500 receitas — és uma lenda', icon: 'crown', lib: 'mci', color: '#FFD700', category: 'Cozinheiro', special: true, check: ({ cookedRecipes }) => cookedRecipes.length >= 500 },
+  const achievements: Achievement[] = ACHIEVEMENT_META.map((meta) => ({
+    ...meta,
+    label: ac.items[meta.id]?.label ?? meta.id,
+    desc: ac.items[meta.id]?.desc ?? '',
+  }));
 
-    // ── Streak ──
-    { id: 'streak_3', label: 'Fogo Aceso', desc: '3 dias de streak', icon: 'flame', lib: 'ion', color: '#FF8C00', category: 'Streak', check: ({ streak }) => streak >= 3 },
-    { id: 'streak_7', label: 'Semana em Chamas', desc: '7 dias seguidos', icon: 'flame', lib: 'ion', color: COLORS.accent, category: 'Streak', check: ({ streak }) => streak >= 7 },
-    { id: 'streak_14', label: 'Duas Semanas', desc: '14 dias de streak', icon: 'fire', lib: 'mci', color: '#FF4500', category: 'Streak', check: ({ streak }) => streak >= 14 },
-    { id: 'streak_30', label: 'Mês de Fogo', desc: '30 dias seguidos a cozinhar', icon: 'fire', lib: 'mci', color: '#E91E63', category: 'Streak', check: ({ streak }) => streak >= 30 },
-    { id: 'streak_100', label: 'Centenário', desc: '100 dias consecutivos', icon: 'fire', lib: 'mci', color: '#3B8BFF', category: 'Streak', special: true, check: ({ streak }) => streak >= 100 },
-    { id: 'streak_365', label: 'Um Ano Inteiro', desc: '365 dias a cozinhar sem falhar', icon: 'earth', lib: 'mci', color: '#FFD700', category: 'Streak', special: true, check: ({ streak }) => streak >= 365 },
-
-    // ── Coleção ──
-    { id: 'saved_1', label: 'Guardador', desc: 'Guarda a primeira receita', icon: 'bookmark-outline', lib: 'ion', color: COLORS.primary, category: 'Coleção', check: ({ savedRecipes }) => savedRecipes.length >= 1 },
-    { id: 'saved_5', label: 'Colecionador', desc: '5 receitas guardadas', icon: 'bookmark', lib: 'ion', color: COLORS.primary, category: 'Coleção', check: ({ savedRecipes }) => savedRecipes.length >= 5 },
-    { id: 'saved_20', label: 'Arquivo Pessoal', desc: '20 receitas guardadas', icon: 'library-outline', lib: 'ion', color: '#6366F1', category: 'Coleção', check: ({ savedRecipes }) => savedRecipes.length >= 20 },
-    { id: 'saved_50', label: 'Biblioteca do Chef', desc: '50 receitas guardadas', icon: 'book-outline', lib: 'ion', color: '#8B5CF6', category: 'Coleção', check: ({ savedRecipes }) => savedRecipes.length >= 50 },
-
-    // ── Social ──
-    { id: 'publisher', label: 'Publicador', desc: 'Publica a primeira receita', icon: 'paper-plane-outline', lib: 'ion', color: COLORS.green, category: 'Social', check: ({ myRecipesCount }) => myRecipesCount >= 1 },
-    { id: 'publish_5', label: 'Criador', desc: '5 receitas publicadas', icon: 'create-outline', lib: 'ion', color: COLORS.green, category: 'Social', check: ({ myRecipesCount }) => myRecipesCount >= 5 },
-    { id: 'publish_20', label: 'Chef Influencer', desc: '20 receitas publicadas', icon: 'megaphone-outline', lib: 'ion', color: '#EC4899', category: 'Social', check: ({ myRecipesCount }) => myRecipesCount >= 20 },
-    { id: 'publish_50', label: 'Estrela da Cozinha', desc: '50 receitas publicadas', icon: 'star', lib: 'ion', color: COLORS.star, category: 'Social', check: ({ myRecipesCount }) => myRecipesCount >= 50 },
-
-    // ── Lendário ──
-    { id: 'legend_all', label: 'O Completo', desc: 'Desbloqueaste todas as conquistas normais', icon: 'diamond-outline', lib: 'ion', color: '#3B8BFF', category: 'Lendário', special: true, check: ({ isOwner }) => isOwner },
-    { id: 'legend_diamond', label: 'Diamante', desc: '1000 receitas cozinhadas', icon: 'diamond', lib: 'mci', color: '#67E8F9', category: 'Lendário', special: true, check: ({ cookedRecipes }) => cookedRecipes.length >= 1000 },
-  ];
-
-  const grouped = CATEGORIES.map((cat) => ({
-    cat,
-    items: achievements.filter((a) => a.category === cat),
+  const grouped = PT_CATEGORIES.map((ptCat, catIdx) => ({
+    cat: ptCat,
+    displayCat: ac.categories[catIdx] ?? ptCat,
+    items: achievements.filter((a) => a.category === ptCat),
   }));
 
   const totalEarned = achievements.filter((a) => a.check(data)).length;
@@ -107,15 +111,15 @@ export default function AchievementsScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Conquistas</Text>
+        <Text style={styles.headerTitle}>{ac.title}</Text>
         {selecting ? (
           <TouchableOpacity style={styles.saveBtn} onPress={saveSelection}>
-            <Text style={styles.saveBtnText}>Guardar</Text>
+            <Text style={styles.saveBtnText}>{t.common.save}</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={styles.selectBtn} onPress={() => { setSelected(pinnedBadgeIds); setSelecting(true); }}>
             <Ionicons name="apps-outline" size={16} color={COLORS.primary} />
-            <Text style={styles.selectBtnText}>Escolher 8</Text>
+            <Text style={styles.selectBtnText}>{ac.selectChoose}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -123,7 +127,7 @@ export default function AchievementsScreen() {
       {selecting && (
         <View style={styles.selectBanner}>
           <Text style={styles.selectBannerText}>
-            Toca nas conquistas ganhas para mostrar no perfil ({selected.length}/{MAX_PINNED})
+            {ac.selectBanner(selected.length, MAX_PINNED)}
           </Text>
         </View>
       )}
@@ -132,13 +136,13 @@ export default function AchievementsScreen() {
         <View style={styles.totalRow}>
           <View style={styles.totalBadge}>
             <Ionicons name="trophy" size={14} color={COLORS.star} />
-            <Text style={styles.totalText}>{totalEarned} / {achievements.length} desbloqueadas</Text>
+            <Text style={styles.totalText}>{ac.totalUnlocked(totalEarned, achievements.length)}</Text>
           </View>
         </View>
 
-        {grouped.map(({ cat, items }) => (
+        {grouped.map(({ cat, displayCat, items }) => (
           <View key={cat} style={styles.section}>
-            <Text style={styles.sectionTitle}>{cat}</Text>
+            <Text style={styles.sectionTitle}>{displayCat}</Text>
             <View style={styles.grid}>
               {items.map((a) => {
                 const earned = a.check(data);
@@ -176,7 +180,7 @@ export default function AchievementsScreen() {
                     </View>
                     {a.special && earned && (
                       <View style={styles.specialPill}>
-                        <Text style={styles.specialPillText}>LENDÁRIO</Text>
+                        <Text style={styles.specialPillText}>{ac.legendary}</Text>
                       </View>
                     )}
                     <Text style={[styles.cardLabel, earned && { color: COLORS.text1 }]} numberOfLines={2}>{a.label}</Text>

@@ -21,17 +21,13 @@ import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 import { useStore } from '../../store/useStore';
 import { getIngredientSuggestions, type IngredientEntry } from '../../data/ingredients';
+import { useT, PT_CUISINES, PT_DISH_TYPES, PT_DIFFICULTIES, PT_DIETS, PT_COOKING_METHODS } from '../../i18n';
 
-const DIFFICULTIES = ['Fácil', 'Médio', 'Difícil'];
 const DIFF_COLORS: Record<string, string> = {
   'Fácil': COLORS.green,
   'Médio': COLORS.star,
   'Difícil': COLORS.red,
 };
-const CUISINES = ['Portuguesa', 'Italiana', 'Japonesa', 'Mexicana', 'Indiana', 'Francesa', 'Mediterrânica', 'Americana', 'Brasileira', 'Coreana', 'Chinesa', 'Tailandesa', 'Árabe', 'Africana', 'Fusão', 'Internacional'];
-const DISH_TYPES = ['Entrada', 'Sopa', 'Prato Principal', 'Acompanhamento', 'Snack', 'Sobremesa', 'Pequeno-Almoço', 'Brunch', 'Lanche', 'Bebida', 'Molho', 'Pão / Pastelaria'];
-const DIETS = ['Vegetariano', 'Vegan', 'Pescetariano', 'Sem Glúten', 'Sem Lactose', 'Low Carb', 'Keto', 'Alta Proteína', 'Saudável', 'Meal Prep', 'Comfort Food', 'Light'];
-const COOKING_METHODS = ['Forno', 'Frigideira', 'Air Fryer', 'Grelhado', 'Micro-ondas', 'Panela', 'Panela de Pressão', 'Sem Cozinhar', 'Barbecue', 'Slow Cooker'];
 const UNITS = ['g', 'kg', 'ml', 'L', 'c.s.', 'c.c.', 'un.', 'fatia', 'dente', 'ramo', 'q.b.', 'pitada'];
 const NO_AMOUNT_UNITS = ['q.b.', 'pitada'];
 
@@ -54,6 +50,8 @@ async function compressImage(dataUrl: string): Promise<string> {
 
 export default function AddScreen() {
   const router = useRouter();
+  const t = useT();
+  const a = t.add;
   const { token, addNotification } = useStore();
   const fileInputRef = useRef<any>(null);
   const [photo, setPhoto] = useState<string | null>(null);
@@ -82,13 +80,13 @@ export default function AddScreen() {
       fileInputRef.current?.click();
       return;
     }
-    Alert.alert('Foto', 'Como queres adicionar a foto?', [
+    Alert.alert(a.photoTitle, a.photoQuestion, [
       {
-        text: 'Câmara',
+        text: a.camera,
         onPress: async () => {
           const { status } = await ImagePicker.requestCameraPermissionsAsync();
           if (status !== 'granted') {
-            Alert.alert('Permissão necessária', 'Precisamos de acesso à câmara.');
+            Alert.alert(a.permissionTitle, a.permissionCamera);
             return;
           }
           const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.75, base64: true });
@@ -98,11 +96,11 @@ export default function AddScreen() {
         },
       },
       {
-        text: 'Galeria',
+        text: a.gallery,
         onPress: async () => {
           const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
           if (status !== 'granted') {
-            Alert.alert('Permissão necessária', 'Precisamos de acesso à galeria.');
+            Alert.alert(a.permissionTitle, a.permissionGallery);
             return;
           }
           const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.75, base64: true });
@@ -111,7 +109,7 @@ export default function AddScreen() {
           }
         },
       },
-      { text: 'Cancelar', style: 'cancel' },
+      { text: t.common.cancel, style: 'cancel' },
     ]);
   };
 
@@ -162,14 +160,14 @@ export default function AddScreen() {
 
   const handlePublish = async () => {
     if (!title.trim()) {
-      if (Platform.OS === 'web') { alert('O título é obrigatório.'); }
-      else { Alert.alert('Erro', 'O título é obrigatório.'); }
+      if (Platform.OS === 'web') { alert(a.errorTitle); }
+      else { Alert.alert(t.common.error, a.errorTitle); }
       return;
     }
     if (!photo) {
       setShowErrors(true);
-      if (Platform.OS === 'web') { alert('A foto é obrigatória.'); }
-      else { Alert.alert('Foto em falta', 'Adiciona uma foto à receita antes de publicar.'); }
+      if (Platform.OS === 'web') { alert(a.errorPhoto); }
+      else { Alert.alert(a.photoTitle, a.errorPhoto); }
       return;
     }
     const missingAmount = ingredients.some(
@@ -177,8 +175,8 @@ export default function AddScreen() {
     );
     if (missingAmount) {
       setShowErrors(true);
-      if (Platform.OS === 'web') { alert('Indica a quantidade de todos os ingredientes.'); }
-      else { Alert.alert('Quantidade em falta', 'Indica a quantidade de todos os ingredientes.'); }
+      if (Platform.OS === 'web') { alert(a.errorAmount); }
+      else { Alert.alert(t.common.error, a.errorAmount); }
       return;
     }
     const filledIngredients = ingredients
@@ -212,7 +210,7 @@ export default function AddScreen() {
         ingredients: filledIngredients,
         steps: filledSteps,
       });
-      addNotification({ type: 'recipe', title: 'Receita publicada!', message: `"${title.trim()}" já está visível no feed.`, icon: 'checkmark-circle-outline', color: COLORS.green });
+      addNotification({ type: 'recipe', title: a.successTitle, message: a.publishedMsg(title.trim()), icon: 'checkmark-circle-outline', color: COLORS.green });
       setTitle(''); setCuisine(''); setDishType(''); setDifficulty('Fácil');
       setPrepTime(''); setCookTime(''); setServings('1');
       setIngredients([
@@ -245,7 +243,7 @@ export default function AddScreen() {
         >
           {publishing
             ? <ActivityIndicator color={COLORS.bg} size="small" />
-            : <Text style={styles.publishBtnText}>Publicar</Text>
+            : <Text style={styles.publishBtnText}>{a.publishShort}</Text>
           }
         </TouchableOpacity>
       </View>
@@ -281,7 +279,7 @@ export default function AddScreen() {
               <Image source={{ uri: photo }} style={styles.photoPreview} resizeMode="cover" />
               <View style={styles.photoOverlay}>
                 <Ionicons name="camera-outline" size={22} color="#fff" />
-                <Text style={styles.photoChangeText}>Alterar foto</Text>
+                <Text style={styles.photoChangeText}>{a.changePhoto}</Text>
               </View>
             </>
           ) : (
@@ -289,18 +287,18 @@ export default function AddScreen() {
               <View style={styles.photoIcon}>
                 <Ionicons name="camera-outline" size={32} color={showErrors ? COLORS.red : COLORS.primary} />
               </View>
-              <Text style={[styles.photoText, showErrors && styles.photoTextError]}>Adicionar foto *</Text>
-              <Text style={styles.photoSubtext}>Clica para selecionar uma imagem</Text>
+              <Text style={[styles.photoText, showErrors && styles.photoTextError]}>{a.addPhoto} *</Text>
+              <Text style={styles.photoSubtext}>{a.tapToSelect}</Text>
             </>
           )}
         </TouchableOpacity>
 
         {/* Title */}
         <View style={styles.section}>
-          <Text style={styles.label}>Título *</Text>
+          <Text style={styles.label}>{a.recipeName} *</Text>
           <TextInput
             style={styles.input}
-            placeholder="Ex: Bacalhau à Brás"
+            placeholder={a.recipeNamePlaceholder}
             placeholderTextColor={COLORS.text3}
             value={title}
             onChangeText={setTitle}
@@ -309,15 +307,15 @@ export default function AddScreen() {
 
         {/* Culinária */}
         <View style={styles.section}>
-          <Text style={styles.label}>Culinária *</Text>
+          <Text style={styles.label}>{a.cuisine} *</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillsRow}>
-            {CUISINES.map((c) => (
+            {PT_CUISINES.filter(c => c !== 'Todas').map((ptVal, idx) => (
               <TouchableOpacity
-                key={c}
-                style={[styles.pill, cuisine === c && styles.pillActive]}
-                onPress={() => setCuisine(c)}
+                key={ptVal}
+                style={[styles.pill, cuisine === ptVal && styles.pillActive]}
+                onPress={() => setCuisine(ptVal)}
               >
-                <Text style={[styles.pillText, cuisine === c && styles.pillTextActive]}>{c}</Text>
+                <Text style={[styles.pillText, cuisine === ptVal && styles.pillTextActive]}>{a.cuisines[idx]}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -325,15 +323,15 @@ export default function AddScreen() {
 
         {/* Tipo de Prato */}
         <View style={styles.section}>
-          <Text style={styles.label}>Tipo de Prato *</Text>
+          <Text style={styles.label}>{a.dishType} *</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillsRow}>
-            {DISH_TYPES.map((dt) => (
+            {PT_DISH_TYPES.filter(d => d !== 'Todos').map((ptVal, idx) => (
               <TouchableOpacity
-                key={dt}
-                style={[styles.pill, dishType === dt && styles.pillActive]}
-                onPress={() => setDishType(dt)}
+                key={ptVal}
+                style={[styles.pill, dishType === ptVal && styles.pillActive]}
+                onPress={() => setDishType(ptVal)}
               >
-                <Text style={[styles.pillText, dishType === dt && styles.pillTextActive]}>{dt}</Text>
+                <Text style={[styles.pillText, dishType === ptVal && styles.pillTextActive]}>{a.dishTypes[idx]}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -341,18 +339,18 @@ export default function AddScreen() {
 
         {/* Difficulty */}
         <View style={styles.section}>
-          <Text style={styles.label}>Dificuldade</Text>
+          <Text style={styles.label}>{a.difficulty}</Text>
           <View style={styles.diffRow}>
-            {DIFFICULTIES.map((d) => {
-              const active = difficulty === d;
-              const color = DIFF_COLORS[d];
+            {PT_DIFFICULTIES.map((ptVal, idx) => {
+              const active = difficulty === ptVal;
+              const color = DIFF_COLORS[ptVal];
               return (
                 <TouchableOpacity
-                  key={d}
+                  key={ptVal}
                   style={[styles.diffBtn, active && { borderColor: color, backgroundColor: `${color}18` }]}
-                  onPress={() => setDifficulty(d)}
+                  onPress={() => setDifficulty(ptVal)}
                 >
-                  <Text style={[styles.diffBtnText, active && { color }]}>{d}</Text>
+                  <Text style={[styles.diffBtnText, active && { color }]}>{a.difficulties[idx]}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -361,10 +359,10 @@ export default function AddScreen() {
 
         {/* Time & Servings */}
         <View style={styles.section}>
-          <Text style={styles.label}>Tempos e Doses</Text>
+          <Text style={styles.label}>{a.timingsTitle}</Text>
           <View style={styles.timeRow}>
             <View style={styles.timeField}>
-              <Text style={styles.timeLabel}>Prep (min)</Text>
+              <Text style={styles.timeLabel}>{a.prep}</Text>
               <TextInput
                 style={styles.timeInput}
                 placeholder="15"
@@ -375,7 +373,7 @@ export default function AddScreen() {
               />
             </View>
             <View style={styles.timeField}>
-              <Text style={styles.timeLabel}>Cozedura (min)</Text>
+              <Text style={styles.timeLabel}>{a.cook}</Text>
               <TextInput
                 style={styles.timeInput}
                 placeholder="30"
@@ -386,7 +384,7 @@ export default function AddScreen() {
               />
             </View>
             <View style={styles.timeField}>
-              <Text style={styles.timeLabel}>Doses</Text>
+              <Text style={styles.timeLabel}>{a.servings}</Text>
               <TextInput
                 style={styles.timeInput}
                 placeholder="1"
@@ -401,18 +399,18 @@ export default function AddScreen() {
 
         {/* Diets */}
         <View style={styles.section}>
-          <Text style={styles.label}>Dieta (opcional)</Text>
+          <Text style={styles.label}>{a.diet} {a.optional}</Text>
           <View style={styles.tagsWrap}>
-            {DIETS.map((diet) => {
-              const active = selectedDiets.includes(diet);
+            {PT_DIETS.map((ptVal, idx) => {
+              const active = selectedDiets.includes(ptVal);
               return (
                 <TouchableOpacity
-                  key={diet}
+                  key={ptVal}
                   style={[styles.tagPill, active && styles.tagPillGreen]}
-                  onPress={() => toggleDiet(diet)}
+                  onPress={() => toggleDiet(ptVal)}
                 >
                   {active && <Ionicons name="checkmark" size={12} color={COLORS.green} style={{ marginRight: 3 }} />}
-                  <Text style={[styles.tagPillText, active && styles.tagPillTextGreen]}>{diet}</Text>
+                  <Text style={[styles.tagPillText, active && styles.tagPillTextGreen]}>{a.diets[idx]}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -421,18 +419,18 @@ export default function AddScreen() {
 
         {/* Cooking Method */}
         <View style={styles.section}>
-          <Text style={styles.label}>Método de Confeção (opcional)</Text>
+          <Text style={styles.label}>{a.method} {a.optional}</Text>
           <View style={styles.tagsWrap}>
-            {COOKING_METHODS.map((method) => {
-              const active = selectedMethods.includes(method);
+            {PT_COOKING_METHODS.map((ptVal, idx) => {
+              const active = selectedMethods.includes(ptVal);
               return (
                 <TouchableOpacity
-                  key={method}
+                  key={ptVal}
                   style={[styles.tagPill, active && styles.tagPillBlue]}
-                  onPress={() => toggleMethod(method)}
+                  onPress={() => toggleMethod(ptVal)}
                 >
                   {active && <Ionicons name="checkmark" size={12} color={COLORS.primary} style={{ marginRight: 3 }} />}
-                  <Text style={[styles.tagPillText, active && styles.tagPillTextBlue]}>{method}</Text>
+                  <Text style={[styles.tagPillText, active && styles.tagPillTextBlue]}>{a.methods[idx]}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -441,7 +439,7 @@ export default function AddScreen() {
 
         {/* Ingredients */}
         <View style={styles.section}>
-          <Text style={styles.label}>Ingredientes</Text>
+          <Text style={styles.label}>{a.ingredientsTitle}</Text>
           {ingredients.map((ing, i) => {
             const suggestions = focusedIngredient === i ? getIngredientSuggestions(ing.name) : [];
             const noAmount = NO_AMOUNT_UNITS.includes(ing.unit);
@@ -452,7 +450,7 @@ export default function AddScreen() {
                   <View style={styles.ingredientDot} />
                   <TextInput
                     style={[styles.ingredientInput, ing.canonical ? styles.ingredientInputMatched : null]}
-                    placeholder={`Ingrediente ${i + 1}`}
+                    placeholder={a.ingredientN(i + 1)}
                     placeholderTextColor={COLORS.text3}
                     value={ing.name}
                     onChangeText={(v) => updateIngredientName(i, v)}
@@ -534,13 +532,13 @@ export default function AddScreen() {
           })}
           <TouchableOpacity style={styles.addBtn} onPress={addIngredient}>
             <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
-            <Text style={styles.addBtnText}>Adicionar ingrediente</Text>
+            <Text style={styles.addBtnText}>{a.addIngredient}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Steps */}
         <View style={styles.section}>
-          <Text style={styles.label}>Passos</Text>
+          <Text style={styles.label}>{a.stepsTitle}</Text>
           {steps.map((step, i) => (
             <View key={i} style={styles.stepRow}>
               <View style={styles.stepNumber}>
@@ -548,7 +546,7 @@ export default function AddScreen() {
               </View>
               <TextInput
                 style={styles.stepInput}
-                placeholder={`Passo ${i + 1}...`}
+                placeholder={a.stepPlaceholder(i + 1)}
                 placeholderTextColor={COLORS.text3}
                 multiline
                 value={step}
@@ -563,7 +561,7 @@ export default function AddScreen() {
           ))}
           <TouchableOpacity style={styles.addBtn} onPress={addStep}>
             <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
-            <Text style={styles.addBtnText}>Adicionar passo</Text>
+            <Text style={styles.addBtnText}>{a.addStep}</Text>
           </TouchableOpacity>
         </View>
 
@@ -574,7 +572,7 @@ export default function AddScreen() {
       <Modal visible={unitPickerIndex !== null} transparent animationType="slide">
         <TouchableOpacity style={styles.unitModalOverlay} activeOpacity={1} onPress={() => setUnitPickerIndex(null)}>
           <View style={styles.unitModalBox}>
-            <Text style={styles.unitModalTitle}>Selecionar unidade</Text>
+            <Text style={styles.unitModalTitle}>{a.selectUnit}</Text>
             {UNITS.map((u) => (
               <TouchableOpacity
                 key={u}

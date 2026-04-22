@@ -18,6 +18,7 @@ import { COLORS } from '../constants/Colors';
 import { FONTS } from '../constants/Fonts';
 import { api } from '../services/api';
 import { useStore } from '../store/useStore';
+import { useT } from '../i18n';
 
 interface SettingsRowProps {
   icon: string;
@@ -72,9 +73,12 @@ function Divider() {
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { user, token, logout } = useStore();
+  const { user, token, logout, language, setLanguage } = useStore();
+  const t = useT();
+  const s = t.settings;
   const [deleteModal, setDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [langModal, setLangModal] = useState(false);
 
   async function confirmDelete() {
     setDeleting(true);
@@ -97,7 +101,7 @@ export default function SettingsScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={20} color={COLORS.text2} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Definições</Text>
+        <Text style={styles.headerTitle}>{s.title}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -124,48 +128,58 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <SectionLabel title="PERFIL" />
+        <SectionLabel title={s.sectionPreferences} />
+        <View style={styles.card}>
+          <SettingsRow
+            icon="language-outline"
+            label={s.language}
+            sublabel={language === 'pt' ? '🇵🇹 Português' : '🇬🇧 English'}
+            onPress={() => setLangModal(true)}
+          />
+        </View>
+
+        <SectionLabel title={s.sectionProfile} />
         <View style={styles.card}>
           <SettingsRow
             icon="person-outline"
-            label="Editar Perfil"
-            sublabel="Nome, foto, bio e estilo de cozinha"
+            label={s.editProfile}
+            sublabel={s.editProfileSub}
             onPress={() => router.push('/auth/setup-profile')}
           />
           <Divider />
           <SettingsRow
             icon="at-outline"
-            label="Alterar Username"
-            sublabel="Mudar o teu @"
+            label={s.changeUsername}
+            sublabel={s.changeUsernameSub}
             onPress={() => {}}
             disabled
-            badge="Em breve"
+            badge={t.common.soon}
           />
         </View>
 
-        <SectionLabel title="CONTA" />
+        <SectionLabel title={s.sectionAccount} />
         <View style={styles.card}>
           <SettingsRow
             icon="lock-closed-outline"
-            label="Alterar Password"
-            sublabel="Por razões de segurança"
+            label={s.changePassword}
+            sublabel={s.changePasswordSub}
             onPress={() => {}}
             disabled
-            badge="Em breve"
+            badge={t.common.soon}
           />
           <Divider />
           <SettingsRow
             icon="notifications-outline"
-            label="Notificações"
-            sublabel="Gerir alertas e avisos"
+            label={s.notifications}
+            sublabel={s.notificationsSub}
             onPress={() => {}}
             disabled
-            badge="Em breve"
+            badge={t.common.soon}
           />
           <Divider />
           <SettingsRow
             icon="log-out-outline"
-            label="Terminar sessão"
+            label={s.logout}
             onPress={() => {
               logout();
               router.replace('/auth/login');
@@ -173,12 +187,12 @@ export default function SettingsScreen() {
           />
         </View>
 
-        <SectionLabel title="ZONA DE PERIGO" />
+        <SectionLabel title={s.sectionDanger} />
         <View style={styles.card}>
           <SettingsRow
             icon="trash-outline"
-            label="Apagar conta"
-            sublabel="Remove todos os teus dados permanentemente"
+            label={s.deleteAccount}
+            sublabel={s.deleteAccountSub}
             onPress={() => setDeleteModal(true)}
             danger
           />
@@ -194,9 +208,9 @@ export default function SettingsScreen() {
             <View style={styles.modalDangerIcon}>
               <Ionicons name="warning-outline" size={30} color={COLORS.accent} />
             </View>
-            <Text style={styles.modalTitle}>Apagar conta?</Text>
+            <Text style={styles.modalTitle}>{s.deleteTitle}</Text>
             <Text style={styles.modalText}>
-              Esta ação é <Text style={{ color: COLORS.accent, fontWeight: '700' }}>irreversível</Text>. Todos os teus dados, receitas e histórico serão apagados permanentemente.
+              {s.deleteText(<Text style={{ color: COLORS.accent, fontWeight: '700' }}>{s.deleteIrreversible}</Text> as any)}
             </Text>
             <View style={styles.modalBtns}>
               <TouchableOpacity
@@ -204,7 +218,7 @@ export default function SettingsScreen() {
                 onPress={() => setDeleteModal(false)}
                 disabled={deleting}
               >
-                <Text style={styles.modalCancelText}>Cancelar</Text>
+                <Text style={styles.modalCancelText}>{t.common.cancel}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalDeleteBtn, deleting && styles.btnDisabled]}
@@ -213,12 +227,38 @@ export default function SettingsScreen() {
               >
                 {deleting
                   ? <ActivityIndicator color={COLORS.white} size="small" />
-                  : <Text style={styles.modalDeleteText}>Apagar</Text>
+                  : <Text style={styles.modalDeleteText}>{s.deleteBtn}</Text>
                 }
               </TouchableOpacity>
             </View>
           </View>
         </View>
+      </Modal>
+
+      {/* Language Modal */}
+      <Modal visible={langModal} transparent animationType="fade">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setLangModal(false)}>
+          <View style={[styles.modalBox, { gap: 8 }]} onStartShouldSetResponder={() => true}>
+            <Text style={styles.modalTitle}>{s.languageModalTitle}</Text>
+            <TouchableOpacity
+              style={[styles.langOption, language === 'pt' && styles.langOptionActive]}
+              onPress={() => { setLanguage('pt'); setLangModal(false); }}
+            >
+              <Text style={[styles.langOptionText, language === 'pt' && styles.langOptionTextActive]}>{s.langPT}</Text>
+              {language === 'pt' && <Ionicons name="checkmark" size={18} color={COLORS.primary} />}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.langOption, language === 'en' && styles.langOptionActive]}
+              onPress={() => { setLanguage('en'); setLangModal(false); }}
+            >
+              <Text style={[styles.langOptionText, language === 'en' && styles.langOptionTextActive]}>{s.langEN}</Text>
+              {language === 'en' && <Ionicons name="checkmark" size={18} color={COLORS.primary} />}
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setLangModal(false)}>
+              <Text style={styles.modalCancelText}>{t.common.cancel}</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
       </Modal>
     </SafeAreaView>
   );
@@ -437,4 +477,23 @@ const styles = StyleSheet.create({
   },
   modalDeleteText: { fontSize: 15, fontWeight: '700', color: COLORS.white, fontFamily: FONTS.bodyBold },
   btnDisabled: { opacity: 0.6 },
+
+  langOption: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface3,
+  },
+  langOptionActive: {
+    borderColor: COLORS.borderActive,
+    backgroundColor: COLORS.primaryDim,
+  },
+  langOptionText: { fontSize: 15, fontWeight: '600', color: COLORS.text2, fontFamily: FONTS.body },
+  langOptionTextActive: { color: COLORS.primary },
 });

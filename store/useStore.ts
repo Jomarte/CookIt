@@ -105,6 +105,10 @@ interface AppState {
   updateUser: (user: AuthUser) => void;
   logout: () => void;
 
+  // Language
+  language: 'pt' | 'en';
+  setLanguage: (lang: 'pt' | 'en') => void;
+
   // App
   shoppingList: ShoppingItem[];
   savedRecipes: string[];
@@ -140,6 +144,8 @@ export const useStore = create<AppState>()((set, get) => ({
   // Auth
   user: null,
   token: null,
+  language: 'pt' as 'pt' | 'en',
+  setLanguage: (lang) => set({ language: lang }),
   setAuth: (user, token) => set({ user, token }),
   updateUser: (user) => set((state) => ({
     user,

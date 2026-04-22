@@ -6,15 +6,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/Colors';
 import { FONTS } from '../constants/Fonts';
 import { useStore } from '../store/useStore';
-
-const WEEK_LABELS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
-const MONTH_NAMES = [
-  'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
-  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro',
-];
+import { useT } from '../i18n';
 
 export default function CalendarScreen() {
   const router = useRouter();
+  const t = useT();
   const { cookedLogs } = useStore();
   const cookedDateSet = new Set(cookedLogs.map((l) => l.date));
 
@@ -33,7 +29,7 @@ export default function CalendarScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        {MONTH_NAMES.map((monthName, monthIdx) => {
+        {t.calendar.months.map((monthName, monthIdx) => {
           const firstDay = new Date(currentYear, monthIdx, 1).getDay();
           const daysInMonth = new Date(currentYear, monthIdx + 1, 0).getDate();
           const isCurrentMonth = monthIdx === now.getMonth();
@@ -74,7 +70,7 @@ export default function CalendarScreen() {
                 )}
               </View>
               <View style={styles.weekRow}>
-                {WEEK_LABELS.map((d, i) => (
+                {t.calendar.weekLabels.map((d, i) => (
                   <Text key={i} style={styles.weekLabel}>{d}</Text>
                 ))}
               </View>

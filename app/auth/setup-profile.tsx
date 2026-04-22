@@ -20,6 +20,7 @@ import { COLORS } from '../../constants/Colors';
 import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 import { useStore } from '../../store/useStore';
+import { useT } from '../../i18n';
 
 const COUNTRIES = [
   { code: 'za', name: 'África do Sul' },
@@ -148,6 +149,8 @@ async function pickImageNative(): Promise<string | null> {
 
 export default function EditProfileScreen() {
   const router = useRouter();
+  const t = useT();
+  const au = t.auth;
   const { user, token, updateUser } = useStore();
 
   const nameParts = (user?.name ?? '').trim().split(/\s+/);
@@ -180,7 +183,7 @@ export default function EditProfileScreen() {
       const base64 = await compressToBase64(file);
       setAvatarPreview(base64);
     } catch {
-      setError('Erro ao carregar imagem');
+      setError(au.setupAvatarError);
     } finally {
       setAvatarLoading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -189,11 +192,11 @@ export default function EditProfileScreen() {
 
   async function handleSave() {
     if (!firstName.trim() && !lastName.trim() && !name.trim()) {
-      setError('Insere pelo menos o primeiro nome');
+      setError(au.setupErrorName);
       return;
     }
-    if (username.trim().length < 3) { setError('O username deve ter pelo menos 3 caracteres'); return; }
-    if (/\s/.test(username.trim())) { setError('O username não pode ter espaços'); return; }
+    if (username.trim().length < 3) { setError(au.setupErrorUsername); return; }
+    if (/\s/.test(username.trim())) { setError(au.setupErrorUsernameSpaces); return; }
     setError('');
     setSaving(true);
     const displayName = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ') || name.trim();
@@ -230,7 +233,7 @@ export default function EditProfileScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={20} color={COLORS.text2} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>O teu perfil de cozinheiro</Text>
+        <Text style={styles.headerTitle}>{au.setupHeaderTitle}</Text>
         <TouchableOpacity
           style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
           onPress={handleSave}
@@ -238,7 +241,7 @@ export default function EditProfileScreen() {
         >
           {saving
             ? <ActivityIndicator size="small" color={COLORS.bg} />
-            : <Text style={styles.saveBtnText}>Guardar</Text>
+            : <Text style={styles.saveBtnText}>{t.common.save}</Text>
           }
         </TouchableOpacity>
       </View>
@@ -256,9 +259,7 @@ export default function EditProfileScreen() {
           {/* Identidade */}
           <View style={styles.chefIdentity}>
             <Ionicons name="restaurant" size={18} color={COLORS.primary} />
-            <Text style={styles.chefIdentityText}>
-              Podes alterar o teu username e nome como nas outras redes sociais
-            </Text>
+            <Text style={styles.chefIdentityText}>{au.setupIdentityHint}</Text>
           </View>
 
           {/* Avatar */}
@@ -321,7 +322,7 @@ export default function EditProfileScreen() {
               {Platform.OS === 'web' ? (
                 <label htmlFor="avatar-file-input" style={{ cursor: 'pointer' } as any}>
                   <Text style={styles.avatarChangeText}>
-                    {avatarPreview ? 'Alterar foto' : 'Adicionar foto'}
+                    {avatarPreview ? t.add.changePhoto : t.add.addPhoto}
                   </Text>
                 </label>
               ) : (
@@ -335,13 +336,13 @@ export default function EditProfileScreen() {
                   }
                 }} disabled={avatarLoading}>
                   <Text style={styles.avatarChangeText}>
-                    {avatarPreview ? 'Alterar foto' : 'Adicionar foto'}
+                    {avatarPreview ? t.add.changePhoto : t.add.addPhoto}
                   </Text>
                 </TouchableOpacity>
               )}
               {avatarPreview ? (
                 <TouchableOpacity onPress={removeAvatar}>
-                  <Text style={styles.avatarRemoveText}>Remover</Text>
+                  <Text style={styles.avatarRemoveText}>{t.common.remove}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -354,10 +355,10 @@ export default function EditProfileScreen() {
               <Text style={styles.atSign}>@</Text>
               <TextInput
                 style={styles.input}
-                placeholder="o_teu_username"
+                placeholder={au.setupUsernamePlaceholder}
                 placeholderTextColor={COLORS.text3}
                 value={username}
-                onChangeText={(t) => setUsername(t.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                onChangeText={(v) => setUsername(v.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
                 autoCapitalize="none"
                 maxLength={30}
               />
@@ -366,12 +367,12 @@ export default function EditProfileScreen() {
 
           {/* First + Last Name */}
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Nome e apelido</Text>
+            <Text style={styles.fieldLabel}>{au.setupNameLabel}</Text>
             <View style={styles.nameRow}>
               <View style={[styles.inputRow, { flex: 1 }]}>
                 <TextInput
                   style={styles.input}
-                  placeholder="Primeiro nome"
+                  placeholder={au.setupFirstName}
                   placeholderTextColor={COLORS.text3}
                   value={firstName}
                   onChangeText={setFirstName}
@@ -381,7 +382,7 @@ export default function EditProfileScreen() {
               <View style={[styles.inputRow, { flex: 1 }]}>
                 <TextInput
                   style={styles.input}
-                  placeholder="Apelido"
+                  placeholder={au.setupLastName}
                   placeholderTextColor={COLORS.text3}
                   value={lastName}
                   onChangeText={setLastName}
@@ -393,10 +394,10 @@ export default function EditProfileScreen() {
 
           {/* Bio */}
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Sobre a tua cozinha</Text>
+            <Text style={styles.fieldLabel}>{au.setupBioLabel}</Text>
             <TextInput
               style={styles.bioInput}
-              placeholder="Descreve o teu estilo de cozinha..."
+              placeholder={au.setupBioPlaceholder}
               placeholderTextColor={COLORS.text3}
               multiline
               numberOfLines={3}
@@ -409,7 +410,7 @@ export default function EditProfileScreen() {
 
           {/* Cooking Type */}
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Estilo de cozinha</Text>
+            <Text style={styles.fieldLabel}>{au.setupCookingStyleLabel}</Text>
             <View style={styles.cookingGrid}>
               {COOKING_TYPES.map((type) => {
                 const active = cookingType === type.label;
@@ -436,7 +437,7 @@ export default function EditProfileScreen() {
 
           {/* Nationality */}
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Nacionalidade</Text>
+            <Text style={styles.fieldLabel}>{au.setupNationalityLabel}</Text>
             <TouchableOpacity
               style={styles.inputRow}
               onPress={() => { setCountrySearch(''); setShowCountryPicker(true); }}
@@ -450,7 +451,7 @@ export default function EditProfileScreen() {
                 />
               )}
               <Text style={[styles.input, !nationality && { color: COLORS.text3 }]}>
-                {nationality ?? 'Seleciona o teu país'}
+                {nationality ?? au.setupNationalityPlaceholder}
               </Text>
               {nationality ? (
                 <TouchableOpacity onPress={() => setNationality(null)}>
@@ -473,7 +474,7 @@ export default function EditProfileScreen() {
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ width: '100%' }}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Seleciona o país</Text>
+              <Text style={styles.modalTitle}>{au.setupCountryModal}</Text>
               <TouchableOpacity onPress={() => setShowCountryPicker(false)}>
                 <Ionicons name="close" size={22} color={COLORS.text2} />
               </TouchableOpacity>
@@ -483,7 +484,7 @@ export default function EditProfileScreen() {
               <Ionicons name="search-outline" size={16} color={COLORS.text3} />
               <TextInput
                 style={styles.modalSearchInput}
-                placeholder="Pesquisar país..."
+                placeholder={au.setupCountrySearch}
                 placeholderTextColor={COLORS.text3}
                 value={countrySearch}
                 onChangeText={setCountrySearch}

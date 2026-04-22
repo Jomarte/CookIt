@@ -19,6 +19,7 @@ import { useStore } from '../../store/useStore';
 import { COLORS } from '../../constants/Colors';
 import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
+import { useT } from '../../i18n';
 
 const DIFF_COLORS: Record<string, string> = {
   'Fácil': COLORS.green,
@@ -28,6 +29,7 @@ const DIFF_COLORS: Record<string, string> = {
 
 export default function FeedScreen() {
   const router = useRouter();
+  const t = useT();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [menuRecipe, setMenuRecipe] = useState<any | null>(null);
@@ -75,7 +77,7 @@ export default function FeedScreen() {
     const handleShare = async () => {
       try {
         await Share.share({
-          message: `Experimenta esta receita: "${recipe.title}" — no CookIt! 🍽️`,
+          message: t.feed.shareMsg(recipe.title),
           title: recipe.title,
         });
       } catch {}
@@ -100,7 +102,7 @@ export default function FeedScreen() {
               <View style={styles.authorAvatarRing} />
             </View>
             <View>
-              <Text style={styles.authorName}>{recipe.author_name ?? 'Cozinheiro'}</Text>
+              <Text style={styles.authorName}>{recipe.author_name ?? t.feed.defaultAuthor}</Text>
               <Text style={styles.authorUsername}>@{recipe.author_username ?? ''}</Text>
             </View>
           </TouchableOpacity>
@@ -223,8 +225,8 @@ export default function FeedScreen() {
           <View style={styles.emptyIcon}>
             <Ionicons name="restaurant-outline" size={40} color={COLORS.primary} />
           </View>
-          <Text style={styles.emptyTitle}>Sem receitas ainda</Text>
-          <Text style={styles.emptyText}>Sê o primeiro a publicar uma receita!</Text>
+          <Text style={styles.emptyTitle}>{t.feed.emptyTitle}</Text>
+          <Text style={styles.emptyText}>{t.feed.emptyDesc}</Text>
         </View>
       ) : (
         <FlatList
@@ -253,7 +255,7 @@ export default function FeedScreen() {
               onPress={() => { setMenuRecipe(null); router.push(`/user/${menuRecipe?.author_id}`); }}
             >
               <Ionicons name="person-outline" size={15} color={COLORS.text2} />
-              <Text style={styles.cardMenuText}>Ver perfil</Text>
+              <Text style={styles.cardMenuText}>{t.feed.viewProfile}</Text>
             </TouchableOpacity>
             <View style={styles.cardMenuDivider} />
             <TouchableOpacity
@@ -266,7 +268,7 @@ export default function FeedScreen() {
                 color={savedRecipes.includes(String(menuRecipe?.id)) ? COLORS.primary : COLORS.text2}
               />
               <Text style={[styles.cardMenuText, savedRecipes.includes(String(menuRecipe?.id)) && { color: COLORS.primary }]}>
-                {savedRecipes.includes(String(menuRecipe?.id)) ? 'Remover dos guardados' : 'Guardar receita'}
+                {savedRecipes.includes(String(menuRecipe?.id)) ? t.feed.unsave : t.feed.saveRecipe}
               </Text>
             </TouchableOpacity>
             <View style={styles.cardMenuDivider} />
@@ -277,14 +279,14 @@ export default function FeedScreen() {
                 setMenuRecipe(null);
                 try {
                   await Share.share({
-                    message: `Experimenta esta receita: "${recipe?.title}" — no CookIt! 🍽️`,
+                    message: t.feed.shareMsg(recipe?.title ?? ''),
                     title: recipe?.title,
                   });
                 } catch {}
               }}
             >
               <Ionicons name="share-social-outline" size={15} color={COLORS.text2} />
-              <Text style={styles.cardMenuText}>Partilhar receita</Text>
+              <Text style={styles.cardMenuText}>{t.feed.share}</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>

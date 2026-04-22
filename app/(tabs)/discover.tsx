@@ -17,15 +17,13 @@ import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 import { useStore } from '../../store/useStore';
 import { getIngredientSuggestions, type IngredientEntry } from '../../data/ingredients';
+import { useT, PT_CUISINES, PT_DISH_TYPES, PT_DIFFICULTIES } from '../../i18n';
 
 const DIFF_COLORS: Record<string, string> = {
   'Fácil': COLORS.green,
   'Médio': COLORS.star,
   'Difícil': COLORS.red,
 };
-
-const CUISINES = ['Todas', 'Portuguesa', 'Italiana', 'Japonesa', 'Mexicana', 'Indiana', 'Francesa', 'Mediterrânica', 'Americana', 'Brasileira', 'Coreana', 'Chinesa', 'Tailandesa', 'Árabe', 'Africana', 'Fusão', 'Internacional'];
-const DISH_TYPES = ['Todos', 'Entrada', 'Sopa', 'Prato Principal', 'Acompanhamento', 'Snack', 'Sobremesa', 'Pequeno-Almoço', 'Brunch', 'Lanche', 'Bebida', 'Molho', 'Pão / Pastelaria'];
 
 const CUISINE_META: Record<string, { emoji: string; color: string }> = {
   'Portuguesa':    { emoji: '🇵🇹', color: '#8B3A1A' },
@@ -46,17 +44,19 @@ const CUISINE_META: Record<string, { emoji: string; color: string }> = {
   'Internacional': { emoji: '🌎', color: '#37474F' },
 };
 
-const SORT_OPTIONS = [
-  { key: 'recente',   label: 'Recente',        icon: 'time-outline' },
-  { key: 'avaliado',  label: 'Melhor avaliado', icon: 'star-outline' },
-  { key: 'cozinhado', label: 'Mais cozinhado',  icon: 'flame-outline' },
-  { key: 'rapido',    label: 'Mais rápido',     icon: 'flash-outline' },
-  { key: 'popular',   label: 'Mais popular',    icon: 'heart-outline' },
+const SORT_KEYS = [
+  { key: 'recente',   icon: 'time-outline' },
+  { key: 'avaliado',  icon: 'star-outline' },
+  { key: 'cozinhado', icon: 'flame-outline' },
+  { key: 'rapido',    icon: 'flash-outline' },
+  { key: 'popular',   icon: 'heart-outline' },
 ] as const;
 
 export default function DiscoverScreen() {
   const router = useRouter();
   const { savedRecipes, toggleSaved, recipes, setRecipes } = useStore();
+  const t = useT();
+  const d = t.discover;
   const [search, setSearch] = useState('');
   const [activeCuisine, setActiveCuisine] = useState('Todas');
   const [activeDishType, setActiveDishType] = useState('Todos');
@@ -116,6 +116,7 @@ export default function DiscoverScreen() {
   const activeFilterCount =
     (activeCuisine !== 'Todas' ? 1 : 0) +
     (activeDishType !== 'Todos' ? 1 : 0) +
+    (activeDifficulty ? 1 : 0) +
     selectedIngredients.length;
 
   const clearAllFilters = () => {
@@ -210,7 +211,7 @@ export default function DiscoverScreen() {
           <Ionicons name="search-outline" size={16} color={COLORS.text3} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Pesquisar receitas, ingredientes..."
+            placeholder={d.searchPlaceholder}
             placeholderTextColor={COLORS.text3}
             value={fridgeMode ? fridgeIngredients : search}
             onChangeText={fridgeMode ? setFridgeIngredients : setSearch}
@@ -233,19 +234,19 @@ export default function DiscoverScreen() {
           {/* Filter panel */}
           {filterOpen && (
             <View style={styles.filterPanel}>
-              <Text style={styles.filterLabel}>Culinária</Text>
+              <Text style={styles.filterLabel}>{d.cuisine}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-                {CUISINES.map((item) => (
-                  <TouchableOpacity key={item} style={[styles.pill, activeCuisine === item && styles.pillActive]} onPress={() => setActiveCuisine(item)}>
-                    <Text style={[styles.pillText, activeCuisine === item && styles.pillTextActive]}>{item}</Text>
+                {PT_CUISINES.map((ptVal, idx) => (
+                  <TouchableOpacity key={ptVal} style={[styles.pill, activeCuisine === ptVal && styles.pillActive]} onPress={() => setActiveCuisine(ptVal)}>
+                    <Text style={[styles.pillText, activeCuisine === ptVal && styles.pillTextActive]}>{d.cuisines[idx]}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
-              <Text style={styles.filterLabel}>Tipo de Prato</Text>
+              <Text style={styles.filterLabel}>{d.dishType}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-                {DISH_TYPES.map((item) => (
-                  <TouchableOpacity key={item} style={[styles.pill, activeDishType === item && styles.pillActive]} onPress={() => setActiveDishType(item)}>
-                    <Text style={[styles.pillText, activeDishType === item && styles.pillTextActive]}>{item}</Text>
+                {PT_DISH_TYPES.map((ptVal, idx) => (
+                  <TouchableOpacity key={ptVal} style={[styles.pill, activeDishType === ptVal && styles.pillActive]} onPress={() => setActiveDishType(ptVal)}>
+                    <Text style={[styles.pillText, activeDishType === ptVal && styles.pillTextActive]}>{d.dishTypes[idx]}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -257,19 +258,19 @@ export default function DiscoverScreen() {
             <View style={styles.activeChips}>
               {activeDifficulty && (
                 <TouchableOpacity style={styles.chip} onPress={() => setActiveDifficulty('')}>
-                  <Text style={styles.chipText}>{activeDifficulty}</Text>
+                  <Text style={styles.chipText}>{d.difficulties[PT_DIFFICULTIES.indexOf(activeDifficulty)] ?? activeDifficulty}</Text>
                   <Ionicons name="close" size={11} color={COLORS.primary} />
                 </TouchableOpacity>
               )}
               {activeCuisine !== 'Todas' && (
                 <TouchableOpacity style={styles.chip} onPress={() => setActiveCuisine('Todas')}>
-                  <Text style={styles.chipText}>{activeCuisine}</Text>
+                  <Text style={styles.chipText}>{d.cuisines[PT_CUISINES.indexOf(activeCuisine)] ?? activeCuisine}</Text>
                   <Ionicons name="close" size={11} color={COLORS.primary} />
                 </TouchableOpacity>
               )}
               {activeDishType !== 'Todos' && (
                 <TouchableOpacity style={styles.chip} onPress={() => setActiveDishType('Todos')}>
-                  <Text style={styles.chipText}>{activeDishType}</Text>
+                  <Text style={styles.chipText}>{d.dishTypes[PT_DISH_TYPES.indexOf(activeDishType)] ?? activeDishType}</Text>
                   <Ionicons name="close" size={11} color={COLORS.primary} />
                 </TouchableOpacity>
               )}
@@ -280,7 +281,7 @@ export default function DiscoverScreen() {
                 </TouchableOpacity>
               ))}
               <TouchableOpacity style={styles.chipClear} onPress={clearAllFilters}>
-                <Text style={styles.chipClearText}>Limpar</Text>
+                <Text style={styles.chipClearText}>{d.clearChips}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -292,17 +293,15 @@ export default function DiscoverScreen() {
                 <Ionicons name="restaurant-outline" size={11} color={COLORS.primary} />
                 <Text style={styles.fridgeCardTagText}>FRIDGE MODE</Text>
               </View>
-              <Text style={styles.fridgeCardTitle}>O que tens{'\n'}no frigorífico?</Text>
-              <Text style={styles.fridgeCardSub}>
-                Adiciona os ingredientes que tens e encontramos a receita perfeita para ti.
-              </Text>
+              <Text style={styles.fridgeCardTitle}>{d.fridgeCardTitle}</Text>
+              <Text style={styles.fridgeCardSub}>{d.fridgeCardSub}</Text>
 
               {/* Input row */}
               <View style={styles.fridgeInputRow}>
                 <TextInput
                   ref={fridgeInputRef}
                   style={styles.fridgeInputField}
-                  placeholder="Ex: ovos, tomate..."
+                  placeholder={d.fridgeInputExample}
                   placeholderTextColor={COLORS.text3}
                   value={fridgeInput}
                   onChangeText={setFridgeInput}
@@ -353,8 +352,8 @@ export default function DiscoverScreen() {
                         addFridgeIngredient(fridgeInput);
                       }}
                     >
-                      <Text style={styles.fridgeSuggestionName}>Adicionar "{fridgeInput}"</Text>
-                      <Text style={styles.fridgeSuggestionCategory}>personalizado</Text>
+                      <Text style={styles.fridgeSuggestionName}>{d.addCustom(fridgeInput)}</Text>
+                      <Text style={styles.fridgeSuggestionCategory}>{d.customIngredient}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -388,7 +387,7 @@ export default function DiscoverScreen() {
                 }}
               >
                 <Ionicons name="search-outline" size={16} color="#fff" />
-                <Text style={styles.fridgeFindBtnText}>Encontrar Receitas</Text>
+                <Text style={styles.fridgeFindBtnText}>{d.findRecipes}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -396,7 +395,7 @@ export default function DiscoverScreen() {
           {/* Explore Cuisines — bento grid */}
           {!isFiltering && cuisineGroups.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Explorar Culinárias</Text>
+              <Text style={styles.sectionTitle}>{d.exploreCuisines}</Text>
               <View style={styles.cuisineGrid}>
                 {cuisineGroups.map(([cuisine, recipe]: [string, any], index: number) => {
                   const meta = CUISINE_META[cuisine] ?? { emoji: '🍽️', color: COLORS.primary };
@@ -420,7 +419,7 @@ export default function DiscoverScreen() {
                         <View style={styles.cuisineCardOverlay} />
                         <View style={styles.cuisineCardInfo}>
                           <Text style={styles.cuisineCardEmoji}>{meta.emoji}</Text>
-                          <Text style={styles.cuisineCardNameFeatured}>{cuisine}</Text>
+                          <Text style={styles.cuisineCardNameFeatured}>{d.cuisines[PT_CUISINES.indexOf(cuisine)] ?? cuisine}</Text>
                         </View>
                       </TouchableOpacity>
                     );
@@ -450,7 +449,7 @@ export default function DiscoverScreen() {
                             <View style={styles.cuisineCardOverlay} />
                             <View style={styles.cuisineCardInfo}>
                               <Text style={styles.cuisineCardEmoji}>{meta.emoji}</Text>
-                              <Text style={styles.cuisineCardName}>{cuisine}</Text>
+                              <Text style={styles.cuisineCardName}>{d.cuisines[PT_CUISINES.indexOf(cuisine)] ?? cuisine}</Text>
                             </View>
                           </TouchableOpacity>
                         );
@@ -466,16 +465,16 @@ export default function DiscoverScreen() {
           <View ref={resultsRef} style={styles.section}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>
-                {isFiltering ? 'Resultados' : 'Trending Now'}
+                {isFiltering ? d.results : d.trendingNow}
               </Text>
               {!isFiltering && (
-                <Text style={styles.viewAll}>{filtered.length} receitas</Text>
+                <Text style={styles.viewAll}>{d.recipeCount(filtered.length)}</Text>
               )}
             </View>
 
             {/* Sort pills */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortRow}>
-              {SORT_OPTIONS.map((opt) => {
+              {SORT_KEYS.map((opt, idx) => {
                 const active = sortBy === opt.key;
                 return (
                   <TouchableOpacity
@@ -484,7 +483,7 @@ export default function DiscoverScreen() {
                     onPress={() => setSortBy(active ? '' : opt.key)}
                   >
                     <Ionicons name={opt.icon as any} size={13} color={active ? COLORS.primary : COLORS.text3} />
-                    <Text style={[styles.sortPillText, active && styles.sortPillTextActive]}>{opt.label}</Text>
+                    <Text style={[styles.sortPillText, active && styles.sortPillTextActive]}>{d.sortOptions[idx]}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -495,9 +494,9 @@ export default function DiscoverScreen() {
                 <View style={styles.emptyIcon}>
                   <Ionicons name="search-outline" size={32} color={COLORS.primary} />
                 </View>
-                <Text style={styles.emptyTitle}>Sem resultados</Text>
+                <Text style={styles.emptyTitle}>{d.noResults}</Text>
                 <Text style={styles.emptyText}>
-                  {fridgeMode ? 'Experimenta adicionar outros ingredientes' : 'Tenta pesquisar por outro termo'}
+                  {fridgeMode ? d.noResultsFridge : d.noResultsSearch}
                 </Text>
               </View>
             ) : (

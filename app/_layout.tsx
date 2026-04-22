@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Platform, StyleSheet, View } from 'react-native';
 import { useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
+import { detectDeviceLang } from '../i18n';
 import { useFonts } from 'expo-font';
 import {
   PlayfairDisplay_700Bold,
@@ -103,6 +104,14 @@ function StoreHydrator() {
         }
       }
 
+      // Load language preference
+      const savedLang = await storageGet('cookit-language');
+      if (savedLang === 'pt' || savedLang === 'en') {
+        store.setLanguage(savedLang);
+      } else {
+        store.setLanguage(detectDeviceLang());
+      }
+
       if (!auth?.token || !auth?.user) return;
       store.setAuth(auth.user, auth.token);
 
@@ -129,7 +138,11 @@ function StoreHydrator() {
     load();
   }, []);
 
-  const { token, user, shoppingList, earnedBadgeIds, pinnedBadgeIds, notifications, userRatings, savedRecipes, likedRecipes, cookedRecipes, cookedLogs } = store;
+  const { token, user, language, shoppingList, earnedBadgeIds, pinnedBadgeIds, notifications, userRatings, savedRecipes, likedRecipes, cookedRecipes, cookedLogs } = store;
+
+  useEffect(() => {
+    storageSet('cookit-language', language);
+  }, [language]);
 
   // When user logs in manually (user.id changes), sync from server
   useEffect(() => {

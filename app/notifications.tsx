@@ -14,10 +14,13 @@ import { COLORS } from '../constants/Colors';
 import { FONTS } from '../constants/Fonts';
 import { api } from '../services/api';
 import { useStore } from '../store/useStore';
+import { useT } from '../i18n';
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const { token, notifications: localNotifs, markAllRead } = useStore();
+  const t = useT();
+  const n = t.notifications;
+  const { token, notifications: localNotifs, markAllRead, language } = useStore();
   const [serverNotifs, setServerNotifs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -59,13 +62,13 @@ export default function NotificationsScreen() {
     const now = new Date();
     const diffMs = now.getTime() - d.getTime();
     const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 1) return 'agora';
-    if (diffMins < 60) return `${diffMins}min`;
+    if (diffMins < 1) return n.justNow;
+    if (diffMins < 60) return n.minutesAgo(diffMins);
     const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h`;
+    if (diffHours < 24) return n.hoursAgo(diffHours);
     const diffDays = Math.floor(diffHours / 24);
-    if (diffDays < 7) return `${diffDays}d`;
-    return d.toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' });
+    if (diffDays < 7) return n.daysAgo(diffDays);
+    return d.toLocaleDateString(language === 'en' ? 'en-US' : 'pt-PT', { day: 'numeric', month: 'short' });
   };
 
 
@@ -75,7 +78,7 @@ export default function NotificationsScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Notificações</Text>
+        <Text style={styles.headerTitle}>{n.title}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -88,8 +91,8 @@ export default function NotificationsScreen() {
           <View style={styles.emptyIcon}>
             <Ionicons name="notifications-off-outline" size={36} color={COLORS.primary} />
           </View>
-          <Text style={styles.emptyTitle}>Sem notificações</Text>
-          <Text style={styles.emptyText}>Quando alguém avaliar ou comentar as tuas receitas aparece aqui.</Text>
+          <Text style={styles.emptyTitle}>{n.emptyTitle}</Text>
+          <Text style={styles.emptyText}>{n.emptyDesc}</Text>
         </View>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false}>

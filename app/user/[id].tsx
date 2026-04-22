@@ -17,6 +17,7 @@ import { COLORS } from '../../constants/Colors';
 import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 import { useStore } from '../../store/useStore';
+import { useT } from '../../i18n';
 
 const FLAG_CODES: Record<string, string> = {
   'África do Sul':'za','Alemanha':'de','Angola':'ao','Arábia Saudita':'sa','Argélia':'dz',
@@ -41,6 +42,8 @@ const TABS = [
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const t = useT();
+  const u = t.userProfile;
   const { user: me, token, setAuth } = useStore();
 
   const [profile, setProfile] = useState<any>(null);
@@ -149,7 +152,7 @@ export default function UserProfileScreen() {
           <View style={styles.emptyTabIcon}>
             <Ionicons name="person-outline" size={32} color={COLORS.primary} />
           </View>
-          <Text style={styles.emptyTabText}>Cozinheiro não encontrado</Text>
+          <Text style={styles.emptyTabText}>{u.notFound}</Text>
         </View>
       </SafeAreaView>
     );
@@ -168,7 +171,7 @@ export default function UserProfileScreen() {
             <Text style={styles.profileUsername}>@{profile.username}</Text>
             <TouchableOpacity
               style={styles.iconBtn}
-              onPress={() => Share.share({ message: `Vê o perfil de @${profile.username} no CookIt!` })}
+              onPress={() => Share.share({ message: u.shareMsg(profile.username) })}
             >
               <Ionicons name="share-outline" size={17} color={COLORS.text2} />
             </TouchableOpacity>
@@ -232,15 +235,15 @@ export default function UserProfileScreen() {
           <View style={styles.statsRow}>
             <View style={styles.stat}>
               <Text style={styles.statNumber}>{profile.recipes_count ?? publishedRecipes.length}</Text>
-              <Text style={styles.statLabel}>Receitas</Text>
+              <Text style={styles.statLabel}>{u.statRecipes}</Text>
             </View>
             <View style={styles.stat}>
               <Text style={styles.statNumber}>{profile.followers ?? 0}</Text>
-              <Text style={styles.statLabel}>Seguidores</Text>
+              <Text style={styles.statLabel}>{u.statFollowers}</Text>
             </View>
             <View style={styles.stat}>
               <Text style={styles.statNumber}>{profile.following ?? 0}</Text>
-              <Text style={styles.statLabel}>A seguir</Text>
+              <Text style={styles.statLabel}>{u.statFollowing}</Text>
             </View>
           </View>
 
@@ -261,7 +264,7 @@ export default function UserProfileScreen() {
                     color={following ? COLORS.primary : COLORS.white}
                   />
                   <Text style={[styles.followBtnText, following && styles.followBtnTextActive]}>
-                    {following ? 'A seguir' : 'Seguir'}
+                    {following ? u.following : u.follow}
                   </Text>
                 </>
               )
@@ -274,11 +277,11 @@ export default function UserProfileScreen() {
         {/* Conquistas */}
         <View style={styles.cardSection}>
           <View style={styles.cardSectionHeader}>
-            <Text style={styles.cardSectionTitle}>Conquistas</Text>
+            <Text style={styles.cardSectionTitle}>{u.achievements}</Text>
             {streak > 0 && (
               <View style={styles.streakChip}>
                 <Ionicons name="flame" size={12} color={COLORS.star} />
-                <Text style={styles.streakChipText}>{streak} dias</Text>
+                <Text style={styles.streakChipText}>{u.streakDays(streak)}</Text>
               </View>
             )}
           </View>
@@ -326,7 +329,7 @@ export default function UserProfileScreen() {
               <Ionicons name="restaurant-outline" size={32} color={COLORS.primary} />
             </View>
             <Text style={styles.emptyTabText}>
-              {activeTab === 'Cozinhei' ? 'Ainda sem receitas marcadas' : 'Ainda sem receitas publicadas'}
+              {activeTab === 'Cozinhei' ? u.noMarked : u.noRecipes}
             </Text>
           </View>
         ) : (

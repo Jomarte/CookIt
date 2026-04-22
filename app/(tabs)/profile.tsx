@@ -18,6 +18,7 @@ import { COLORS } from '../../constants/Colors';
 import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 import { computeStreak, getLast7Days, useStore } from '../../store/useStore';
+import { useT } from '../../i18n';
 
 const TABS = [
   { key: 'Receitas', icon: 'chef-hat', lib: 'mci' },
@@ -51,11 +52,13 @@ interface Badge {
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const t = useT();
+  const p = t.profile;
   const [activeTab, setActiveTab] = useState('Receitas');
   const [showCalendar, setShowCalendar] = useState(true);
   const [allRecipes, setAllRecipes] = useState<any[]>([]);
   const [loadingRecipes, setLoadingRecipes] = useState(true);
-  const { savedRecipes, cookedRecipes, cookedLogs, toggleCooked, addToShoppingList, user, token, logout, addNotification, earnedBadgeIds, setEarnedBadgeIds, pinnedBadgeIds } = useStore();
+  const { savedRecipes, cookedRecipes, cookedLogs, toggleCooked, addToShoppingList, user, token, logout, addNotification, earnedBadgeIds, setEarnedBadgeIds, pinnedBadgeIds, language } = useStore();
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [hoveredBadge, setHoveredBadge] = useState<Badge | null>(null);
 
@@ -126,7 +129,7 @@ export default function ProfileScreen() {
     const newlyEarned = earnedBadges.filter((b) => !earnedBadgeIds.includes(b.id));
     if (newlyEarned.length > 0) {
       newlyEarned.forEach((b) => {
-        addNotification({ type: 'badge', title: 'Conquista desbloqueada!', message: `Ganhaste: ${b.label} — ${b.desc}`, icon: b.icon, color: b.color });
+        addNotification({ type: 'badge', title: p.badgeUnlocked, message: p.badgeEarned(b.label), icon: b.icon, color: b.color });
       });
       setEarnedBadgeIds(earnedBadges.map((b) => b.id));
     }
@@ -136,7 +139,7 @@ export default function ProfileScreen() {
   useEffect(() => {
     const MILESTONES = [3, 7, 14, 30];
     if (prevStreakRef.current !== null && streak > prevStreakRef.current && MILESTONES.includes(streak)) {
-      addNotification({ type: 'streak', title: `${streak} dias de streak!`, message: `Incrível! Já cozinhaste ${streak} dias seguidos.`, icon: 'flame', color: COLORS.star });
+      addNotification({ type: 'streak', title: p.streakNotifTitle(streak), message: p.streakNotifDesc(streak), icon: 'flame', color: COLORS.star });
     }
     prevStreakRef.current = streak;
   }, [streak]);
@@ -156,12 +159,12 @@ export default function ProfileScreen() {
     };
 
     if (Platform.OS === 'web') {
-      if (window.confirm('Apagar esta receita? Esta ação é irreversível.')) doDelete();
+      if (window.confirm(p.deleteRecipeMsg)) doDelete();
     } else {
       Alert.alert(
-        'Apagar receita',
-        'Esta ação é irreversível. Tens a certeza?',
-        [{ text: 'Cancelar', style: 'cancel' }, { text: 'Apagar', style: 'destructive', onPress: doDelete }]
+        p.deleteRecipeTitle,
+        p.deleteRecipeMsg,
+        [{ text: t.common.cancel, style: 'cancel' }, { text: t.common.delete, style: 'destructive', onPress: doDelete }]
       );
     }
   }
@@ -211,7 +214,7 @@ export default function ProfileScreen() {
                 style={styles.iconBtn}
                 onPress={() => {
                   const { Share: RNShare } = require('react-native');
-                  RNShare.share({ message: `Segue-me no CookIt! @${user?.username ?? ''}` });
+                  RNShare.share({ message: p.shareMsg(user?.username ?? '') });
                 }}
               >
                 <Ionicons name="share-outline" size={17} color={COLORS.text2} />
@@ -280,15 +283,15 @@ export default function ProfileScreen() {
           <View style={styles.statsRow}>
             <View style={styles.stat}>
               <Text style={styles.statNumber}>{user?.recipes_count ?? 0}</Text>
-              <Text style={styles.statLabel}>Receitas</Text>
+              <Text style={styles.statLabel}>{p.statRecipes}</Text>
             </View>
             <View style={styles.stat}>
               <Text style={styles.statNumber}>{user?.followers ?? 0}</Text>
-              <Text style={styles.statLabel}>Seguidores</Text>
+              <Text style={styles.statLabel}>{p.statFollowers}</Text>
             </View>
             <View style={styles.stat}>
               <Text style={styles.statNumber}>{user?.following ?? 0}</Text>
-              <Text style={styles.statLabel}>A seguir</Text>
+              <Text style={styles.statLabel}>{p.statFollowing}</Text>
             </View>
           </View>
 
@@ -300,11 +303,11 @@ export default function ProfileScreen() {
         <View style={styles.cardSection}>
           <View style={styles.cardSectionHeader}>
             <Text style={styles.cardSectionTitle}>
-              {showCalendar ? 'Calendário' : 'Conquistas'}
+              {showCalendar ? t.calendar.title : t.achievements.title}
             </Text>
             <TouchableOpacity style={styles.toggleBtn} onPress={() => setShowCalendar((v) => !v)}>
               <Ionicons name={showCalendar ? 'trophy-outline' : 'calendar-outline'} size={13} color={COLORS.primary} />
-              <Text style={styles.toggleBtnText}>{showCalendar ? 'Conquistas' : 'Calendário'}</Text>
+              <Text style={styles.toggleBtnText}>{showCalendar ? t.achievements.title : t.calendar.title}</Text>
             </TouchableOpacity>
           </View>
 
@@ -312,7 +315,7 @@ export default function ProfileScreen() {
             <>
               <View style={styles.streakHeader}>
                 <Text style={styles.streakTitle}>
-                  {new Date().toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}
+                  {new Date().toLocaleDateString(language === 'en' ? 'en-US' : 'pt-PT', { month: 'long', year: 'numeric' })}
                 </Text>
                 <Text style={styles.streakBigNumText}>{streak}🔥</Text>
               </View>
@@ -345,7 +348,7 @@ export default function ProfileScreen() {
 
               <TouchableOpacity style={styles.fullCalBtn} onPress={() => router.push('/calendar')}>
                 <Ionicons name="calendar-outline" size={13} color={COLORS.primary} />
-                <Text style={styles.fullCalBtnText}>Ver calendário completo</Text>
+                <Text style={styles.fullCalBtnText}>{p.viewCalendar}</Text>
               </TouchableOpacity>
             </>
           ) : (
@@ -374,7 +377,7 @@ export default function ProfileScreen() {
               </View>
               <TouchableOpacity style={styles.fullCalBtn} onPress={() => router.push('/achievements')}>
                 <Ionicons name="trophy-outline" size={13} color={COLORS.primary} />
-                <Text style={styles.fullCalBtnText}>Ver todas as conquistas</Text>
+                <Text style={styles.fullCalBtnText}>{p.viewAchievements}</Text>
               </TouchableOpacity>
             </>
           )}
@@ -407,9 +410,9 @@ export default function ProfileScreen() {
               <Ionicons name="restaurant-outline" size={32} color={COLORS.primary} />
             </View>
             <Text style={styles.emptyTabText}>
-              {activeTab === 'Guardadas' ? 'Ainda sem receitas guardadas' :
-               activeTab === 'Cozinhei' ? 'Ainda sem receitas marcadas' :
-               'Ainda sem receitas publicadas'}
+              {activeTab === 'Guardadas' ? p.noSaved :
+               activeTab === 'Cozinhei' ? p.noMarked :
+               p.noRecipes}
             </Text>
           </View>
         ) : (
@@ -438,7 +441,7 @@ export default function ProfileScreen() {
             <Text style={styles.badgeTooltipLabel}>{hoveredBadge.label}</Text>
             {!hoveredBadge.earned && (
               <View style={styles.badgeTooltipLockedPill}>
-                <Text style={styles.badgeTooltipLockedText}>Bloqueada</Text>
+                <Text style={styles.badgeTooltipLockedText}>{p.badgeLocked}</Text>
               </View>
             )}
           </View>

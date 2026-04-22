@@ -14,15 +14,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { useStore, ShoppingItem } from '../../store/useStore';
 import { COLORS } from '../../constants/Colors';
 import { FONTS } from '../../constants/Fonts';
+import { useT } from '../../i18n';
 
 export default function ShoppingScreen() {
   const { shoppingList, toggleShoppingItem, removeShoppingItem, removeRecipeFromList, clearShoppingList } = useStore();
+  const t = useT();
+  const s = t.shopping;
 
   const recipes = useMemo(() => {
     const map = new Map<string, { id: string; title: string; image?: string; items: ShoppingItem[] }>();
     for (const item of shoppingList) {
       if (!map.has(item.recipeId)) {
-        map.set(item.recipeId, { id: item.recipeId, title: item.recipeTitle || 'Receita', image: item.recipeImage, items: [] });
+        map.set(item.recipeId, { id: item.recipeId, title: item.recipeTitle || s.defaultRecipe, image: item.recipeImage, items: [] });
       }
       map.get(item.recipeId)!.items.push(item);
     }
@@ -31,22 +34,22 @@ export default function ShoppingScreen() {
 
   function handleClearAll() {
     if (Platform.OS === 'web') {
-      if (window.confirm('Limpar toda a lista de compras?')) clearShoppingList();
+      if (window.confirm(s.clearAllConfirm)) clearShoppingList();
     } else {
-      Alert.alert('Limpar lista', 'Tens a certeza que queres remover tudo?', [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Limpar', style: 'destructive', onPress: clearShoppingList },
+      Alert.alert(s.clearAllTitle, s.clearAllConfirm, [
+        { text: t.common.cancel, style: 'cancel' },
+        { text: s.clear, style: 'destructive', onPress: clearShoppingList },
       ]);
     }
   }
 
   function handleRemoveRecipe(recipeId: string) {
     if (Platform.OS === 'web') {
-      if (window.confirm('Remover esta receita da lista?')) removeRecipeFromList(recipeId);
+      if (window.confirm(s.removeRecipeConfirm)) removeRecipeFromList(recipeId);
     } else {
-      Alert.alert('Remover receita', 'Remover todos os ingredientes desta receita da lista?', [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Remover', style: 'destructive', onPress: () => removeRecipeFromList(recipeId) },
+      Alert.alert(s.removeRecipeTitle, s.removeRecipeConfirm, [
+        { text: t.common.cancel, style: 'cancel' },
+        { text: t.common.remove, style: 'destructive', onPress: () => removeRecipeFromList(recipeId) },
       ]);
     }
   }
@@ -61,7 +64,7 @@ export default function ShoppingScreen() {
         </View>
         {shoppingList.length > 0 && (
           <TouchableOpacity onPress={handleClearAll}>
-            <Text style={styles.clearAll}>CLEAR ALL</Text>
+            <Text style={styles.clearAll}>{s.clearAll}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -71,8 +74,8 @@ export default function ShoppingScreen() {
           <View style={styles.emptyIcon}>
             <Ionicons name="cart-outline" size={40} color={COLORS.primary} />
           </View>
-          <Text style={styles.emptyTitle}>Lista vazia</Text>
-          <Text style={styles.emptyText}>Adiciona ingredientes a partir das receitas</Text>
+          <Text style={styles.emptyTitle}>{s.emptyTitle}</Text>
+          <Text style={styles.emptyText}>{s.emptyDesc}</Text>
         </View>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>

@@ -3,9 +3,11 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 import { COLORS } from '../../constants/Colors';
 import { useStore } from '../../store/useStore';
+import { useT } from '../../i18n';
 
 export default function TabLayout() {
   const token = useStore((s) => s.token);
+  const t = useT();
 
   if (!token) {
     return <Redirect href="/auth/login" />;
@@ -24,7 +26,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Feed',
+          title: t.tabs.feed,
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.iconWrap}>
               <Ionicons name={focused ? 'home' : 'home-outline'} size={22} color={color} />
@@ -36,7 +38,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="discover"
         options={{
-          title: 'Descobrir',
+          title: t.tabs.discover,
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.iconWrap}>
               <Ionicons name={focused ? 'search' : 'search-outline'} size={22} color={color} />
@@ -67,7 +69,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="shopping"
         options={{
-          title: 'Lista',
+          title: t.tabs.list,
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.iconWrap}>
               <Ionicons name={focused ? 'cart' : 'cart-outline'} size={22} color={color} />
@@ -79,7 +81,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Perfil',
+          title: t.tabs.profile,
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.iconWrap}>
               <Ionicons name={focused ? 'person' : 'person-outline'} size={22} color={color} />

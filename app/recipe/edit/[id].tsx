@@ -22,13 +22,9 @@ import { FONTS } from '../../../constants/Fonts';
 import { api } from '../../../services/api';
 import { useStore } from '../../../store/useStore';
 import { getIngredientSuggestions, type IngredientEntry } from '../../../data/ingredients';
+import { useT, PT_CUISINES, PT_DISH_TYPES, PT_DIFFICULTIES, PT_DIETS, PT_COOKING_METHODS } from '../../../i18n';
 
-const DIFFICULTIES = ['Fácil', 'Médio', 'Difícil'];
 const DIFF_COLORS: Record<string, string> = { 'Fácil': COLORS.green, 'Médio': COLORS.star, 'Difícil': COLORS.red };
-const CUISINES = ['Portuguesa', 'Italiana', 'Japonesa', 'Mexicana', 'Indiana', 'Francesa', 'Mediterrânica', 'Americana', 'Brasileira', 'Coreana', 'Chinesa', 'Tailandesa', 'Árabe', 'Africana', 'Fusão', 'Internacional'];
-const DISH_TYPES = ['Entrada', 'Sopa', 'Prato Principal', 'Acompanhamento', 'Snack', 'Sobremesa', 'Pequeno-Almoço', 'Brunch', 'Lanche', 'Bebida', 'Molho', 'Pão / Pastelaria'];
-const DIETS = ['Vegetariano', 'Vegan', 'Pescetariano', 'Sem Glúten', 'Sem Lactose', 'Low Carb', 'Keto', 'Alta Proteína', 'Saudável', 'Meal Prep', 'Comfort Food', 'Light'];
-const COOKING_METHODS = ['Forno', 'Frigideira', 'Air Fryer', 'Grelhado', 'Micro-ondas', 'Panela', 'Panela de Pressão', 'Sem Cozinhar', 'Barbecue', 'Slow Cooker'];
 const UNITS = ['g', 'kg', 'ml', 'L', 'c.s.', 'c.c.', 'un.', 'fatia', 'dente', 'ramo', 'q.b.', 'pitada'];
 const NO_AMOUNT_UNITS = ['q.b.', 'pitada'];
 
@@ -52,8 +48,12 @@ async function compressImage(dataUrl: string): Promise<string> {
 export default function EditRecipeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const t = useT();
+  const a = t.add;
   const { token } = useStore();
   const fileInputRef = useRef<any>(null);
+  const PT_CUISINES_FILTERED = PT_CUISINES.filter(c => c !== 'Todas');
+  const PT_DISH_TYPES_FILTERED = PT_DISH_TYPES.filter(d => d !== 'Todos');
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -99,8 +99,8 @@ export default function EditRecipeScreen() {
       );
       setSteps((r.steps ?? []).length > 0 ? r.steps.map((s: any) => s.description || '') : ['']);
     }).catch(() => {
-      if (Platform.OS === 'web') alert('Erro ao carregar receita.');
-      else Alert.alert('Erro', 'Não foi possível carregar a receita.');
+      if (Platform.OS === 'web') alert(a.errorLoad);
+      else Alert.alert(t.common.error, a.errorLoad);
       router.back();
     }).finally(() => setLoading(false));
   }, [id]);
@@ -124,13 +124,13 @@ export default function EditRecipeScreen() {
       fileInputRef.current?.click();
       return;
     }
-    Alert.alert('Foto', 'Como queres adicionar a foto?', [
+    Alert.alert(a.photoTitle, a.photoQuestion, [
       {
-        text: 'Câmara',
+        text: a.camera,
         onPress: async () => {
           const { status } = await ImagePicker.requestCameraPermissionsAsync();
           if (status !== 'granted') {
-            Alert.alert('Permissão necessária', 'Precisamos de acesso à câmara.');
+            Alert.alert(a.permissionTitle, a.permissionCamera);
             return;
           }
           const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.75, base64: true });
@@ -140,11 +140,11 @@ export default function EditRecipeScreen() {
         },
       },
       {
-        text: 'Galeria',
+        text: a.gallery,
         onPress: async () => {
           const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
           if (status !== 'granted') {
-            Alert.alert('Permissão necessária', 'Precisamos de acesso à galeria.');
+            Alert.alert(a.permissionTitle, a.permissionGallery);
             return;
           }
           const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.75, base64: true });
@@ -153,14 +153,14 @@ export default function EditRecipeScreen() {
           }
         },
       },
-      { text: 'Cancelar', style: 'cancel' },
+      { text: t.common.cancel, style: 'cancel' },
     ]);
   };
 
   const handleSave = async () => {
     if (!title.trim()) {
-      if (Platform.OS === 'web') alert('O título é obrigatório.');
-      else Alert.alert('Erro', 'O título é obrigatório.');
+      if (Platform.OS === 'web') alert(a.errorTitle);
+      else Alert.alert(t.common.error, a.errorTitle);
       return;
     }
     const missingAmount = ingredients.some(
@@ -168,8 +168,8 @@ export default function EditRecipeScreen() {
     );
     if (missingAmount) {
       setShowErrors(true);
-      if (Platform.OS === 'web') alert('Indica a quantidade de todos os ingredientes.');
-      else Alert.alert('Quantidade em falta', 'Indica a quantidade de todos os ingredientes.');
+      if (Platform.OS === 'web') alert(a.errorAmount);
+      else Alert.alert(t.common.error, a.errorAmount);
       return;
     }
     const filledIngredients = ingredients
@@ -204,7 +204,7 @@ export default function EditRecipeScreen() {
       router.back();
     } catch (e: any) {
       if (Platform.OS === 'web') alert(e.message);
-      else Alert.alert('Erro', e.message);
+      else Alert.alert(t.common.error, e.message);
     } finally {
       setSaving(false);
     }
@@ -220,7 +220,7 @@ export default function EditRecipeScreen() {
       <TouchableOpacity style={styles.unitModalOverlay} activeOpacity={1} onPress={() => setUnitPickerIndex(null)}>
         <View style={styles.unitModalSheet}>
           <View style={styles.unitModalHeader}>
-            <Text style={styles.unitModalTitle}>Unidade</Text>
+            <Text style={styles.unitModalTitle}>{a.unitModal}</Text>
             <TouchableOpacity onPress={() => setUnitPickerIndex(null)}>
               <Ionicons name="close" size={22} color={COLORS.text2} />
             </TouchableOpacity>
@@ -266,7 +266,7 @@ export default function EditRecipeScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={20} color={COLORS.text2} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Editar Receita</Text>
+        <Text style={styles.headerTitle}>{a.editTitle}</Text>
         <TouchableOpacity
           style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
           onPress={handleSave}
@@ -274,7 +274,7 @@ export default function EditRecipeScreen() {
         >
           {saving
             ? <ActivityIndicator color={COLORS.bg} size="small" />
-            : <Text style={styles.saveBtnText}>Guardar</Text>
+            : <Text style={styles.saveBtnText}>{t.common.save}</Text>
           }
         </TouchableOpacity>
       </View>
@@ -311,7 +311,7 @@ export default function EditRecipeScreen() {
               <Image source={{ uri: photo }} style={styles.photoPreview} resizeMode="cover" />
               <View style={styles.photoOverlay}>
                 <Ionicons name="camera-outline" size={22} color="#fff" />
-                <Text style={styles.photoChangeText}>Alterar foto</Text>
+                <Text style={styles.photoChangeText}>{a.changePhoto}</Text>
               </View>
             </>
           ) : (
@@ -319,24 +319,24 @@ export default function EditRecipeScreen() {
               <View style={styles.photoIcon}>
                 <Ionicons name="camera-outline" size={32} color={COLORS.primary} />
               </View>
-              <Text style={styles.photoText}>Adicionar foto</Text>
+              <Text style={styles.photoText}>{a.addPhoto}</Text>
             </>
           )}
         </TouchableOpacity>
 
         {/* Título */}
         <View style={styles.section}>
-          <Text style={styles.label}>Título *</Text>
-          <TextInput style={styles.input} placeholder="Ex: Bacalhau à Brás" placeholderTextColor={COLORS.text3} value={title} onChangeText={setTitle} />
+          <Text style={styles.label}>{a.recipeName} *</Text>
+          <TextInput style={styles.input} placeholder={a.recipeNamePlaceholder} placeholderTextColor={COLORS.text3} value={title} onChangeText={setTitle} />
         </View>
 
         {/* Culinária */}
         <View style={styles.section}>
-          <Text style={styles.label}>Culinária</Text>
+          <Text style={styles.label}>{a.cuisine}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillsRow}>
-            {CUISINES.map((c) => (
-              <TouchableOpacity key={c} style={[styles.pill, cuisine === c && styles.pillActive]} onPress={() => setCuisine(c)}>
-                <Text style={[styles.pillText, cuisine === c && styles.pillTextActive]}>{c}</Text>
+            {PT_CUISINES_FILTERED.map((ptVal, idx) => (
+              <TouchableOpacity key={ptVal} style={[styles.pill, cuisine === ptVal && styles.pillActive]} onPress={() => setCuisine(ptVal)}>
+                <Text style={[styles.pillText, cuisine === ptVal && styles.pillTextActive]}>{a.cuisines[idx]}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -344,11 +344,11 @@ export default function EditRecipeScreen() {
 
         {/* Tipo de Prato */}
         <View style={styles.section}>
-          <Text style={styles.label}>Tipo de Prato</Text>
+          <Text style={styles.label}>{a.dishType}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillsRow}>
-            {DISH_TYPES.map((dt) => (
-              <TouchableOpacity key={dt} style={[styles.pill, dishType === dt && styles.pillActive]} onPress={() => setDishType(dt)}>
-                <Text style={[styles.pillText, dishType === dt && styles.pillTextActive]}>{dt}</Text>
+            {PT_DISH_TYPES_FILTERED.map((ptVal, idx) => (
+              <TouchableOpacity key={ptVal} style={[styles.pill, dishType === ptVal && styles.pillActive]} onPress={() => setDishType(ptVal)}>
+                <Text style={[styles.pillText, dishType === ptVal && styles.pillTextActive]}>{a.dishTypes[idx]}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -356,14 +356,14 @@ export default function EditRecipeScreen() {
 
         {/* Dificuldade */}
         <View style={styles.section}>
-          <Text style={styles.label}>Dificuldade</Text>
+          <Text style={styles.label}>{a.difficulty}</Text>
           <View style={styles.diffRow}>
-            {DIFFICULTIES.map((d) => {
-              const active = difficulty === d;
-              const color = DIFF_COLORS[d];
+            {PT_DIFFICULTIES.map((ptVal, idx) => {
+              const active = difficulty === ptVal;
+              const color = DIFF_COLORS[ptVal];
               return (
-                <TouchableOpacity key={d} style={[styles.diffBtn, active && { borderColor: color, backgroundColor: `${color}18` }]} onPress={() => setDifficulty(d)}>
-                  <Text style={[styles.diffBtnText, active && { color }]}>{d}</Text>
+                <TouchableOpacity key={ptVal} style={[styles.diffBtn, active && { borderColor: color, backgroundColor: `${color}18` }]} onPress={() => setDifficulty(ptVal)}>
+                  <Text style={[styles.diffBtnText, active && { color }]}>{a.difficulties[idx]}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -372,18 +372,18 @@ export default function EditRecipeScreen() {
 
         {/* Tempos */}
         <View style={styles.section}>
-          <Text style={styles.label}>Tempos e Doses</Text>
+          <Text style={styles.label}>{a.timingsTitle}</Text>
           <View style={styles.timeRow}>
             <View style={styles.timeField}>
-              <Text style={styles.timeLabel}>Prep (min)</Text>
+              <Text style={styles.timeLabel}>{a.prep}</Text>
               <TextInput style={styles.timeInput} placeholder="15" placeholderTextColor={COLORS.text3} keyboardType="numeric" value={prepTime} onChangeText={setPrepTime} />
             </View>
             <View style={styles.timeField}>
-              <Text style={styles.timeLabel}>Cozedura (min)</Text>
+              <Text style={styles.timeLabel}>{a.cook}</Text>
               <TextInput style={styles.timeInput} placeholder="30" placeholderTextColor={COLORS.text3} keyboardType="numeric" value={cookTime} onChangeText={setCookTime} />
             </View>
             <View style={styles.timeField}>
-              <Text style={styles.timeLabel}>Doses</Text>
+              <Text style={styles.timeLabel}>{a.servings}</Text>
               <TextInput style={styles.timeInput} placeholder="2" placeholderTextColor={COLORS.text3} keyboardType="numeric" value={servings} onChangeText={setServings} />
             </View>
           </View>
@@ -391,14 +391,14 @@ export default function EditRecipeScreen() {
 
         {/* Dieta */}
         <View style={styles.section}>
-          <Text style={styles.label}>Dieta (opcional)</Text>
+          <Text style={styles.label}>{a.diet} {a.optional}</Text>
           <View style={styles.tagsWrap}>
-            {DIETS.map((diet) => {
-              const active = selectedDiets.includes(diet);
+            {PT_DIETS.map((ptVal, idx) => {
+              const active = selectedDiets.includes(ptVal);
               return (
-                <TouchableOpacity key={diet} style={[styles.tagPill, active && styles.tagPillGreen]} onPress={() => toggleDiet(diet)}>
+                <TouchableOpacity key={ptVal} style={[styles.tagPill, active && styles.tagPillGreen]} onPress={() => toggleDiet(ptVal)}>
                   {active && <Ionicons name="checkmark" size={12} color={COLORS.green} style={{ marginRight: 3 }} />}
-                  <Text style={[styles.tagPillText, active && styles.tagPillTextGreen]}>{diet}</Text>
+                  <Text style={[styles.tagPillText, active && styles.tagPillTextGreen]}>{a.diets[idx]}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -407,14 +407,14 @@ export default function EditRecipeScreen() {
 
         {/* Método */}
         <View style={styles.section}>
-          <Text style={styles.label}>Método de Confeção (opcional)</Text>
+          <Text style={styles.label}>{a.method} {a.optional}</Text>
           <View style={styles.tagsWrap}>
-            {COOKING_METHODS.map((method) => {
-              const active = selectedMethods.includes(method);
+            {PT_COOKING_METHODS.map((ptVal, idx) => {
+              const active = selectedMethods.includes(ptVal);
               return (
-                <TouchableOpacity key={method} style={[styles.tagPill, active && styles.tagPillBlue]} onPress={() => toggleMethod(method)}>
+                <TouchableOpacity key={ptVal} style={[styles.tagPill, active && styles.tagPillBlue]} onPress={() => toggleMethod(ptVal)}>
                   {active && <Ionicons name="checkmark" size={12} color={COLORS.primary} style={{ marginRight: 3 }} />}
-                  <Text style={[styles.tagPillText, active && styles.tagPillTextBlue]}>{method}</Text>
+                  <Text style={[styles.tagPillText, active && styles.tagPillTextBlue]}>{a.methods[idx]}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -423,7 +423,7 @@ export default function EditRecipeScreen() {
 
         {/* Ingredientes */}
         <View style={styles.section}>
-          <Text style={styles.label}>Ingredientes</Text>
+          <Text style={styles.label}>{a.ingredientsTitle}</Text>
           {ingredients.map((ing, i) => {
             const suggestions = focusedIngredient === i ? getIngredientSuggestions(ing.name) : [];
             const noAmount = NO_AMOUNT_UNITS.includes(ing.unit);
@@ -433,7 +433,7 @@ export default function EditRecipeScreen() {
                   <View style={styles.ingredientDot} />
                   <TextInput
                     style={[styles.ingredientInput, ing.canonical ? styles.ingredientInputMatched : null]}
-                    placeholder={`Ingrediente ${i + 1}`}
+                    placeholder={a.ingredientN(i + 1)}
                     placeholderTextColor={COLORS.text3}
                     value={ing.name}
                     onChangeText={(v) => updateIngredientName(i, v)}
@@ -508,13 +508,13 @@ export default function EditRecipeScreen() {
           })}
           <TouchableOpacity style={styles.addBtn} onPress={addIngredient}>
             <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
-            <Text style={styles.addBtnText}>Adicionar ingrediente</Text>
+            <Text style={styles.addBtnText}>{a.addIngredient}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Passos */}
         <View style={styles.section}>
-          <Text style={styles.label}>Passos</Text>
+          <Text style={styles.label}>{a.stepsTitle}</Text>
           {steps.map((step, i) => (
             <View key={i} style={styles.stepRow}>
               <View style={styles.stepNumber}>
@@ -522,7 +522,7 @@ export default function EditRecipeScreen() {
               </View>
               <TextInput
                 style={styles.stepInput}
-                placeholder={`Passo ${i + 1}...`}
+                placeholder={a.stepPlaceholder(i + 1)}
                 placeholderTextColor={COLORS.text3}
                 multiline
                 value={step}
@@ -537,7 +537,7 @@ export default function EditRecipeScreen() {
           ))}
           <TouchableOpacity style={styles.addBtn} onPress={addStep}>
             <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
-            <Text style={styles.addBtnText}>Adicionar passo</Text>
+            <Text style={styles.addBtnText}>{a.addStep}</Text>
           </TouchableOpacity>
         </View>
 

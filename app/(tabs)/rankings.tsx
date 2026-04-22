@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/Colors';
 import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
+import { useT } from '../../i18n';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -68,10 +69,7 @@ const PODIUM_COLORS = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function chefTitle(name: string) {
-  const first = name.split(' ')[0];
-  return first.toLowerCase().endsWith('a') ? 'Cozinheira' : 'Cozinheiro';
-}
+// chefTitle used via t.rankings.chefTitle in component
 
 function nationalityToCode(nationality: string | null): string | null {
   if (!nationality) return null;
@@ -189,7 +187,7 @@ function PodiumCard({ cook, position }: { cook: Cook; position: 1 | 2 | 3 }) {
       </View>
 
       <Text style={[styles.podiumName, isCenter && styles.podiumNameCenter]} numberOfLines={1}>
-        {chefTitle(cook.name)} {cook.name.split(' ')[0]}
+        {cook.name.split(' ')[0]}
       </Text>
       <StarRating value={cook.averageRating} />
       {cook.bestRecipe && <RecipeMiniCard recipe={cook.bestRecipe} />}
@@ -212,7 +210,7 @@ function ListRow({ cook }: { cook: Cook }) {
 
       <View style={styles.listInfo}>
         <View style={styles.listNameRow}>
-          <Text style={styles.listName} numberOfLines={1}>{chefTitle(cook.name)} {cook.name.split(' ')[0]}</Text>
+          <Text style={styles.listName} numberOfLines={1}>{cook.name.split(' ')[0]}</Text>
           {flagCode && <Image source={{ uri: `https://flagcdn.com/w40/${flagCode}.png` }} style={styles.listFlag} />}
         </View>
         <Text style={styles.listSpecialty} numberOfLines={1}>{cook.cookingType}</Text>
@@ -232,6 +230,8 @@ function ListRow({ cook }: { cook: Cook }) {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function RankingsScreen() {
+  const t = useT();
+  const r = t.rankings;
   const [cooks, setCooks] = useState<Cook[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -269,8 +269,8 @@ export default function RankingsScreen() {
           <View style={styles.emptyIcon}>
             <Ionicons name="trophy-outline" size={36} color={COLORS.primary} />
           </View>
-          <Text style={styles.emptyTitle}>Ainda sem rankings</Text>
-          <Text style={styles.emptyText}>Publica receitas e recebe avaliações para aparecer aqui.</Text>
+          <Text style={styles.emptyTitle}>{r.emptyTitle}</Text>
+          <Text style={styles.emptyText}>{r.emptyDesc}</Text>
         </View>
       ) : (
         <ScrollView
@@ -298,7 +298,7 @@ export default function RankingsScreen() {
 
           {rest.length > 0 && (
             <View style={styles.listSection}>
-              <Text style={styles.listSectionTitle}>Classificação</Text>
+              <Text style={styles.listSectionTitle}>{r.title}</Text>
               {rest.map((cook) => <ListRow key={cook.id} cook={cook} />)}
             </View>
           )}

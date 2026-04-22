@@ -20,17 +20,20 @@ import { useStore } from '../../store/useStore';
 import { COLORS } from '../../constants/Colors';
 import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
+import { useT } from '../../i18n';
 
-const TABS = ['Receita', 'Comentários'];
+const TAB_KEYS = ['Receita', 'Comentários'] as const;
 
 export default function RecipeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const t = useT();
+  const r = t.recipe;
   const [recipe, setRecipe] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('Receita');
+  const [activeTab, setActiveTab] = useState<typeof TAB_KEYS[number]>('Receita');
   const [servings, setServings] = useState(2);
-  const { savedRecipes, cookedRecipes, shoppingList, toggleSaved, toggleCooked, addToShoppingList, setRating, userRatings, token, user } = useStore();
+  const { savedRecipes, cookedRecipes, shoppingList, toggleSaved, toggleCooked, addToShoppingList, setRating, userRatings, token, user, language } = useStore();
   const userRating = userRatings[String(id)] ?? 0;
   const [comments, setComments] = useState<any[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -64,7 +67,7 @@ export default function RecipeDetailScreen() {
       setRecipe((prev: any) => prev ? { ...prev, comments_count: (prev.comments_count ?? 0) + 1 } : prev);
     } catch (e: any) {
       if (Platform.OS === 'web') alert(e.message);
-      else Alert.alert('Erro', e.message);
+      else Alert.alert(t.common.error, e.message);
     } finally {
       setSubmitting(false);
     }
@@ -87,7 +90,7 @@ export default function RecipeDetailScreen() {
           <Ionicons name="arrow-back" size={20} color={COLORS.text1} />
         </TouchableOpacity>
         <View style={styles.loadingWrap}>
-          <Text style={styles.notFoundText}>Receita não encontrada</Text>
+          <Text style={styles.notFoundText}>{r.notFound}</Text>
         </View>
       </SafeAreaView>
     );
@@ -105,15 +108,15 @@ export default function RecipeDetailScreen() {
         router.back();
       } catch (e: any) {
         if (Platform.OS === 'web') alert(e.message);
-        else Alert.alert('Erro', e.message);
+        else Alert.alert(t.common.error, e.message);
       }
     };
     if (Platform.OS === 'web') {
-      if (window.confirm('Apagar esta receita? Esta ação é irreversível.')) doDelete();
+      if (window.confirm(r.deleteMsg)) doDelete();
     } else {
-      Alert.alert('Apagar receita', 'Esta ação é irreversível. Tens a certeza?', [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Apagar', style: 'destructive', onPress: doDelete },
+      Alert.alert(r.deleteTitle, r.deleteMsg, [
+        { text: t.common.cancel, style: 'cancel' },
+        { text: t.common.delete, style: 'destructive', onPress: doDelete },
       ]);
     }
   };
@@ -160,7 +163,7 @@ export default function RecipeDetailScreen() {
               <>
                 <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuOpen(false); router.push(`/user/${recipe.author_id}`); }}>
                   <Ionicons name="person-outline" size={15} color={COLORS.text2} />
-                  <Text style={styles.menuItemText}>Ver perfil</Text>
+                  <Text style={styles.menuItemText}>{r.viewProfile}</Text>
                 </TouchableOpacity>
                 <View style={styles.menuDivider} />
               </>
@@ -168,7 +171,7 @@ export default function RecipeDetailScreen() {
             <TouchableOpacity style={styles.menuItem} onPress={() => { toggleSaved(String(recipe.id)); setMenuOpen(false); }}>
               <Ionicons name={isSaved ? 'bookmark' : 'bookmark-outline'} size={15} color={isSaved ? COLORS.primary : COLORS.text2} />
               <Text style={[styles.menuItemText, isSaved && { color: COLORS.primary }]}>
-                {isSaved ? 'Remover dos guardados' : 'Guardar receita'}
+                {isSaved ? t.feed.unsave : t.feed.saveRecipe}
               </Text>
             </TouchableOpacity>
             <View style={styles.menuDivider} />
@@ -177,12 +180,12 @@ export default function RecipeDetailScreen() {
               onPress={async () => {
                 setMenuOpen(false);
                 try {
-                  await Share.share({ message: `Experimenta esta receita: "${recipe.title}" — no CookIt! 🍽️`, title: recipe.title });
+                  await Share.share({ message: r.shareMsg(recipe.title), title: recipe.title });
                 } catch {}
               }}
             >
               <Ionicons name="share-social-outline" size={15} color={COLORS.text2} />
-              <Text style={styles.menuItemText}>Partilhar receita</Text>
+              <Text style={styles.menuItemText}>{r.shareRecipe}</Text>
             </TouchableOpacity>
           </View>
         </>
@@ -209,11 +212,11 @@ export default function RecipeDetailScreen() {
             <View style={styles.ownerActions}>
               <TouchableOpacity style={styles.ownerEditBtn} onPress={() => router.push(`/recipe/edit/${recipe.id}`)}>
                 <Ionicons name="pencil-outline" size={15} color={COLORS.primary} />
-                <Text style={styles.ownerEditText}>Editar</Text>
+                <Text style={styles.ownerEditText}>{t.common.edit}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.ownerDeleteBtn} onPress={handleDelete}>
                 <Ionicons name="trash-outline" size={15} color="#FF5A5A" />
-                <Text style={styles.ownerDeleteText}>Apagar</Text>
+                <Text style={styles.ownerDeleteText}>{t.common.delete}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -248,7 +251,7 @@ export default function RecipeDetailScreen() {
                 <Ionicons name="time-outline" size={18} color={COLORS.primary} />
               </View>
               <Text style={styles.statValue}>{recipe.prep_time ?? 0}min</Text>
-              <Text style={styles.statLabel}>Prep</Text>
+              <Text style={styles.statLabel}>{r.prep}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
@@ -256,7 +259,7 @@ export default function RecipeDetailScreen() {
                 <Ionicons name="flame-outline" size={18} color={COLORS.accent} />
               </View>
               <Text style={styles.statValue}>{recipe.cook_time ?? 0}min</Text>
-              <Text style={styles.statLabel}>Cozedura</Text>
+              <Text style={styles.statLabel}>{r.cookTime}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
@@ -264,7 +267,7 @@ export default function RecipeDetailScreen() {
                 <Ionicons name="people-outline" size={18} color={COLORS.green} />
               </View>
               <Text style={styles.statValue}>{recipe.servings ?? 2}</Text>
-              <Text style={styles.statLabel}>Doses</Text>
+              <Text style={styles.statLabel}>{r.statDoses}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
@@ -272,7 +275,7 @@ export default function RecipeDetailScreen() {
                 <Ionicons name="checkmark-circle-outline" size={18} color={COLORS.star} />
               </View>
               <Text style={styles.statValue}>{Math.max(0, (recipe.cooked_count ?? 0) + cookedCountOffset)}</Text>
-              <Text style={styles.statLabel}>Cozinharam</Text>
+              <Text style={styles.statLabel}>{r.statCooked}</Text>
             </View>
           </View>
 
@@ -282,11 +285,11 @@ export default function RecipeDetailScreen() {
               <Text style={styles.authorAvatarText}>{initial}</Text>
             </View>
             <View style={styles.authorInfo}>
-              <Text style={styles.authorName}>{recipe.author_name ?? 'Cozinheiro'}</Text>
+              <Text style={styles.authorName}>{recipe.author_name ?? t.feed.defaultAuthor}</Text>
               <Text style={styles.authorUsername}>@{recipe.author_username ?? ''}</Text>
             </View>
             <TouchableOpacity style={styles.followBtn}>
-              <Text style={styles.followBtnText}>Seguir</Text>
+              <Text style={styles.followBtnText}>{t.userProfile.follow}</Text>
             </TouchableOpacity>
           </View>
 
@@ -303,13 +306,15 @@ export default function RecipeDetailScreen() {
 
           {/* Tabs */}
           <View style={styles.tabs}>
-            {TABS.map((tab) => (
+            {TAB_KEYS.map((tab, idx) => (
               <TouchableOpacity
                 key={tab}
                 style={[styles.tab, activeTab === tab && styles.tabActive]}
                 onPress={() => setActiveTab(tab)}
               >
-                <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
+                <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+                  {idx === 0 ? r.tabRecipe : r.tabComments}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -319,7 +324,7 @@ export default function RecipeDetailScreen() {
               {/* Ingredients */}
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Ingredientes</Text>
+                  <Text style={styles.sectionTitle}>{r.ingredients}</Text>
                   <View style={styles.servingsRow}>
                     <TouchableOpacity
                       style={styles.servingsBtn}
@@ -327,7 +332,7 @@ export default function RecipeDetailScreen() {
                     >
                       <Ionicons name="remove" size={14} color={COLORS.primary} />
                     </TouchableOpacity>
-                    <Text style={styles.servingsCount}>{servings} dose{servings !== 1 ? 's' : ''}</Text>
+                    <Text style={styles.servingsCount}>{r.doses(servings)}</Text>
                     <TouchableOpacity
                       style={styles.servingsBtn}
                       onPress={() => setServings(servings + 1)}
@@ -349,7 +354,7 @@ export default function RecipeDetailScreen() {
 
               {/* Steps */}
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Preparação</Text>
+                <Text style={styles.sectionTitle}>{r.preparation}</Text>
                 <View style={{ height: 12 }} />
                 {recipe.steps.map((step: any) => (
                   <View key={step.number} style={styles.stepRow}>
@@ -371,12 +376,12 @@ export default function RecipeDetailScreen() {
 
               {/* Rate */}
               <View style={styles.rateSection}>
-                <Text style={styles.rateSectionTitle}>Avalia esta receita</Text>
+                <Text style={styles.rateSectionTitle}>{r.rateIt}</Text>
                 {recipe.rating_count > 0 && (
                   <View style={styles.rateAvgRow}>
                     <Ionicons name="star" size={16} color={COLORS.star} />
                     <Text style={styles.rateAvgNum}>{Number(recipe.rating).toFixed(1)}</Text>
-                    <Text style={styles.rateAvgCount}>({recipe.rating_count} avaliação{recipe.rating_count !== 1 ? 'ões' : ''})</Text>
+                    <Text style={styles.rateAvgCount}>{r.ratingCount(recipe.rating_count)}</Text>
                   </View>
                 )}
                 <View style={styles.rateStars}>
@@ -391,7 +396,7 @@ export default function RecipeDetailScreen() {
                   ))}
                 </View>
                 {userRating > 0 && (
-                  <Text style={styles.ratedText}>Deste {userRating} estrela{userRating !== 1 ? 's' : ''}!</Text>
+                  <Text style={styles.ratedText}>{r.ratedText(userRating)}</Text>
                 )}
               </View>
             </>
@@ -408,13 +413,13 @@ export default function RecipeDetailScreen() {
                   <View style={styles.emptyTabIcon}>
                     <Ionicons name="chatbubbles-outline" size={32} color={COLORS.primary} />
                   </View>
-                  <Text style={styles.emptyTabTitle}>Sem comentários</Text>
-                  <Text style={styles.emptyTabText}>Sê o primeiro a comentar!</Text>
+                  <Text style={styles.emptyTabTitle}>{r.noComments}</Text>
+                  <Text style={styles.emptyTabText}>{r.firstComment}</Text>
                 </View>
               ) : (
                 comments.map((c) => {
                   const initial = (c.author_name ?? '?')[0].toUpperCase();
-                  const date = new Date(c.created_at).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                  const date = new Date(c.created_at).toLocaleDateString(language === 'en' ? 'en-US' : 'pt-PT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
                   return (
                     <View key={c.id} style={styles.commentItem}>
                       {c.author_avatar
@@ -425,7 +430,7 @@ export default function RecipeDetailScreen() {
                       }
                       <View style={styles.commentBody}>
                         <View style={styles.commentHeader}>
-                          <Text style={styles.commentAuthor}>{c.author_name ?? 'Cozinheiro'}</Text>
+                          <Text style={styles.commentAuthor}>{c.author_name ?? t.feed.defaultAuthor}</Text>
                           <Text style={styles.commentDate}>{date}</Text>
                         </View>
                         <Text style={styles.commentText}>{c.text}</Text>
@@ -441,7 +446,7 @@ export default function RecipeDetailScreen() {
                   <View style={styles.commentInputRow}>
                     <TextInput
                       style={styles.commentInput}
-                      placeholder="Escreve um comentário..."
+                      placeholder={r.commentPlaceholder}
                       placeholderTextColor={COLORS.text3}
                       value={commentText}
                       onChangeText={setCommentText}
@@ -462,7 +467,7 @@ export default function RecipeDetailScreen() {
                 </KeyboardAvoidingView>
               ) : (
                 <View style={styles.commentLoginNote}>
-                  <Text style={styles.commentLoginNoteText}>Inicia sessão para comentar</Text>
+                  <Text style={styles.commentLoginNoteText}>{r.loginToComment}</Text>
                 </View>
               )}
             </View>
@@ -488,7 +493,7 @@ export default function RecipeDetailScreen() {
             color={isCooked ? COLORS.primary : COLORS.bg}
           />
           <Text style={[styles.bottomBtnCookedText, isCooked && styles.bottomBtnCookedTextActive]}>
-            {isCooked ? 'Cozinhado!' : 'Cozinhar'}
+            {isCooked ? r.cookedDone : r.cookIt}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -497,7 +502,7 @@ export default function RecipeDetailScreen() {
         >
           <Ionicons name={isInList ? 'cart' : 'cart-outline'} size={20} color={isInList ? COLORS.primary : COLORS.bg} />
           <Text style={[styles.bottomBtnListText, isInList && styles.bottomBtnListTextActive]}>
-            {isInList ? 'Na lista!' : 'Adicionar à lista'}
+            {isInList ? r.inList : r.addToList}
           </Text>
         </TouchableOpacity>
       </View>
