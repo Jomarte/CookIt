@@ -68,6 +68,8 @@ export default function DiscoverScreen() {
   const [fridgeList, setFridgeList] = useState<string[]>([]);
   const [fridgeInput, setFridgeInput] = useState('');
   const [fridgeFocused, setFridgeFocused] = useState(false);
+  const fridgeInputRef = useRef<TextInput>(null);
+  const keepFridgeFocus = useRef(false);
   const [loading, setLoading] = useState(recipes.length === 0);
 
   const fridgeSuggestions = useMemo<IngredientEntry[]>(
@@ -298,13 +300,21 @@ export default function DiscoverScreen() {
               {/* Input row */}
               <View style={styles.fridgeInputRow}>
                 <TextInput
+                  ref={fridgeInputRef}
                   style={styles.fridgeInputField}
                   placeholder="Ex: ovos, tomate..."
                   placeholderTextColor={COLORS.text3}
                   value={fridgeInput}
                   onChangeText={setFridgeInput}
                   onFocus={() => setFridgeFocused(true)}
-                  onBlur={() => setTimeout(() => setFridgeFocused(false), 150)}
+                  onBlur={() => setTimeout(() => {
+                    if (keepFridgeFocus.current) {
+                      keepFridgeFocus.current = false;
+                      fridgeInputRef.current?.focus();
+                    } else {
+                      setFridgeFocused(false);
+                    }
+                  }, 150)}
                   onSubmitEditing={() => addFridgeIngredient(fridgeInput)}
                   blurOnSubmit={false}
                   returnKeyType="done"
@@ -319,22 +329,34 @@ export default function DiscoverScreen() {
               </View>
 
               {/* Autocomplete suggestions */}
-              {fridgeFocused && fridgeSuggestions.length > 0 && (
+              {fridgeFocused && fridgeInput.trim().length > 0 && (
                 <View style={styles.fridgeSuggestions}>
                   {fridgeSuggestions.map((s) => (
                     <TouchableOpacity
                       key={s.name}
                       style={styles.fridgeSuggestionItem}
                       onPress={() => {
+                        keepFridgeFocus.current = true;
                         setFridgeList((prev) => prev.includes(s.name) ? prev : [...prev, s.name]);
                         setFridgeInput('');
-                        setFridgeFocused(false);
                       }}
                     >
                       <Text style={styles.fridgeSuggestionName}>{s.name}</Text>
                       <Text style={styles.fridgeSuggestionCategory}>{s.category}</Text>
                     </TouchableOpacity>
                   ))}
+                  {fridgeSuggestions.length === 0 && (
+                    <TouchableOpacity
+                      style={styles.fridgeSuggestionItem}
+                      onPress={() => {
+                        keepFridgeFocus.current = true;
+                        addFridgeIngredient(fridgeInput);
+                      }}
+                    >
+                      <Text style={styles.fridgeSuggestionName}>Adicionar "{fridgeInput}"</Text>
+                      <Text style={styles.fridgeSuggestionCategory}>personalizado</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               )}
 
@@ -587,8 +609,7 @@ const styles = StyleSheet.create({
 
   // Filter panel
   filterPanel: {
-    backgroundColor: COLORS.surface1,
-    borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.bg,
     paddingTop: 12, paddingBottom: 4,
   },
   filterLabel: {
