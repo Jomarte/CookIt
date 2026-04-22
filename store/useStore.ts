@@ -187,48 +187,64 @@ export const useStore = create<AppState>()((set, get) => ({
   setPinnedBadgeIds: (ids) => set({ pinnedBadgeIds: ids }),
 
   addToShoppingList: (recipeId, ingredients, recipeTitle = '', recipeImage) => {
-    set((state) => {
-      const newItems: ShoppingItem[] = ingredients.map((ing) => ({
-        ...ing,
-        itemId: `${recipeId}-${ing.id ?? ing.name}`,
-        recipeId,
-        recipeTitle,
-        recipeImage,
-        checked: false,
-      }));
-      const existingIds = new Set(state.shoppingList.map((i) => i.itemId));
-      const toAdd = newItems.filter((i) => !existingIds.has(i.itemId));
-      return { shoppingList: [...state.shoppingList, ...toAdd] };
-    });
+    const { token, shoppingList } = get();
+    const existingIds = new Set(shoppingList.map((i) => i.itemId));
+    const newItems: ShoppingItem[] = ingredients.map((ing) => ({
+      ...ing,
+      itemId: `${recipeId}-${ing.id ?? ing.name}`,
+      recipeId,
+      recipeTitle,
+      recipeImage,
+      checked: false,
+    }));
+    const toAdd = newItems.filter((i) => !existingIds.has(i.itemId));
+    if (toAdd.length === 0) return;
+    set((state) => ({ shoppingList: [...state.shoppingList, ...toAdd] }));
+    if (token) api.addShoppingItems(token, toAdd).catch(() => {});
   },
 
   toggleShoppingItem: (itemId) => {
+    const { token } = get();
     set((state) => ({
       shoppingList: state.shoppingList.map((item) =>
         item.itemId === itemId ? { ...item, checked: !item.checked } : item
       ),
     }));
+    if (token) api.toggleShoppingItemServer(token, itemId).catch(() => {});
   },
 
   removeShoppingItem: (itemId) => {
+    const { token } = get();
     set((state) => ({
       shoppingList: state.shoppingList.filter((i) => i.itemId !== itemId),
     }));
+    if (token) api.removeShoppingItemServer(token, itemId).catch(() => {});
   },
 
   removeRecipeFromList: (recipeId) => {
+    const { token, shoppingList } = get();
+    const toRemove = shoppingList.filter((i) => i.recipeId === recipeId);
     set((state) => ({
       shoppingList: state.shoppingList.filter((i) => i.recipeId !== recipeId),
     }));
+    if (token) {
+      toRemove.forEach((i) => api.removeShoppingItemServer(token, i.itemId).catch(() => {}));
+    }
   },
 
   clearChecked: () => {
+    const { token } = get();
     set((state) => ({
       shoppingList: state.shoppingList.filter((i) => !i.checked),
     }));
+    if (token) api.clearShoppingListServer(token, true).catch(() => {});
   },
 
-  clearShoppingList: () => set({ shoppingList: [] }),
+  clearShoppingList: () => {
+    const { token } = get();
+    set({ shoppingList: [] });
+    if (token) api.clearShoppingListServer(token, false).catch(() => {});
+  },
 
   setRecipes: (recipes) => set({ recipes }),
 

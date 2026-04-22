@@ -144,6 +144,24 @@ async function init() {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS shopping_list (
+      item_id      TEXT NOT NULL,
+      user_id      INTEGER NOT NULL,
+      recipe_id    TEXT NOT NULL,
+      recipe_title TEXT DEFAULT '',
+      recipe_image TEXT DEFAULT NULL,
+      name         TEXT NOT NULL,
+      amount       TEXT DEFAULT '',
+      unit         TEXT DEFAULT '',
+      category     TEXT DEFAULT 'Outros',
+      checked      BOOLEAN DEFAULT FALSE,
+      created_at   TIMESTAMPTZ DEFAULT NOW(),
+      PRIMARY KEY (user_id, item_id),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS recipe_likes (
       user_id   INTEGER NOT NULL,
       recipe_id INTEGER NOT NULL,

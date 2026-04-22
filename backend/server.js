@@ -434,6 +434,70 @@ app.delete('/api/users/:id/follow', auth, async (req, res) => {
   }
 });
 
+// ── SHOPPING LIST ────────────────────────────────────────────────────────────
+
+app.get('/api/users/me/shopping', auth, async (req, res) => {
+  try {
+    const rows = await db.all('SELECT * FROM shopping_list WHERE user_id = ? ORDER BY created_at ASC', [req.user.id]);
+    res.json(rows.map(r => ({
+      itemId: r.item_id,
+      recipeId: r.recipe_id,
+      recipeTitle: r.recipe_title,
+      recipeImage: r.recipe_image,
+      name: r.name,
+      amount: r.amount,
+      unit: r.unit,
+      category: r.category,
+      checked: r.checked,
+    })));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/users/me/shopping', auth, async (req, res) => {
+  try {
+    const items = req.body?.items ?? [];
+    for (const item of items) {
+      await db.run(
+        `INSERT INTO shopping_list (item_id, user_id, recipe_id, recipe_title, recipe_image, name, amount, unit, category, checked)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT (user_id, item_id) DO NOTHING`,
+        [item.itemId, req.user.id, item.recipeId, item.recipeTitle ?? '', item.recipeImage ?? null,
+         item.name, item.amount ?? '', item.unit ?? '', item.category ?? 'Outros', false]
+      );
+    }
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.patch('/api/users/me/shopping/:itemId/check', auth, async (req, res) => {
+  try {
+    await db.run(
+      'UPDATE shopping_list SET checked = NOT checked WHERE user_id = ? AND item_id = ?',
+      [req.user.id, req.params.itemId]
+    );
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/users/me/shopping/:itemId', auth, async (req, res) => {
+  try {
+    await db.run('DELETE FROM shopping_list WHERE user_id = ? AND item_id = ?', [req.user.id, req.params.itemId]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/users/me/shopping', auth, async (req, res) => {
+  try {
+    const { checked_only } = req.query;
+    if (checked_only === 'true') {
+      await db.run('DELETE FROM shopping_list WHERE user_id = ? AND checked = TRUE', [req.user.id]);
+    } else {
+      await db.run('DELETE FROM shopping_list WHERE user_id = ?', [req.user.id]);
+    }
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── LIKES ───────────────────────────────────────────────────────────────────
 
 app.get('/api/users/me/liked', auth, async (req, res) => {

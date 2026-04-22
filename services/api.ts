@@ -74,6 +74,21 @@ export const api = {
   uncookRecipe: (token: string, id: number | string) =>
     request(`/recipes/${id}/cooked`, { method: 'DELETE', headers: authHeader(token) }),
 
+  getShoppingList: (token: string) =>
+    request('/users/me/shopping', { headers: authHeader(token) }),
+
+  addShoppingItems: (token: string, items: any[]) =>
+    request('/users/me/shopping', { method: 'POST', headers: authHeader(token), body: JSON.stringify({ items }) }),
+
+  toggleShoppingItemServer: (token: string, itemId: string) =>
+    request(`/users/me/shopping/${encodeURIComponent(itemId)}/check`, { method: 'PATCH', headers: authHeader(token) }),
+
+  removeShoppingItemServer: (token: string, itemId: string) =>
+    request(`/users/me/shopping/${encodeURIComponent(itemId)}`, { method: 'DELETE', headers: authHeader(token) }),
+
+  clearShoppingListServer: (token: string, checkedOnly = false) =>
+    request(`/users/me/shopping${checkedOnly ? '?checked_only=true' : ''}`, { method: 'DELETE', headers: authHeader(token) }),
+
   getLikedRecipes: (token: string): Promise<string[]> =>
     request('/users/me/liked', { headers: authHeader(token) }),
 

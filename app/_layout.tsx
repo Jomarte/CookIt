@@ -64,11 +64,12 @@ function AppStack() {
 }
 
 async function syncFromServer(token: string) {
-  const [saved, liked, cooked, ratings] = await Promise.allSettled([
+  const [saved, liked, cooked, ratings, shopping] = await Promise.allSettled([
     api.getSavedRecipes(token),
     api.getLikedRecipes(token),
     api.getCookedRecipes(token),
     api.getUserRatings(token),
+    api.getShoppingList(token),
   ]);
   const update: Record<string, any> = {};
   if (saved.status === 'fulfilled') update.savedRecipes = saved.value;
@@ -78,6 +79,7 @@ async function syncFromServer(token: string) {
     update.cookedLogs = cooked.value;
   }
   if (ratings.status === 'fulfilled') update.userRatings = ratings.value;
+  if (shopping.status === 'fulfilled') update.shoppingList = shopping.value;
   if (Object.keys(update).length > 0) useStore.setState(update);
 }
 
