@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo, useCallback } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -134,16 +135,20 @@ function compressToBase64(file: File): Promise<string> {
 
 async function pickImageNative(): Promise<string | null> {
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (status !== 'granted') return null;
+  if (status !== 'granted') {
+    Alert.alert('Permissão necessária', 'Permite o acesso à galeria nas definições do dispositivo para alterar a foto.');
+    return null;
+  }
   const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    mediaTypes: ['images'] as any,
     allowsEditing: true,
     aspect: [1, 1],
     quality: 0.75,
     base64: true,
   });
-  if (result.canceled || !result.assets[0]) return null;
+  if (result.canceled || !result.assets?.[0]) return null;
   const asset = result.assets[0];
+  if (!asset.base64) return null;
   return `data:image/jpeg;base64,${asset.base64}`;
 }
 
@@ -189,6 +194,20 @@ export default function EditProfileScreen() {
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   }
+
+  const handlePickImage = useCallback(async () => {
+    if (Platform.OS === 'web') {
+      fileInputRef.current?.click();
+      return;
+    }
+    setAvatarLoading(true);
+    try {
+      const b64 = await pickImageNative();
+      if (b64) setAvatarPreview(b64);
+    } finally {
+      setAvatarLoading(false);
+    }
+  }, []);
 
   async function handleSave() {
     if (!firstName.trim() && !lastName.trim() && !name.trim()) {
@@ -256,90 +275,42 @@ export default function EditProfileScreen() {
             </View>
           ) : null}
 
-          {/* Identidade */}
-          <View style={styles.chefIdentity}>
-            <Ionicons name="restaurant" size={18} color={COLORS.primary} />
-            <Text style={styles.chefIdentityText}>{au.setupIdentityHint}</Text>
-          </View>
-
           {/* Avatar */}
           <View style={styles.avatarSection}>
-            {Platform.OS === 'web' ? (
-              <label htmlFor="avatar-file-input" style={{ cursor: 'pointer', position: 'relative', width: 96, height: 96 } as any}>
-                {avatarLoading ? (
-                  <View style={styles.avatarCircle}>
-                    <ActivityIndicator color={COLORS.primary} />
-                  </View>
-                ) : avatarPreview ? (
-                  <Image source={{ uri: avatarPreview }} style={styles.avatarImg} />
-                ) : (
-                  <View style={styles.avatarCircle}>
-                    <Text style={styles.avatarLetter}>{(name || '?')[0].toUpperCase()}</Text>
-                  </View>
-                )}
-                <View style={styles.avatarCameraBadge}>
-                  <Ionicons name="camera" size={13} color={COLORS.bg} />
-                </View>
-                <input
-                  id="avatar-file-input"
-                  type="file"
-                  accept="image/*"
-                  style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' } as any}
-                  onChange={handleAvatarChange}
-                />
-              </label>
-            ) : (
-              <TouchableOpacity
-                style={styles.avatarWrap}
-                onPress={async () => {
-                  setAvatarLoading(true);
-                  try {
-                    const b64 = await pickImageNative();
-                    if (b64) setAvatarPreview(b64);
-                  } finally {
-                    setAvatarLoading(false);
-                  }
-                }}
-                activeOpacity={0.8}
-              >
-                {avatarLoading ? (
-                  <View style={styles.avatarCircle}>
-                    <ActivityIndicator color={COLORS.primary} />
-                  </View>
-                ) : avatarPreview ? (
-                  <Image source={{ uri: avatarPreview }} style={styles.avatarImg} />
-                ) : (
-                  <View style={styles.avatarCircle}>
-                    <Text style={styles.avatarLetter}>{(name || '?')[0].toUpperCase()}</Text>
-                  </View>
-                )}
-                <View style={styles.avatarCameraBadge}>
-                  <Ionicons name="camera" size={13} color={COLORS.bg} />
-                </View>
-              </TouchableOpacity>
+            {/* Input de ficheiro escondido — só usado no web */}
+            {Platform.OS === 'web' && (
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' } as any}
+                onChange={handleAvatarChange}
+              />
             )}
-            <View style={styles.avatarActions}>
-              {Platform.OS === 'web' ? (
-                <label htmlFor="avatar-file-input" style={{ cursor: 'pointer' } as any}>
-                  <Text style={styles.avatarChangeText}>
-                    {avatarPreview ? t.add.changePhoto : t.add.addPhoto}
-                  </Text>
-                </label>
+
+            <TouchableOpacity style={styles.avatarWrap} onPress={handlePickImage} activeOpacity={0.8}>
+              {avatarLoading ? (
+                <View style={styles.avatarCircle}>
+                  <ActivityIndicator color={COLORS.primary} />
+                </View>
+              ) : avatarPreview ? (
+                <Image source={{ uri: avatarPreview }} style={styles.avatarImg} />
               ) : (
-                <TouchableOpacity onPress={async () => {
-                  setAvatarLoading(true);
-                  try {
-                    const b64 = await pickImageNative();
-                    if (b64) setAvatarPreview(b64);
-                  } finally {
-                    setAvatarLoading(false);
-                  }
-                }} disabled={avatarLoading}>
-                  <Text style={styles.avatarChangeText}>
-                    {avatarPreview ? t.add.changePhoto : t.add.addPhoto}
-                  </Text>
-                </TouchableOpacity>
+                <View style={styles.avatarCircle}>
+                  <Text style={styles.avatarLetter}>{(name || '?')[0].toUpperCase()}</Text>
+                </View>
               )}
+              <View style={styles.avatarCameraBadge}>
+                <Ionicons name="camera" size={13} color={COLORS.bg} />
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.avatarActions}>
+              <TouchableOpacity onPress={handlePickImage} disabled={avatarLoading}>
+                <Text style={styles.avatarChangeText}>
+                  {avatarPreview ? t.add.changePhoto : t.add.addPhoto}
+                </Text>
+              </TouchableOpacity>
               {avatarPreview ? (
                 <TouchableOpacity onPress={removeAvatar}>
                   <Text style={styles.avatarRemoveText}>{t.common.remove}</Text>

@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import {
   ActivityIndicator,
   Image,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -74,6 +75,7 @@ export default function DiscoverScreen() {
   const [forYouRecipes, setForYouRecipes] = useState<any[]>([]);
   const [forYouLoading, setForYouLoading] = useState(false);
   const [forYouPersonalized, setForYouPersonalized] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fridgeSuggestions = useMemo<IngredientEntry[]>(
     () => (fridgeInput.trim().length > 0 ? getIngredientSuggestions(fridgeInput) : []),
@@ -100,6 +102,19 @@ export default function DiscoverScreen() {
       })
       .catch(() => {})
       .finally(() => setForYouLoading(false));
+  }, [token]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([
+      api.getRecipes().then(setRecipes).catch(() => {}),
+      token
+        ? api.getDiscover(token, 1)
+            .then((data) => { setForYouRecipes(data.recipes); setForYouPersonalized(data.personalized); })
+            .catch(() => {})
+        : Promise.resolve(),
+    ]);
+    setRefreshing(false);
   }, [token]);
 
   const popularIngredients = useMemo(() => {
@@ -244,7 +259,12 @@ export default function DiscoverScreen() {
           <ActivityIndicator color={COLORS.primary} size="large" />
         </View>
       ) : (
-        <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          ref={scrollRef}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={COLORS.primary} colors={[COLORS.primary]} />}
+        >
 
           {/* Filter panel */}
           {filterOpen && (
