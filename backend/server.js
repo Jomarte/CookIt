@@ -283,6 +283,185 @@ app.delete('/api/auth/me', auth, async (req, res) => {
   }
 });
 
+// ── EMAIL VERIFICATION ──────────────────────────────────────────────────────
+
+// Authenticated: resend verification email (rate-limited to 5/hr via forgotLimiter)
+app.post('/api/auth/send-verification', auth, forgotLimiter, async (req, res) => {
+  try {
+    const user = await db.get(
+      'SELECT id, email, name, email_verified FROM users WHERE id = ?',
+      [req.user.id]
+    );
+    if (!user) return res.status(404).json({ error: 'Utilizador não encontrado' });
+    if (user.email_verified) return res.json({ ok: true });
+
+    await sendVerificationEmail(user.id, user.email, user.name);
+    res.json({ ok: true });
+  } catch (e) {
+    serverError(res, e);
+  }
+});
+
+// Public: browser clicks email link — validate token and mark email verified
+// Rate-limited (publicLimiter) to prevent token enumeration
+app.get('/api/auth/verify-email', publicLimiter, async (req, res) => {
+  const { token } = req.query;
+  res.setHeader('Content-Type', 'text/html');
+
+  if (!token || typeof token !== 'string' || token.length !== 64) {
+    return res.status(400).send('<h2>Link inválido.</h2>');
+  }
+
+  try {
+    const row = await db.get(
+      'SELECT * FROM email_verification_tokens WHERE token = ? AND used = FALSE',
+      [token]
+    );
+
+    if (!row) {
+      return res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;text-align:center;">
+        <h2 style="color:#D4A853;">Link expirado ou já utilizado</h2>
+        <p>Abre o CookIt e pede um novo link de verificação.</p>
+      </body></html>`);
+    }
+
+    if (new Date(row.expires_at) < new Date()) {
+      return res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;text-align:center;">
+        <h2 style="color:#D4A853;">Link expirado</h2>
+        <p>Abre o CookIt e pede um novo link de verificação.</p>
+      </body></html>`);
+    }
+
+    await db.run('UPDATE users SET email_verified = TRUE WHERE id = ?', [row.user_id]);
+    await db.run('UPDATE email_verification_tokens SET used = TRUE WHERE id = ?', [row.id]);
+
+    res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;text-align:center;">
+      <h2 style="color:#C2622D;">Email confirmado!</h2>
+      <p>A tua conta está verificada. Abre o CookIt e continua a cozinhar.</p>
+      <p style="margin-top:24px;"><a href="cookit://" style="color:#C2622D;font-weight:700;">Abrir CookIt</a></p>
+    </body></html>`);
+  } catch (e) {
+    console.error('verify-email error:', e);
+    res.status(500).send(IS_PROD ? '<h2>Erro interno. Tenta novamente.</h2>' : `<h2>Erro: ${e.message}</h2>`);
+  }
+});
+
+// ── PASSWORD RESET ──────────────────────────────────────────────────────────
+
+// Public: request password reset email (forgotLimiter: 5/hr per IP)
+app.post('/api/auth/forgot-password', forgotLimiter, async (req, res) => {
+  const rawEmail = req.body?.email;
+  const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : '';
+  // Always return 200 — don't reveal whether email exists (OWASP)
+  try {
+    const user = await db.get('SELECT id, email, name FROM users WHERE email = ?', [email]);
+    if (user) {
+      const token = generateToken();
+      const expires = new Date(Date.now() + 60 * 60 * 1000); // 1h
+      await db.run(
+        'INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)',
+        [user.id, token, expires.toISOString()]
+      );
+      await sendPasswordResetEmail(user.email, user.name, token);
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Forgot password error:', e.message);
+    res.json({ ok: true }); // still return ok to not reveal errors
+  }
+});
+
+// Public: browser opens reset link — render HTML form
+app.get('/api/auth/reset-password', publicLimiter, async (req, res) => {
+  const { token } = req.query;
+  res.setHeader('Content-Type', 'text/html');
+
+  if (!token || typeof token !== 'string' || token.length !== 64) {
+    return res.status(400).send('<h2>Link inválido.</h2>');
+  }
+
+  const row = await db.get(
+    'SELECT * FROM password_reset_tokens WHERE token = ? AND used = FALSE',
+    [token]
+  ).catch(() => null);
+
+  if (!row || new Date(row.expires_at) < new Date()) {
+    return res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;text-align:center;">
+      <h2 style="color:#D4A853;">Link expirado ou inválido</h2>
+      <p>Pede um novo link na app CookIt.</p>
+    </body></html>`);
+  }
+
+  // Escape the token for safe HTML attribute output (tokens are hex only, so no XSS risk, but defensive)
+  const safeToken = token.replace(/[^a-f0-9]/g, '');
+
+  res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;">
+    <h2 style="color:#C2622D;margin-bottom:4px;">CookIt</h2>
+    <h3 style="margin-top:0;">Nova password</h3>
+    <form method="POST" action="/api/auth/reset-password" id="f">
+      <input type="hidden" name="token" value="${safeToken}" />
+      <input type="password" name="password" placeholder="Nova password (mín. 8 caracteres)"
+             required minlength="8"
+             style="width:100%;padding:12px;margin:8px 0;border:1.5px solid #ccc;border-radius:10px;box-sizing:border-box;font-size:15px;" />
+      <input type="password" name="confirm" placeholder="Confirmar password"
+             required minlength="8"
+             style="width:100%;padding:12px;margin:8px 0;border:1.5px solid #ccc;border-radius:10px;box-sizing:border-box;font-size:15px;" />
+      <p id="err" style="color:#C2622D;display:none;">As passwords não coincidem.</p>
+      <button type="submit"
+              style="background:#C2622D;color:white;padding:14px;border:none;border-radius:10px;cursor:pointer;width:100%;font-size:16px;font-weight:700;margin-top:8px;">
+        Guardar nova password
+      </button>
+    </form>
+    <script>
+      document.getElementById('f').onsubmit = function(e) {
+        var p = this.password.value, c = this.confirm.value;
+        if (p !== c) { e.preventDefault(); document.getElementById('err').style.display='block'; }
+      };
+    </script>
+  </body></html>`);
+});
+
+// Public: process reset form POST (publicLimiter applied)
+app.post('/api/auth/reset-password', publicLimiter, async (req, res) => {
+  res.setHeader('Content-Type', 'text/html');
+  const { token, password, confirm } = req.body;
+
+  if (!token || !password) return res.status(400).send('<h2>Dados em falta.</h2>');
+  if (password !== confirm) return res.status(400).send('<h2>As passwords não coincidem.</h2>');
+  if (password.length < 8) return res.status(400).send('<h2>Password demasiado curta (mín. 8 caracteres).</h2>');
+  if (password.length > 128) return res.status(400).send('<h2>Password demasiado longa.</h2>');
+  // Token must be 64 hex chars
+  if (typeof token !== 'string' || token.length !== 64 || !/^[a-f0-9]+$/.test(token)) {
+    return res.status(400).send('<h2>Token inválido.</h2>');
+  }
+
+  try {
+    const row = await db.get(
+      'SELECT * FROM password_reset_tokens WHERE token = ? AND used = FALSE',
+      [token]
+    );
+
+    if (!row || new Date(row.expires_at) < new Date()) {
+      return res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;text-align:center;">
+        <h2 style="color:#D4A853;">Link expirado</h2><p>Pede um novo link na app.</p>
+      </body></html>`);
+    }
+
+    const hash = bcrypt.hashSync(password, 10);
+    await db.run('UPDATE users SET password = ? WHERE id = ?', [hash, row.user_id]);
+    await db.run('UPDATE password_reset_tokens SET used = TRUE WHERE id = ?', [row.id]);
+
+    res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;text-align:center;">
+      <h2 style="color:#C2622D;">Password alterada!</h2>
+      <p>Abre o CookIt e inicia sessão com a nova password.</p>
+      <p style="margin-top:24px;"><a href="cookit://" style="color:#C2622D;font-weight:700;">Abrir CookIt</a></p>
+    </body></html>`);
+  } catch (e) {
+    console.error('reset-password error:', e);
+    res.status(500).send(IS_PROD ? '<h2>Erro interno. Tenta novamente.</h2>' : `<h2>Erro: ${e.message}</h2>`);
+  }
+});
+
 // ── RECIPES ─────────────────────────────────────────────────────────────────
 
 function parseRecipe(row) {
