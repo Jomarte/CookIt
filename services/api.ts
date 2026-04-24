@@ -150,6 +150,9 @@ export const api = {
   getUnreadCount: (token: string) =>
     request('/notifications/unread-count', { headers: authHeader(token) }),
 
+  getDiscover: (token: string, page = 1, pageSize = 20): Promise<{ recipes: any[]; page: number; hasMore: boolean; personalized: boolean }> =>
+    request(`/discover?page=${page}&pageSize=${pageSize}`, { headers: authHeader(token) }),
+
   health: () => request('/health'),
 
   forgotPassword: (email: string): Promise<{ ok: boolean }> =>

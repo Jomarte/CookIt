@@ -1,0 +1,3 @@
+PORT=3001
+JWT_SECRET=623dfff336e7ada740e7f28f482813b44008446031a1412199cbe0b9c4780963
+DATABASE_URL=postgresql://postgres.bdxoewocgeoacnbqfntc:C00kIt!startup@aws-0-eu-west-1.pooler.supabase.com:6543/postgres
