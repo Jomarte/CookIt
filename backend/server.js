@@ -796,6 +796,184 @@ app.get('/api/notifications/unread-count', auth, async (req, res) => {
   }
 });
 
+// ── DISCOVER (Feed Personalizado) ────────────────────────────────────────────
+
+app.get('/api/discover', auth, async (req, res) => {
+  try {
+    const page     = Math.max(1, parseInt(req.query.page) || 1);
+    const pageSize = Math.min(50, Math.max(5, parseInt(req.query.pageSize) || 20));
+    const userId   = req.user.id;
+    const now      = Date.now();
+
+    // Decaimento temporal: interações recentes pesam mais
+    // 0 dias = 100%, 30 dias ≈ 40%, 60 dias ≈ 16%
+    function timeDecay(dateStr) {
+      if (!dateStr) return 1;
+      const ageDays = (now - new Date(dateStr).getTime()) / 86400000;
+      return Math.pow(0.97, ageDays);
+    }
+
+    // Peso base por tipo de interação
+    function baseWeight(type) {
+      return { cook: 6, save: 4, like: 3, rating5: 8, rating4: 5, rating3: 2, rating2: -2, rating1: -5 }[type] ?? 1;
+    }
+
+    // 1. Todas as fontes de sinal em paralelo
+    const [liked, saved, cooked, ownRecipes, userRatings, following, trending] = await Promise.all([
+      db.all('SELECT recipe_id, created_at FROM recipe_likes  WHERE user_id = ?', [userId]),
+      db.all('SELECT recipe_id, saved_at   FROM saved_recipes WHERE user_id = ?', [userId]),
+      db.all('SELECT recipe_id             FROM user_cooked   WHERE user_id = ?', [userId]),
+      db.all('SELECT id                    FROM recipes       WHERE author_id = ?', [userId]),
+      db.all('SELECT recipe_id, rating     FROM ratings       WHERE user_id = ?', [userId]),
+      db.all('SELECT following_id          FROM follows        WHERE follower_id = ?', [userId]),
+      // Receitas em tendência: mais likes nos últimos 7 dias
+      db.all(`SELECT recipe_id, COUNT(*) AS cnt
+              FROM recipe_likes
+              WHERE created_at > NOW() - INTERVAL '7 days'
+              GROUP BY recipe_id
+              ORDER BY cnt DESC
+              LIMIT 100`),
+    ]);
+
+    const likedMap   = Object.fromEntries(liked.map(r  => [r.recipe_id, r.created_at]));
+    const savedMap   = Object.fromEntries(saved.map(r  => [r.recipe_id, r.saved_at]));
+    const cookedSet  = new Set(cooked.map(r  => r.recipe_id));
+    const ratingsMap = Object.fromEntries(userRatings.map(r => [r.recipe_id, r.rating]));
+    const followedAuthorIds = new Set(following.map(r => r.following_id));
+    const trendingMap = Object.fromEntries(trending.map(r => [r.recipe_id, parseInt(r.cnt)]));
+
+    const interactedIds = new Set([
+      ...Object.keys(likedMap).map(Number),
+      ...Object.keys(savedMap).map(Number),
+      ...cookedSet,
+      ...Object.keys(ratingsMap).map(Number),
+    ]);
+    const excludeIds = new Set([...interactedIds, ...ownRecipes.map(r => r.id)]);
+
+    // 2. Constrói perfil ponderado com decaimento temporal e avaliações
+    const profile = { tags: {}, categories: {}, cuisines: {} };
+
+    function applyWeight(recipe, weight) {
+      const diet = JSON.parse(recipe.diet || '[]');
+      const tags = JSON.parse(recipe.tags || '[]');
+      [...diet, ...tags].forEach(tag => {
+        profile.tags[tag] = (profile.tags[tag] || 0) + weight;
+      });
+      if (recipe.category) profile.categories[recipe.category] = (profile.categories[recipe.category] || 0) + weight;
+      if (recipe.cuisine)  profile.cuisines[recipe.cuisine]    = (profile.cuisines[recipe.cuisine]    || 0) + weight;
+    }
+
+    if (interactedIds.size > 0) {
+      const idList   = [...interactedIds].join(',');
+      const interacted = await db.all(
+        `SELECT id, diet, tags, category, cuisine FROM recipes WHERE id IN (${idList})`
+      );
+
+      for (const r of interacted) {
+        const id = r.id;
+        // Avaliação sobrepõe-se às outras interações (sinal mais forte e explícito)
+        if (ratingsMap[id] !== undefined) {
+          const ratingKey = `rating${ratingsMap[id]}`;
+          applyWeight(r, baseWeight(ratingKey));
+        } else if (cookedSet.has(id)) {
+          applyWeight(r, baseWeight('cook'));
+        } else if (savedMap[id] !== undefined) {
+          applyWeight(r, baseWeight('save') * timeDecay(savedMap[id]));
+        } else if (likedMap[id] !== undefined) {
+          applyWeight(r, baseWeight('like') * timeDecay(likedMap[id]));
+        }
+      }
+    }
+
+    const hasProfile = Object.keys(profile.tags).length > 0 || Object.keys(profile.categories).length > 0;
+
+    // 3. Candidatas
+    const excludeClause = excludeIds.size > 0
+      ? `AND r.id NOT IN (${[...excludeIds].join(',')})`
+      : '';
+
+    const candidates = await db.all(`
+      SELECT r.id, r.title, r.image, r.category, r.cuisine, r.dish_type,
+             r.diet, r.tags, r.prep_time, r.cook_time, r.difficulty,
+             r.likes, r.saves, r.cooked_count, r.rating, r.rating_count,
+             r.author_id, r.created_at,
+             u.name as author_name, u.username as author_username, u.avatar as author_avatar
+      FROM recipes r
+      LEFT JOIN users u ON r.author_id = u.id
+      WHERE 1=1 ${excludeClause}
+      ORDER BY r.likes DESC, r.created_at DESC
+      LIMIT 300
+    `);
+
+    // 4. Score composto
+    const scored = candidates.map(recipe => {
+      let score = 0;
+
+      // ── Conteúdo (tags, categoria, cozinha) ──
+      if (hasProfile) {
+        const diet = JSON.parse(recipe.diet || '[]');
+        const tags = JSON.parse(recipe.tags || '[]');
+        [...diet, ...tags].forEach(tag => { score += (profile.tags[tag] || 0); });
+        score += (profile.categories[recipe.category] || 0) * 0.8;
+        score += (profile.cuisines[recipe.cuisine]    || 0) * 0.6;
+      } else {
+        // Cold start: trending da semana com ruído mínimo
+        score = Math.log1p(trendingMap[recipe.id] || 0) * 3 + Math.random() * 2;
+      }
+
+      // ── Social: boost de quem segues ──
+      if (followedAuthorIds.has(recipe.author_id)) score += 18;
+
+      // ── Trending: likes nos últimos 7 dias ──
+      score += Math.log1p(trendingMap[recipe.id] || 0) * 5;
+
+      // ── Popularidade global (logarítmica) ──
+      score += Math.log1p(recipe.likes        || 0) * 1.5;
+      score += Math.log1p(recipe.saves        || 0) * 2.5;
+      score += Math.log1p(recipe.cooked_count || 0) * 3.5;
+      score += (recipe.rating || 0) * 1.5;
+
+      // ── Recência da receita (primeiros 7 dias) ──
+      const ageDays = (now - new Date(recipe.created_at).getTime()) / 86400000;
+      if (ageDays < 7) score += (7 - ageDays) * 1.5;
+
+      return { ...recipe, _score: score };
+    });
+
+    scored.sort((a, b) => b._score - a._score);
+
+    // 5. Diversidade dupla: categoria E cozinha (máx. 35% cada)
+    const maxPerBucket = Math.ceil(pageSize * page * 0.35);
+    const catCounts     = {};
+    const cuisineCounts = {};
+    const diversified   = [];
+    const overflow      = [];
+
+    for (const recipe of scored) {
+      const cat     = recipe.category || 'Outros';
+      const cuisine = recipe.cuisine  || 'Internacional';
+      catCounts[cat]         = (catCounts[cat]         || 0) + 1;
+      cuisineCounts[cuisine] = (cuisineCounts[cuisine] || 0) + 1;
+      const fits = catCounts[cat] <= maxPerBucket && cuisineCounts[cuisine] <= maxPerBucket;
+      (fits ? diversified : overflow).push(recipe);
+    }
+
+    // 6. Paginação
+    const allSorted = [...diversified, ...overflow];
+    const start     = (page - 1) * pageSize;
+    const results   = allSorted.slice(start, start + pageSize).map(({ _score, diet, tags, ...r }) => ({
+      ...r,
+      diet: JSON.parse(diet || '[]'),
+      tags: JSON.parse(tags || '[]'),
+    }));
+
+    res.json({ recipes: results, page, hasMore: results.length === pageSize, personalized: hasProfile });
+  } catch (e) {
+    console.error('Discover error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── HEALTH ──────────────────────────────────────────────────────────────────
 app.get('/api/health', (_, res) => res.json({ ok: true, db: 'postgresql', time: new Date().toISOString() }));
 

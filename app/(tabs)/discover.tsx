@@ -54,7 +54,7 @@ const SORT_KEYS = [
 
 export default function DiscoverScreen() {
   const router = useRouter();
-  const { savedRecipes, toggleSaved, recipes, setRecipes } = useStore();
+  const { savedRecipes, toggleSaved, recipes, setRecipes, token } = useStore();
   const t = useT();
   const d = t.discover;
   const [search, setSearch] = useState('');
@@ -71,6 +71,9 @@ export default function DiscoverScreen() {
   const fridgeInputRef = useRef<TextInput>(null);
   const keepFridgeFocus = useRef(false);
   const [loading, setLoading] = useState(recipes.length === 0);
+  const [forYouRecipes, setForYouRecipes] = useState<any[]>([]);
+  const [forYouLoading, setForYouLoading] = useState(false);
+  const [forYouPersonalized, setForYouPersonalized] = useState(false);
 
   const fridgeSuggestions = useMemo<IngredientEntry[]>(
     () => (fridgeInput.trim().length > 0 ? getIngredientSuggestions(fridgeInput) : []),
@@ -86,6 +89,18 @@ export default function DiscoverScreen() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!token) return;
+    setForYouLoading(true);
+    api.getDiscover(token, 1)
+      .then((data) => {
+        setForYouRecipes(data.recipes);
+        setForYouPersonalized(data.personalized);
+      })
+      .catch(() => {})
+      .finally(() => setForYouLoading(false));
+  }, [token]);
 
   const popularIngredients = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -389,6 +404,73 @@ export default function DiscoverScreen() {
                 <Ionicons name="search-outline" size={16} color="#fff" />
                 <Text style={styles.fridgeFindBtnText}>{d.findRecipes}</Text>
               </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Para Ti — feed personalizado */}
+          {!isFiltering && (forYouLoading || forYouRecipes.length > 0) && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionTitle}>Para Ti</Text>
+                {forYouPersonalized && !forYouLoading && (
+                  <View style={styles.personalizedBadge}>
+                    <Ionicons name="sparkles" size={10} color={COLORS.primary} />
+                    <Text style={styles.personalizedBadgeText}>Personalizado</Text>
+                  </View>
+                )}
+              </View>
+              {forYouLoading ? (
+                <ActivityIndicator color={COLORS.primary} style={{ marginVertical: 20 }} />
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.forYouRow}
+                >
+                  {forYouRecipes.map((recipe) => {
+                    const totalTime = (recipe.prep_time ?? 0) + (recipe.cook_time ?? 0);
+                    const isSaved = savedRecipes.includes(String(recipe.id));
+                    return (
+                      <TouchableOpacity
+                        key={recipe.id}
+                        style={styles.forYouCard}
+                        onPress={() => router.push(`/recipe/${recipe.id}`)}
+                        activeOpacity={0.9}
+                      >
+                        <View style={styles.forYouCardImage}>
+                          {recipe.image ? (
+                            <Image source={{ uri: recipe.image }} style={styles.forYouCardPhoto} resizeMode="cover" />
+                          ) : (
+                            <View style={[styles.forYouCardPhoto, { backgroundColor: COLORS.surface3, alignItems: 'center', justifyContent: 'center' }]}>
+                              <Ionicons name="restaurant-outline" size={28} color={COLORS.text3} />
+                            </View>
+                          )}
+                          <TouchableOpacity
+                            style={styles.forYouCardSave}
+                            onPress={() => handleSave(String(recipe.id))}
+                          >
+                            <Ionicons
+                              name={isSaved ? 'heart' : 'heart-outline'}
+                              size={14}
+                              color={isSaved ? '#E53935' : '#fff'}
+                            />
+                          </TouchableOpacity>
+                        </View>
+                        <View style={styles.forYouCardInfo}>
+                          <Text style={styles.forYouCardTitle} numberOfLines={2}>{recipe.title}</Text>
+                          <View style={styles.forYouCardMeta}>
+                            <Ionicons name="time-outline" size={11} color={COLORS.text3} />
+                            <Text style={styles.forYouCardMetaText}>{totalTime > 0 ? `${totalTime}min` : '—'}</Text>
+                            {recipe.cuisine ? (
+                              <Text style={styles.forYouCardCuisine} numberOfLines={1}>{recipe.cuisine}</Text>
+                            ) : null}
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              )}
             </View>
           )}
 
@@ -781,6 +863,35 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.15)',
   },
   recipeCardCuisineText: { fontSize: 11, color: 'rgba(255,255,255,0.9)', fontWeight: '600', fontFamily: FONTS.body },
+
+  // Para Ti
+  personalizedBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
+    backgroundColor: COLORS.primaryDim, borderWidth: 1, borderColor: COLORS.borderActive,
+  },
+  personalizedBadgeText: { fontSize: 11, fontWeight: '700', color: COLORS.primary, fontFamily: FONTS.bodyBold },
+  forYouRow: { gap: 12, paddingBottom: 4 },
+  forYouCard: {
+    width: 155, borderRadius: 16, overflow: 'hidden',
+    backgroundColor: COLORS.surface1,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
+    borderWidth: 1, borderColor: COLORS.border,
+  },
+  forYouCardImage: { width: 155, height: 115, position: 'relative' },
+  forYouCardPhoto: { width: '100%', height: '100%' },
+  forYouCardSave: {
+    position: 'absolute', top: 8, right: 8,
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  forYouCardInfo: { padding: 10, gap: 5 },
+  forYouCardTitle: { fontSize: 13, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.bodyBold, lineHeight: 18 },
+  forYouCardMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  forYouCardMetaText: { fontSize: 11, color: COLORS.text3, fontFamily: FONTS.body },
+  forYouCardCuisine: { fontSize: 10, color: COLORS.text3, fontFamily: FONTS.body, marginLeft: 2 },
 
   // Empty
   empty: { alignItems: 'center', paddingTop: 48, gap: 14 },
