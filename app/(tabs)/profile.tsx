@@ -7,6 +7,7 @@ import {
   FlatList,
   Image,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -58,9 +59,10 @@ export default function ProfileScreen() {
   const [showCalendar, setShowCalendar] = useState(true);
   const [allRecipes, setAllRecipes] = useState<any[]>([]);
   const [loadingRecipes, setLoadingRecipes] = useState(true);
-  const { savedRecipes, cookedRecipes, cookedLogs, toggleCooked, addToShoppingList, user, token, logout, addNotification, earnedBadgeIds, setEarnedBadgeIds, pinnedBadgeIds, language } = useStore();
+  const { savedRecipes, cookedRecipes, cookedLogs, toggleCooked, addToShoppingList, user, token, logout, addNotification, earnedBadgeIds, setEarnedBadgeIds, pinnedBadgeIds, language, updateUser } = useStore();
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [hoveredBadge, setHoveredBadge] = useState<Badge | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useFocusEffect(
     useCallback(() => {

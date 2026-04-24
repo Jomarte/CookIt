@@ -848,7 +848,9 @@ app.get('/api/discover', auth, async (req, res) => {
       ...cookedSet,
       ...Object.keys(ratingsMap).map(Number),
     ]);
-    const excludeIds = new Set([...interactedIds, ...ownRecipes.map(r => r.id)]);
+    // Só exclui receitas próprias — receitas já vistas continuam elegíveis
+    // (o utilizador pode querer re-cozinhar, partilhar, ou simplesmente redescobrir)
+    const excludeIds = new Set([...ownRecipes.map(r => r.id)]);
 
     // 2. Constrói perfil ponderado com decaimento temporal e avaliações
     const profile = { tags: {}, categories: {}, cuisines: {} };
