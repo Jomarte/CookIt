@@ -77,6 +77,23 @@ app.use(rateLimit({
   legacyHeaders: false,
   message: { error: 'Demasiados pedidos, tenta mais tarde.' },
 }));
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiadas tentativas. Tenta novamente em 15 minutos.' },
+});
+
+const forgotLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados pedidos de reset. Tenta novamente mais tarde.' },
+});
+
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: false }));
 
@@ -96,15 +113,16 @@ function auth(req, res, next) {
 // ── AUTH ────────────────────────────────────────────────────────────────────
 
 // Registar
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', authLimiter, async (req, res) => {
   try {
-    const { name, username, email, password } = req.body;
+    const { name, username, email, password, terms_accepted } = req.body;
 
     if (!name || !username || !email || !password)
       return res.status(400).json({ error: 'Preenche todos os campos' });
-
-    if (password.length < 6)
-      return res.status(400).json({ error: 'Password deve ter pelo menos 6 caracteres' });
+    if (password.length < 8)
+      return res.status(400).json({ error: 'A password deve ter pelo menos 8 caracteres' });
+    if (!terms_accepted)
+      return res.status(400).json({ error: 'Tens de aceitar os Termos e a Política de Privacidade' });
 
     const existing = await db.get(
       'SELECT id FROM users WHERE email = ? OR username = ?',
@@ -113,17 +131,23 @@ app.post('/api/auth/register', async (req, res) => {
     if (existing) return res.status(409).json({ error: 'Email ou username já existe' });
 
     const hash = bcrypt.hashSync(password, 10);
+    const now = new Date().toISOString();
     await db.run(
-      'INSERT INTO users (name, username, email, password) VALUES (?, ?, ?, ?)',
-      [name, username, email, hash]
+      'INSERT INTO users (name, username, email, password, terms_accepted_at) VALUES (?, ?, ?, ?, ?)',
+      [name, username, email, hash, now]
     );
 
     const user = await db.get(
-      'SELECT id, name, first_name, last_name, username, email, avatar, bio, cooking_type, nationality, followers, following, recipes_count, created_at FROM users WHERE email = ?',
+      `SELECT id, name, first_name, last_name, username, email, avatar, bio, cooking_type,
+              nationality, followers, following, recipes_count, email_verified, created_at
+       FROM users WHERE email = ?`,
       [email]
     );
-
     if (!user) return res.status(500).json({ error: 'Erro ao criar utilizador' });
+
+    sendVerificationEmail(user.id, user.email, user.name).catch(e =>
+      console.error('Verification email error:', e.message)
+    );
 
     const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
     res.status(201).json({ user, token });
@@ -134,7 +158,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 // Login
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -161,7 +185,9 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/auth/me', auth, async (req, res) => {
   try {
     const user = await db.get(
-      'SELECT id, name, first_name, last_name, username, email, avatar, bio, cooking_type, nationality, followers, following, recipes_count, created_at FROM users WHERE id = ?',
+      `SELECT id, name, first_name, last_name, username, email, avatar, bio, cooking_type,
+              nationality, followers, following, recipes_count, email_verified, created_at
+       FROM users WHERE id = ?`,
       [req.user.id]
     );
     if (!user) return res.status(404).json({ error: 'Utilizador não encontrado' });
@@ -186,7 +212,9 @@ app.put('/api/auth/me', auth, async (req, res) => {
       [name, first_name ?? null, last_name ?? null, username ?? null, bio, cooking_type, nationality ?? null, avatar ?? null, req.user.id]
     );
     const user = await db.get(
-      'SELECT id, name, first_name, last_name, username, email, avatar, bio, cooking_type, nationality, followers, following, recipes_count, created_at FROM users WHERE id = ?',
+      `SELECT id, name, first_name, last_name, username, email, avatar, bio, cooking_type,
+              nationality, followers, following, recipes_count, email_verified, created_at
+       FROM users WHERE id = ?`,
       [req.user.id]
     );
     res.json(user);
