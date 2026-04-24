@@ -7,6 +7,51 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('./database');
 
+const crypto = require('crypto');
+const { Resend } = require('resend');
+
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+const API_URL = process.env.API_URL || `http://localhost:${process.env.PORT || 3001}`;
+const FROM_EMAIL = process.env.FROM_EMAIL || 'CookIt <onboarding@resend.dev>';
+
+function generateToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+async function sendVerificationEmail(userId, email, name) {
+  const token = generateToken();
+  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+  await db.run(
+    'INSERT INTO email_verification_tokens (user_id, token, expires_at) VALUES (?, ?, ?)',
+    [userId, token, expires.toISOString()]
+  );
+  if (!resend) {
+    console.log(`[DEV] Verify email link: ${API_URL}/api/auth/verify-email?token=${token}`);
+    return;
+  }
+  const verifyUrl = `${API_URL}/api/auth/verify-email?token=${token}`;
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to: email,
+    subject: 'Confirma o teu email — CookIt',
+    html: `<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:480px;margin:40px auto;padding:20px;background:#FBF5EF;"><h2 style="color:#C2622D;margin-bottom:8px;">CookIt</h2><p style="color:#1A1A1A;">Olá ${name},</p><p style="color:#555;">Clica no botão abaixo para confirmar o teu endereço de email:</p><a href="${verifyUrl}" style="display:inline-block;background:#C2622D;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700;margin:16px 0;">Confirmar email</a><p style="color:#999;font-size:12px;margin-top:24px;">Este link expira em 24 horas. Se não criaste uma conta no CookIt, ignora este email.</p></body></html>`,
+  });
+}
+
+async function sendPasswordResetEmail(email, name, token) {
+  if (!resend) {
+    console.log(`[DEV] Reset link: ${API_URL}/api/auth/reset-password?token=${token}`);
+    return;
+  }
+  const resetUrl = `${API_URL}/api/auth/reset-password?token=${token}`;
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to: email,
+    subject: 'Recuperar password — CookIt',
+    html: `<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:480px;margin:40px auto;padding:20px;background:#FBF5EF;"><h2 style="color:#C2622D;">CookIt — Recuperar password</h2><p style="color:#1A1A1A;">Olá ${name},</p><p style="color:#555;">Clica no link abaixo para definir uma nova password. O link expira em 1 hora.</p><a href="${resetUrl}" style="display:inline-block;background:#C2622D;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700;margin:16px 0;">Redefinir password</a><p style="color:#999;font-size:12px;margin-top:24px;">Se não pediste um reset de password, ignora este email.</p></body></html>`,
+  });
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -33,6 +78,7 @@ app.use(rateLimit({
   message: { error: 'Demasiados pedidos, tenta mais tarde.' },
 }));
 app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ extended: false }));
 
 // ── Middleware de autenticação ──────────────────────────────────────────────
 function auth(req, res, next) {
