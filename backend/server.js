@@ -380,45 +380,49 @@ app.get('/api/auth/reset-password', publicLimiter, async (req, res) => {
     return res.status(400).send('<h2>Link inválido.</h2>');
   }
 
-  const row = await db.get(
-    'SELECT * FROM password_reset_tokens WHERE token = ? AND used = FALSE',
-    [token]
-  ).catch(() => null);
+  try {
+    const row = await db.get(
+      'SELECT * FROM password_reset_tokens WHERE token = ? AND used = FALSE',
+      [token]
+    );
 
-  if (!row || new Date(row.expires_at) < new Date()) {
-    return res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;text-align:center;">
-      <h2 style="color:#D4A853;">Link expirado ou inválido</h2>
-      <p>Pede um novo link na app CookIt.</p>
+    if (!row || new Date(row.expires_at) < new Date()) {
+      return res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;text-align:center;">
+        <h2 style="color:#D4A853;">Link expirado ou inválido</h2>
+        <p>Pede um novo link na app CookIt.</p>
+      </body></html>`);
+    }
+
+    const safeToken = token.replace(/[^a-f0-9]/g, '');
+
+    res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;">
+      <h2 style="color:#C2622D;margin-bottom:4px;">CookIt</h2>
+      <h3 style="margin-top:0;">Nova password</h3>
+      <form method="POST" action="/api/auth/reset-password" id="f">
+        <input type="hidden" name="token" value="${safeToken}" />
+        <input type="password" name="password" placeholder="Nova password (mín. 8 caracteres)"
+               required minlength="8"
+               style="width:100%;padding:12px;margin:8px 0;border:1.5px solid #ccc;border-radius:10px;box-sizing:border-box;font-size:15px;" />
+        <input type="password" name="confirm" placeholder="Confirmar password"
+               required minlength="8"
+               style="width:100%;padding:12px;margin:8px 0;border:1.5px solid #ccc;border-radius:10px;box-sizing:border-box;font-size:15px;" />
+        <p id="err" style="color:#C2622D;display:none;">As passwords não coincidem.</p>
+        <button type="submit"
+                style="background:#C2622D;color:white;padding:14px;border:none;border-radius:10px;cursor:pointer;width:100%;font-size:16px;font-weight:700;margin-top:8px;">
+          Guardar nova password
+        </button>
+      </form>
+      <script>
+        document.getElementById('f').onsubmit = function(e) {
+          var p = this.password.value, c = this.confirm.value;
+          if (p !== c) { e.preventDefault(); document.getElementById('err').style.display='block'; }
+        };
+      </script>
     </body></html>`);
+  } catch (e) {
+    console.error('reset-password GET error:', e);
+    res.status(500).send(IS_PROD ? '<h2>Erro interno. Tenta novamente.</h2>' : `<h2>Erro: ${e.message}</h2>`);
   }
-
-  // Escape the token for safe HTML attribute output (tokens are hex only, so no XSS risk, but defensive)
-  const safeToken = token.replace(/[^a-f0-9]/g, '');
-
-  res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;">
-    <h2 style="color:#C2622D;margin-bottom:4px;">CookIt</h2>
-    <h3 style="margin-top:0;">Nova password</h3>
-    <form method="POST" action="/api/auth/reset-password" id="f">
-      <input type="hidden" name="token" value="${safeToken}" />
-      <input type="password" name="password" placeholder="Nova password (mín. 8 caracteres)"
-             required minlength="8"
-             style="width:100%;padding:12px;margin:8px 0;border:1.5px solid #ccc;border-radius:10px;box-sizing:border-box;font-size:15px;" />
-      <input type="password" name="confirm" placeholder="Confirmar password"
-             required minlength="8"
-             style="width:100%;padding:12px;margin:8px 0;border:1.5px solid #ccc;border-radius:10px;box-sizing:border-box;font-size:15px;" />
-      <p id="err" style="color:#C2622D;display:none;">As passwords não coincidem.</p>
-      <button type="submit"
-              style="background:#C2622D;color:white;padding:14px;border:none;border-radius:10px;cursor:pointer;width:100%;font-size:16px;font-weight:700;margin-top:8px;">
-        Guardar nova password
-      </button>
-    </form>
-    <script>
-      document.getElementById('f').onsubmit = function(e) {
-        var p = this.password.value, c = this.confirm.value;
-        if (p !== c) { e.preventDefault(); document.getElementById('err').style.display='block'; }
-      };
-    </script>
-  </body></html>`);
 });
 
 // Public: process reset form POST (publicLimiter applied)
@@ -449,7 +453,8 @@ app.post('/api/auth/reset-password', publicLimiter, async (req, res) => {
 
     const hash = bcrypt.hashSync(password, 10);
     await db.run('UPDATE users SET password = ? WHERE id = ?', [hash, row.user_id]);
-    await db.run('UPDATE password_reset_tokens SET used = TRUE WHERE id = ?', [row.id]);
+    // Invalidate all outstanding reset tokens for this user (not just the one used)
+    await db.run('UPDATE password_reset_tokens SET used = TRUE WHERE user_id = ?', [row.user_id]);
 
     res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;text-align:center;">
       <h2 style="color:#C2622D;">Password alterada!</h2>
