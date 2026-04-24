@@ -64,15 +64,29 @@ export default function ProfileScreen() {
   const [hoveredBadge, setHoveredBadge] = useState<Badge | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  const loadData = useCallback(async () => {
+    try {
+      const [recipes, freshUser] = await Promise.all([
+        api.getRecipes(),
+        token ? api.me(token) : Promise.resolve(null),
+      ]);
+      setAllRecipes(recipes);
+      if (freshUser) updateUser(freshUser);
+    } catch {}
+  }, [token]);
+
   useFocusEffect(
     useCallback(() => {
       setLoadingRecipes(true);
-      api.getRecipes()
-        .then(setAllRecipes)
-        .catch(() => {})
-        .finally(() => setLoadingRecipes(false));
-    }, [])
+      loadData().finally(() => setLoadingRecipes(false));
+    }, [loadData])
   );
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  }, [loadData]);
 
   const myRecipes = allRecipes.filter((r) => r.author_id === user?.id);
   const savedList = allRecipes.filter((r) => savedRecipes.includes(String(r.id)));
@@ -202,7 +216,10 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={COLORS.primary} colors={[COLORS.primary]} />}
+      >
         {/* Header */}
         <View style={styles.header}>
           {/* Top row: @username + action buttons */}

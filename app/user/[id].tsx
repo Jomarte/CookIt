@@ -1,10 +1,11 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   Image,
+  RefreshControl,
   ScrollView,
   Share,
   StyleSheet,
@@ -50,30 +51,37 @@ export default function UserProfileScreen() {
   const [publishedRecipes, setPublishedRecipes] = useState<any[]>([]);
   const [cookedRecipes, setCookedRecipes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('Receitas');
 
-  useEffect(() => {
+  const loadProfile = useCallback(async () => {
     if (me && String(me.id) === String(id)) {
       router.replace('/(tabs)/profile');
       return;
     }
-    Promise.all([
+    const [u, r, f, c] = await Promise.all([
       api.getUser(id),
       api.getUserRecipes(id),
       token ? api.isFollowing(token, id) : Promise.resolve({ following: false }),
       api.getUserCookedRecipes(id).catch(() => []),
-    ])
-      .then(([u, r, f, c]) => {
-        setProfile(u);
-        setPublishedRecipes(r);
-        setFollowing(f.following);
-        setCookedRecipes(Array.isArray(c) ? c : []);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [id]);
+    ]);
+    setProfile(u);
+    setPublishedRecipes(r);
+    setFollowing(f.following);
+    setCookedRecipes(Array.isArray(c) ? c : []);
+  }, [id, token]);
+
+  useEffect(() => {
+    loadProfile().catch(() => {}).finally(() => setLoading(false));
+  }, [loadProfile]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadProfile().catch(() => {});
+    setRefreshing(false);
+  }, [loadProfile]);
 
   const handleFollow = async () => {
     if (!token || followLoading) return;
@@ -160,7 +168,10 @@ export default function UserProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={COLORS.primary} colors={[COLORS.primary]} />}
+      >
         {/* Header */}
         <View style={styles.header}>
           {/* Top row: back | @username | share */}
