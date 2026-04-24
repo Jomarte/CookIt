@@ -19,7 +19,10 @@ async function request(path: string, options: RequestInit = {}) {
     throw new Error(`Servidor offline ou erro inesperado (${res.status})`);
   }
 
-  if (!res.ok) throw new Error(data.error ?? 'Erro desconhecido');
+  if (!res.ok) {
+    const msg = (data?.error || 'Erro desconhecido').slice(0, 200);
+    throw new Error(msg);
+  }
   return data;
 }
 
@@ -28,7 +31,7 @@ function authHeader(token: string) {
 }
 
 export const api = {
-  register: (body: { name: string; username: string; email: string; password: string }) =>
+  register: (body: { name: string; username: string; email: string; password: string; terms_accepted: boolean }) =>
     request('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
 
   login: (body: { email: string; password: string }) =>
@@ -151,4 +154,10 @@ export const api = {
     request(`/discover?page=${page}&pageSize=${pageSize}`, { headers: authHeader(token) }),
 
   health: () => request('/health'),
+
+  forgotPassword: (email: string): Promise<{ ok: boolean }> =>
+    request('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+
+  sendVerification: (token: string): Promise<{ ok: boolean }> =>
+    request('/auth/send-verification', { method: 'POST', headers: authHeader(token) }),
 };

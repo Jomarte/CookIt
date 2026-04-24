@@ -76,8 +76,19 @@ async function syncFromServer(token: string) {
   if (saved.status === 'fulfilled') update.savedRecipes = saved.value;
   if (liked.status === 'fulfilled') update.likedRecipes = liked.value;
   if (cooked.status === 'fulfilled') {
-    update.cookedRecipes = cooked.value.map((c: any) => c.recipeId);
-    update.cookedLogs = cooked.value;
+    const serverIds = new Set(cooked.value.map((c: any) => c.recipeId));
+    const { cookedRecipes: localIds, cookedLogs: localLogs } = useStore.getState();
+    // Find locally-cooked recipes not yet on server (app was killed mid-request)
+    const pendingIds = localIds.filter((id: string) => !serverIds.has(id));
+    const pendingLogs = localLogs.filter((l: any) => !serverIds.has(l.recipeId));
+    // Re-sync pending cooks to server in background
+    pendingIds.forEach((id: string) => {
+      const log = pendingLogs.find((l: any) => l.recipeId === id);
+      api.cookRecipe(token, id, log?.date).catch(() => {});
+    });
+    // Merge: preserve local-only cooks that haven't reached server yet
+    update.cookedRecipes = [...cooked.value.map((c: any) => c.recipeId), ...pendingIds];
+    update.cookedLogs = [...cooked.value, ...pendingLogs];
   }
   if (ratings.status === 'fulfilled') update.userRatings = ratings.value;
   if (shopping.status === 'fulfilled') update.shoppingList = shopping.value;

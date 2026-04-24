@@ -47,6 +47,7 @@ export interface AuthUser {
   followers: number;
   following: number;
   recipes_count: number;
+  email_verified: boolean;
   created_at: string;
 }
 

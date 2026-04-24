@@ -7,10 +7,56 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('./database');
 
+const crypto = require('crypto');
+const { Resend } = require('resend');
+
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+const API_URL = process.env.API_URL || `http://localhost:${process.env.PORT || 3001}`;
+const FROM_EMAIL = process.env.FROM_EMAIL || 'CookIt <onboarding@resend.dev>';
+
+function generateToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+async function sendVerificationEmail(userId, email, name) {
+  const token = generateToken();
+  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+  await db.run(
+    'INSERT INTO email_verification_tokens (user_id, token, expires_at) VALUES (?, ?, ?)',
+    [userId, token, expires.toISOString()]
+  );
+  if (!resend) {
+    console.log(`[DEV] Verify email link: ${API_URL}/api/auth/verify-email?token=${token}`);
+    return;
+  }
+  const verifyUrl = `${API_URL}/api/auth/verify-email?token=${token}`;
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to: email,
+    subject: 'Confirma o teu email — CookIt',
+    html: `<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:480px;margin:40px auto;padding:20px;background:#FBF5EF;"><h2 style="color:#C2622D;margin-bottom:8px;">CookIt</h2><p style="color:#1A1A1A;">Olá ${name},</p><p style="color:#555;">Clica no botão abaixo para confirmar o teu endereço de email:</p><a href="${verifyUrl}" style="display:inline-block;background:#C2622D;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700;margin:16px 0;">Confirmar email</a><p style="color:#999;font-size:12px;margin-top:24px;">Este link expira em 24 horas. Se não criaste uma conta no CookIt, ignora este email.</p></body></html>`,
+  });
+}
+
+async function sendPasswordResetEmail(email, name, token) {
+  if (!resend) {
+    console.log(`[DEV] Reset link: ${API_URL}/api/auth/reset-password?token=${token}`);
+    return;
+  }
+  const resetUrl = `${API_URL}/api/auth/reset-password?token=${token}`;
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to: email,
+    subject: 'Recuperar password — CookIt',
+    html: `<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:480px;margin:40px auto;padding:20px;background:#FBF5EF;"><h2 style="color:#C2622D;">CookIt — Recuperar password</h2><p style="color:#1A1A1A;">Olá ${name},</p><p style="color:#555;">Clica no link abaixo para definir uma nova password. O link expira em 1 hora.</p><a href="${resetUrl}" style="display:inline-block;background:#C2622D;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700;margin:16px 0;">Redefinir password</a><p style="color:#999;font-size:12px;margin-top:24px;">Se não pediste um reset de password, ignora este email.</p></body></html>`,
+  });
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) throw new Error('JWT_SECRET env var is required');
+if (JWT_SECRET.length < 32) throw new Error('JWT_SECRET must be at least 32 characters');
 
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
@@ -32,7 +78,60 @@ app.use(rateLimit({
   legacyHeaders: false,
   message: { error: 'Demasiados pedidos, tenta mais tarde.' },
 }));
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiadas tentativas. Tenta novamente em 15 minutos.' },
+});
+
+const forgotLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados pedidos de reset. Tenta novamente mais tarde.' },
+});
+
+// Rate limit for public read endpoints (unauthenticated)
+const publicLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados pedidos. Tenta novamente em breve.' },
+});
+
+const commentLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados comentários. Aguarda um momento.' },
+});
+
+// OWASP: Never expose internal error details in production
+const IS_PROD = process.env.NODE_ENV === 'production';
+function serverError(res, err, fallback = 'Erro interno do servidor') {
+  console.error(err);
+  res.status(500).json({ error: IS_PROD ? fallback : (err?.message ?? fallback) });
+}
+
+// OWASP: Input validation helpers
+const VALID_DATE = /^\d{4}-\d{2}-\d{2}$/;
+function isValidDate(s) {
+  if (!VALID_DATE.test(s)) return false;
+  const d = new Date(s);
+  return !isNaN(d.getTime()) && d <= new Date();
+}
+function sanitizeStr(s, maxLen = 500) {
+  return typeof s === 'string' ? s.trim().slice(0, maxLen) : '';
+}
+
 app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ extended: false }));
 
 // ── Middleware de autenticação ──────────────────────────────────────────────
 function auth(req, res, next) {
@@ -50,52 +149,63 @@ function auth(req, res, next) {
 // ── AUTH ────────────────────────────────────────────────────────────────────
 
 // Registar
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', authLimiter, async (req, res) => {
   try {
-    const { name, username, email, password } = req.body;
+    const { name, username, email, password, terms_accepted } = req.body;
+    const normalizedEmail = email?.trim().toLowerCase();
 
-    if (!name || !username || !email || !password)
+    if (!name || !username || !normalizedEmail || !password)
       return res.status(400).json({ error: 'Preenche todos os campos' });
-
-    if (password.length < 6)
-      return res.status(400).json({ error: 'Password deve ter pelo menos 6 caracteres' });
+    if (password.length < 8)
+      return res.status(400).json({ error: 'A password deve ter pelo menos 8 caracteres' });
+    if (!terms_accepted)
+      return res.status(400).json({ error: 'Tens de aceitar os Termos e a Política de Privacidade' });
+    if (name.trim().length > 100) return res.status(400).json({ error: 'Nome demasiado longo' });
+    if (username.trim().length > 50) return res.status(400).json({ error: 'Username demasiado longo' });
+    if (password.length > 128) return res.status(400).json({ error: 'Password demasiado longa' });
 
     const existing = await db.get(
       'SELECT id FROM users WHERE email = ? OR username = ?',
-      [email, username]
+      [normalizedEmail, username]
     );
     if (existing) return res.status(409).json({ error: 'Email ou username já existe' });
 
     const hash = bcrypt.hashSync(password, 10);
+    const now = new Date().toISOString();
     await db.run(
-      'INSERT INTO users (name, username, email, password) VALUES (?, ?, ?, ?)',
-      [name, username, email, hash]
+      'INSERT INTO users (name, username, email, password, terms_accepted_at) VALUES (?, ?, ?, ?, ?)',
+      [name, username, normalizedEmail, hash, now]
     );
 
     const user = await db.get(
-      'SELECT id, name, first_name, last_name, username, email, avatar, bio, cooking_type, nationality, followers, following, recipes_count, created_at FROM users WHERE email = ?',
-      [email]
+      `SELECT id, name, first_name, last_name, username, email, avatar, bio, cooking_type,
+              nationality, followers, following, recipes_count, email_verified, created_at
+       FROM users WHERE email = ?`,
+      [normalizedEmail]
     );
-
     if (!user) return res.status(500).json({ error: 'Erro ao criar utilizador' });
+
+    sendVerificationEmail(user.id, user.email, user.name).catch(e =>
+      console.error('Verification email error:', e.message)
+    );
 
     const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
     res.status(201).json({ user, token });
   } catch (e) {
-    console.error('Register error:', e);
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
 // Login
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = email?.trim().toLowerCase();
 
-    if (!email || !password)
+    if (!normalizedEmail || !password)
       return res.status(400).json({ error: 'Preenche todos os campos' });
 
-    const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
+    const user = await db.get('SELECT * FROM users WHERE email = ?', [normalizedEmail]);
     if (!user) return res.status(401).json({ error: 'Credenciais inválidas' });
 
     const valid = bcrypt.compareSync(password, user.password);
@@ -106,8 +216,7 @@ app.post('/api/auth/login', async (req, res) => {
 
     res.json({ user: userSafe, token });
   } catch (e) {
-    console.error('Login error:', e);
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -115,13 +224,15 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/auth/me', auth, async (req, res) => {
   try {
     const user = await db.get(
-      'SELECT id, name, first_name, last_name, username, email, avatar, bio, cooking_type, nationality, followers, following, recipes_count, created_at FROM users WHERE id = ?',
+      `SELECT id, name, first_name, last_name, username, email, avatar, bio, cooking_type,
+              nationality, followers, following, recipes_count, email_verified, created_at
+       FROM users WHERE id = ?`,
       [req.user.id]
     );
     if (!user) return res.status(404).json({ error: 'Utilizador não encontrado' });
     res.json(user);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -129,6 +240,17 @@ app.get('/api/auth/me', auth, async (req, res) => {
 app.put('/api/auth/me', auth, async (req, res) => {
   try {
     const { name, first_name, last_name, username, bio, cooking_type, nationality, avatar } = req.body;
+
+    if (name && name.length > 100) return res.status(400).json({ error: 'Nome demasiado longo' });
+    if (username && username.length > 50) return res.status(400).json({ error: 'Username demasiado longo' });
+    if (bio && bio.length > 500) return res.status(400).json({ error: 'Bio demasiado longa' });
+
+    if (avatar && avatar.length > 7 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Avatar demasiado grande (máx. 5 MB)' });
+    }
+    if (avatar && !avatar.startsWith('data:image/')) {
+      return res.status(400).json({ error: 'Formato de avatar inválido' });
+    }
 
     if (username) {
       const existing = await db.get('SELECT id FROM users WHERE username = ? AND id != ?', [username, req.user.id]);
@@ -140,12 +262,14 @@ app.put('/api/auth/me', auth, async (req, res) => {
       [name, first_name ?? null, last_name ?? null, username ?? null, bio, cooking_type, nationality ?? null, avatar ?? null, req.user.id]
     );
     const user = await db.get(
-      'SELECT id, name, first_name, last_name, username, email, avatar, bio, cooking_type, nationality, followers, following, recipes_count, created_at FROM users WHERE id = ?',
+      `SELECT id, name, first_name, last_name, username, email, avatar, bio, cooking_type,
+              nationality, followers, following, recipes_count, email_verified, created_at
+       FROM users WHERE id = ?`,
       [req.user.id]
     );
     res.json(user);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -155,7 +279,191 @@ app.delete('/api/auth/me', auth, async (req, res) => {
     await db.run('DELETE FROM users WHERE id = ?', [req.user.id]);
     res.json({ ok: true });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
+  }
+});
+
+// ── EMAIL VERIFICATION ──────────────────────────────────────────────────────
+
+// Authenticated: resend verification email (rate-limited to 5/hr via forgotLimiter)
+app.post('/api/auth/send-verification', auth, forgotLimiter, async (req, res) => {
+  try {
+    const user = await db.get(
+      'SELECT id, email, name, email_verified FROM users WHERE id = ?',
+      [req.user.id]
+    );
+    if (!user) return res.status(404).json({ error: 'Utilizador não encontrado' });
+    if (user.email_verified) return res.json({ ok: true });
+
+    await sendVerificationEmail(user.id, user.email, user.name);
+    res.json({ ok: true });
+  } catch (e) {
+    serverError(res, e);
+  }
+});
+
+// Public: browser clicks email link — validate token and mark email verified
+// Rate-limited (publicLimiter) to prevent token enumeration
+app.get('/api/auth/verify-email', publicLimiter, async (req, res) => {
+  const { token } = req.query;
+  res.setHeader('Content-Type', 'text/html');
+
+  if (!token || typeof token !== 'string' || token.length !== 64) {
+    return res.status(400).send('<h2>Link inválido.</h2>');
+  }
+
+  try {
+    const row = await db.get(
+      'SELECT * FROM email_verification_tokens WHERE token = ? AND used = FALSE',
+      [token]
+    );
+
+    if (!row) {
+      return res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;text-align:center;">
+        <h2 style="color:#D4A853;">Link expirado ou já utilizado</h2>
+        <p>Abre o CookIt e pede um novo link de verificação.</p>
+      </body></html>`);
+    }
+
+    if (new Date(row.expires_at) < new Date()) {
+      return res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;text-align:center;">
+        <h2 style="color:#D4A853;">Link expirado</h2>
+        <p>Abre o CookIt e pede um novo link de verificação.</p>
+      </body></html>`);
+    }
+
+    await db.run('UPDATE users SET email_verified = TRUE WHERE id = ?', [row.user_id]);
+    await db.run('UPDATE email_verification_tokens SET used = TRUE WHERE id = ?', [row.id]);
+
+    res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;text-align:center;">
+      <h2 style="color:#C2622D;">Email confirmado!</h2>
+      <p>A tua conta está verificada. Abre o CookIt e continua a cozinhar.</p>
+      <p style="margin-top:24px;"><a href="cookit://" style="color:#C2622D;font-weight:700;">Abrir CookIt</a></p>
+    </body></html>`);
+  } catch (e) {
+    console.error('verify-email error:', e);
+    res.status(500).send(IS_PROD ? '<h2>Erro interno. Tenta novamente.</h2>' : `<h2>Erro: ${e.message}</h2>`);
+  }
+});
+
+// ── PASSWORD RESET ──────────────────────────────────────────────────────────
+
+// Public: request password reset email (forgotLimiter: 5/hr per IP)
+app.post('/api/auth/forgot-password', forgotLimiter, async (req, res) => {
+  const rawEmail = req.body?.email;
+  const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : '';
+  // Always return 200 — don't reveal whether email exists (OWASP)
+  try {
+    const user = await db.get('SELECT id, email, name FROM users WHERE email = ?', [email]);
+    if (user) {
+      const token = generateToken();
+      const expires = new Date(Date.now() + 60 * 60 * 1000); // 1h
+      await db.run(
+        'INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)',
+        [user.id, token, expires.toISOString()]
+      );
+      await sendPasswordResetEmail(user.email, user.name, token);
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Forgot password error:', e.message);
+    res.json({ ok: true }); // still return ok to not reveal errors
+  }
+});
+
+// Public: browser opens reset link — render HTML form
+app.get('/api/auth/reset-password', publicLimiter, async (req, res) => {
+  const { token } = req.query;
+  res.setHeader('Content-Type', 'text/html');
+
+  if (!token || typeof token !== 'string' || token.length !== 64) {
+    return res.status(400).send('<h2>Link inválido.</h2>');
+  }
+
+  try {
+    const row = await db.get(
+      'SELECT * FROM password_reset_tokens WHERE token = ? AND used = FALSE',
+      [token]
+    );
+
+    if (!row || new Date(row.expires_at) < new Date()) {
+      return res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;text-align:center;">
+        <h2 style="color:#D4A853;">Link expirado ou inválido</h2>
+        <p>Pede um novo link na app CookIt.</p>
+      </body></html>`);
+    }
+
+    const safeToken = token.replace(/[^a-f0-9]/g, '');
+
+    res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;">
+      <h2 style="color:#C2622D;margin-bottom:4px;">CookIt</h2>
+      <h3 style="margin-top:0;">Nova password</h3>
+      <form method="POST" action="/api/auth/reset-password" id="f">
+        <input type="hidden" name="token" value="${safeToken}" />
+        <input type="password" name="password" placeholder="Nova password (mín. 8 caracteres)"
+               required minlength="8"
+               style="width:100%;padding:12px;margin:8px 0;border:1.5px solid #ccc;border-radius:10px;box-sizing:border-box;font-size:15px;" />
+        <input type="password" name="confirm" placeholder="Confirmar password"
+               required minlength="8"
+               style="width:100%;padding:12px;margin:8px 0;border:1.5px solid #ccc;border-radius:10px;box-sizing:border-box;font-size:15px;" />
+        <p id="err" style="color:#C2622D;display:none;">As passwords não coincidem.</p>
+        <button type="submit"
+                style="background:#C2622D;color:white;padding:14px;border:none;border-radius:10px;cursor:pointer;width:100%;font-size:16px;font-weight:700;margin-top:8px;">
+          Guardar nova password
+        </button>
+      </form>
+      <script>
+        document.getElementById('f').onsubmit = function(e) {
+          var p = this.password.value, c = this.confirm.value;
+          if (p !== c) { e.preventDefault(); document.getElementById('err').style.display='block'; }
+        };
+      </script>
+    </body></html>`);
+  } catch (e) {
+    console.error('reset-password GET error:', e);
+    res.status(500).send(IS_PROD ? '<h2>Erro interno. Tenta novamente.</h2>' : `<h2>Erro: ${e.message}</h2>`);
+  }
+});
+
+// Public: process reset form POST (publicLimiter applied)
+app.post('/api/auth/reset-password', publicLimiter, async (req, res) => {
+  res.setHeader('Content-Type', 'text/html');
+  const { token, password, confirm } = req.body;
+
+  if (!token || !password) return res.status(400).send('<h2>Dados em falta.</h2>');
+  if (password !== confirm) return res.status(400).send('<h2>As passwords não coincidem.</h2>');
+  if (password.length < 8) return res.status(400).send('<h2>Password demasiado curta (mín. 8 caracteres).</h2>');
+  if (password.length > 128) return res.status(400).send('<h2>Password demasiado longa.</h2>');
+  // Token must be 64 hex chars
+  if (typeof token !== 'string' || token.length !== 64 || !/^[a-f0-9]+$/.test(token)) {
+    return res.status(400).send('<h2>Token inválido.</h2>');
+  }
+
+  try {
+    const row = await db.get(
+      'SELECT * FROM password_reset_tokens WHERE token = ? AND used = FALSE',
+      [token]
+    );
+
+    if (!row || new Date(row.expires_at) < new Date()) {
+      return res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;text-align:center;">
+        <h2 style="color:#D4A853;">Link expirado</h2><p>Pede um novo link na app.</p>
+      </body></html>`);
+    }
+
+    const hash = bcrypt.hashSync(password, 10);
+    await db.run('UPDATE users SET password = ? WHERE id = ?', [hash, row.user_id]);
+    // Invalidate all outstanding reset tokens for this user (not just the one used)
+    await db.run('UPDATE password_reset_tokens SET used = TRUE WHERE user_id = ?', [row.user_id]);
+
+    res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;text-align:center;">
+      <h2 style="color:#C2622D;">Password alterada!</h2>
+      <p>Abre o CookIt e inicia sessão com a nova password.</p>
+      <p style="margin-top:24px;"><a href="cookit://" style="color:#C2622D;font-weight:700;">Abrir CookIt</a></p>
+    </body></html>`);
+  } catch (e) {
+    console.error('reset-password error:', e);
+    res.status(500).send(IS_PROD ? '<h2>Erro interno. Tenta novamente.</h2>' : `<h2>Erro: ${e.message}</h2>`);
   }
 });
 
@@ -174,7 +482,7 @@ function parseRecipe(row) {
 }
 
 // Listar receitas (feed)
-app.get('/api/recipes', async (req, res) => {
+app.get('/api/recipes', publicLimiter, async (req, res) => {
   try {
     const recipes = await db.all(`
       SELECT r.*, u.name as author_name, u.username as author_username, u.avatar as author_avatar, u.cooking_type as author_cooking_type
@@ -192,12 +500,12 @@ app.get('/api/recipes', async (req, res) => {
 
     res.json(result);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
 // Receita por ID
-app.get('/api/recipes/:id', async (req, res) => {
+app.get('/api/recipes/:id', publicLimiter, async (req, res) => {
   try {
     const r = await db.get(`
       SELECT r.*, u.name as author_name, u.username as author_username, u.avatar as author_avatar, u.cooking_type as author_cooking_type
@@ -214,7 +522,7 @@ app.get('/api/recipes/:id', async (req, res) => {
 
     res.json(recipe);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -224,6 +532,15 @@ app.post('/api/recipes', auth, async (req, res) => {
     const { title, image, category, cuisine, dish_type, cooking_method, difficulty, prep_time, cook_time, servings, calories, cost, diet, tags, ingredients, steps } = req.body;
 
     if (!title?.trim()) return res.status(400).json({ error: 'Título obrigatório' });
+    if (title.trim().length > 200) return res.status(400).json({ error: 'Título demasiado longo' });
+
+    // OWASP: Validate image field (base64 data URI, max 5MB)
+    if (image && image.length > 7 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Imagem demasiado grande (máx. 5 MB)' });
+    }
+    if (image && !image.startsWith('data:image/')) {
+      return res.status(400).json({ error: 'Formato de imagem inválido' });
+    }
 
     await db.run(
       `INSERT INTO recipes (title, image, category, cuisine, dish_type, cooking_method, difficulty, prep_time, cook_time, servings, calories, cost, diet, tags, author_id)
@@ -274,7 +591,7 @@ app.post('/api/recipes', auth, async (req, res) => {
     res.status(201).json(result);
   } catch (e) {
     console.error('Create recipe error:', e);
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -287,6 +604,14 @@ app.put('/api/recipes/:id', auth, async (req, res) => {
     const { title, image, cuisine, dish_type, cooking_method, difficulty, prep_time, cook_time, servings, calories, cost, diet, tags, ingredients, steps } = req.body;
 
     if (!title?.trim()) return res.status(400).json({ error: 'Título obrigatório' });
+
+    // OWASP: Validate image field (base64 data URI, max 5MB)
+    if (image && image.length > 7 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Imagem demasiado grande (máx. 5 MB)' });
+    }
+    if (image && !image.startsWith('data:image/')) {
+      return res.status(400).json({ error: 'Formato de imagem inválido' });
+    }
 
     await db.run(
       `UPDATE recipes SET title=?, image=?, cuisine=?, dish_type=?, cooking_method=?, difficulty=?, prep_time=?, cook_time=?, servings=?, calories=?, cost=?, diet=?, tags=? WHERE id=?`,
@@ -327,7 +652,7 @@ app.put('/api/recipes/:id', auth, async (req, res) => {
     res.json(result);
   } catch (e) {
     console.error('Update recipe error:', e);
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -342,12 +667,12 @@ app.delete('/api/recipes/:id', auth, async (req, res) => {
     await db.run('UPDATE users SET recipes_count = GREATEST(0, recipes_count - 1) WHERE id = ?', [req.user.id]);
     res.json({ ok: true });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
 // ── USERS ───────────────────────────────────────────────────────────────────
-app.get('/api/users/:id', async (req, res) => {
+app.get('/api/users/:id', publicLimiter, async (req, res) => {
   try {
     const user = await db.get(
       'SELECT id, name, first_name, last_name, username, avatar, bio, cooking_type, nationality, followers, following, recipes_count, created_at FROM users WHERE id = ?',
@@ -356,11 +681,11 @@ app.get('/api/users/:id', async (req, res) => {
     if (!user) return res.status(404).json({ error: 'Utilizador não encontrado' });
     res.json(user);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
-app.get('/api/users/:id/recipes', async (req, res) => {
+app.get('/api/users/:id/recipes', publicLimiter, async (req, res) => {
   try {
     const rows = await db.all(`
       SELECT r.*, u.name as author_name, u.username as author_username, u.avatar as author_avatar
@@ -370,11 +695,11 @@ app.get('/api/users/:id/recipes', async (req, res) => {
     `, [req.params.id]);
     res.json(rows.map(parseRecipe));
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
-app.get('/api/users/:id/cooked', async (req, res) => {
+app.get('/api/users/:id/cooked', publicLimiter, async (req, res) => {
   try {
     const rows = await db.all(`
       SELECT r.*, u.name as author_name, u.username as author_username, u.avatar as author_avatar
@@ -386,13 +711,13 @@ app.get('/api/users/:id/cooked', async (req, res) => {
     `, [req.params.id]);
     res.json(rows.map(parseRecipe));
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
 // ── RANKINGS ─────────────────────────────────────────────────────────────────
 
-app.get('/api/rankings', async (req, res) => {
+app.get('/api/rankings', publicLimiter, async (req, res) => {
   try {
     const users = await db.all(`
       SELECT
@@ -445,7 +770,7 @@ app.get('/api/rankings', async (req, res) => {
     }));
 
     res.json(result);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 // ── FOLLOWS ─────────────────────────────────────────────────────────────────
@@ -455,7 +780,7 @@ app.get('/api/users/:id/follow', auth, async (req, res) => {
     const row = await db.get('SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?', [req.user.id, req.params.id]);
     res.json({ following: !!row });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -472,7 +797,7 @@ app.post('/api/users/:id/follow', auth, async (req, res) => {
     const me = await db.get('SELECT following FROM users WHERE id = ?', [req.user.id]);
     res.json({ following: true, followers: target.followers, myFollowing: me.following });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -488,7 +813,7 @@ app.delete('/api/users/:id/follow', auth, async (req, res) => {
     const me = await db.get('SELECT following FROM users WHERE id = ?', [req.user.id]);
     res.json({ following: false, followers: target.followers, myFollowing: me.following });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -508,7 +833,7 @@ app.get('/api/users/me/shopping', auth, async (req, res) => {
       category: r.category,
       checked: r.checked,
     })));
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 app.post('/api/users/me/shopping', auth, async (req, res) => {
@@ -524,7 +849,7 @@ app.post('/api/users/me/shopping', auth, async (req, res) => {
       );
     }
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 app.patch('/api/users/me/shopping/:itemId/check', auth, async (req, res) => {
@@ -534,14 +859,14 @@ app.patch('/api/users/me/shopping/:itemId/check', auth, async (req, res) => {
       [req.user.id, req.params.itemId]
     );
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 app.delete('/api/users/me/shopping/:itemId', auth, async (req, res) => {
   try {
     await db.run('DELETE FROM shopping_list WHERE user_id = ? AND item_id = ?', [req.user.id, req.params.itemId]);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 app.delete('/api/users/me/shopping', auth, async (req, res) => {
@@ -553,7 +878,7 @@ app.delete('/api/users/me/shopping', auth, async (req, res) => {
       await db.run('DELETE FROM shopping_list WHERE user_id = ?', [req.user.id]);
     }
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 // ── LIKES ───────────────────────────────────────────────────────────────────
@@ -562,7 +887,7 @@ app.get('/api/users/me/liked', auth, async (req, res) => {
   try {
     const rows = await db.all('SELECT recipe_id FROM recipe_likes WHERE user_id = ?', [req.user.id]);
     res.json(rows.map(r => String(r.recipe_id)));
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 app.post('/api/recipes/:id/like', auth, async (req, res) => {
@@ -573,7 +898,7 @@ app.post('/api/recipes/:id/like', auth, async (req, res) => {
       await db.run('UPDATE recipes SET likes = likes + 1 WHERE id = ?', [req.params.id]);
     }
     res.json({ liked: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 app.delete('/api/recipes/:id/like', auth, async (req, res) => {
@@ -581,7 +906,7 @@ app.delete('/api/recipes/:id/like', auth, async (req, res) => {
     await db.run('DELETE FROM recipe_likes WHERE user_id = ? AND recipe_id = ?', [req.user.id, req.params.id]);
     await db.run('UPDATE recipes SET likes = GREATEST(0, likes - 1) WHERE id = ?', [req.params.id]);
     res.json({ liked: false });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 // ── SAVED ───────────────────────────────────────────────────────────────────
@@ -590,7 +915,7 @@ app.get('/api/users/me/saved', auth, async (req, res) => {
   try {
     const rows = await db.all('SELECT recipe_id FROM saved_recipes WHERE user_id = ?', [req.user.id]);
     res.json(rows.map(r => String(r.recipe_id)));
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 app.post('/api/recipes/:id/save', auth, async (req, res) => {
@@ -598,14 +923,14 @@ app.post('/api/recipes/:id/save', auth, async (req, res) => {
     const already = await db.get('SELECT 1 FROM saved_recipes WHERE user_id = ? AND recipe_id = ?', [req.user.id, req.params.id]);
     if (!already) await db.run('INSERT INTO saved_recipes (user_id, recipe_id) VALUES (?, ?)', [req.user.id, req.params.id]);
     res.json({ saved: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 app.delete('/api/recipes/:id/save', auth, async (req, res) => {
   try {
     await db.run('DELETE FROM saved_recipes WHERE user_id = ? AND recipe_id = ?', [req.user.id, req.params.id]);
     res.json({ saved: false });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 // ── COOKED ──────────────────────────────────────────────────────────────────
@@ -617,7 +942,7 @@ app.get('/api/users/me/cooked', auth, async (req, res) => {
       recipeId: String(r.recipe_id),
       date: r.cooked_at ? r.cooked_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
     })));
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 app.post('/api/recipes/:id/cooked', auth, async (req, res) => {
@@ -627,13 +952,14 @@ app.post('/api/recipes/:id/cooked', auth, async (req, res) => {
       const recipe = await db.get('SELECT cooked_count FROM recipes WHERE id = ?', [req.params.id]);
       return res.json({ cooked_count: recipe?.cooked_count ?? 0 });
     }
-    const cookedAt = req.body?.cooked_at ?? new Date().toISOString().slice(0, 10);
+    const rawDate = req.body?.cooked_at;
+    const cookedAt = (rawDate && isValidDate(rawDate)) ? rawDate : new Date().toISOString().slice(0, 10);
     await db.run('INSERT INTO user_cooked (user_id, recipe_id, cooked_at) VALUES (?, ?, ?)', [req.user.id, req.params.id, cookedAt]);
     await db.run('UPDATE recipes SET cooked_count = cooked_count + 1 WHERE id = ?', [req.params.id]);
     const recipe = await db.get('SELECT cooked_count FROM recipes WHERE id = ?', [req.params.id]);
     res.json({ cooked_count: recipe?.cooked_count ?? 0 });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -649,7 +975,7 @@ app.delete('/api/recipes/:id/cooked', auth, async (req, res) => {
     const recipe = await db.get('SELECT cooked_count FROM recipes WHERE id = ?', [req.params.id]);
     res.json({ cooked_count: recipe?.cooked_count ?? 0 });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -661,7 +987,7 @@ app.get('/api/users/me/ratings', auth, async (req, res) => {
     const result = {};
     rows.forEach(r => { result[String(r.recipe_id)] = r.rating; });
     res.json(result);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 app.post('/api/recipes/:id/rate', auth, async (req, res) => {
@@ -697,13 +1023,13 @@ app.post('/api/recipes/:id/rate', auth, async (req, res) => {
 
     res.json({ rating: Math.round((parseFloat(stats.avg_rating ?? 0)) * 10) / 10, rating_count: parseInt(stats.rating_count ?? 0) });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
 // ── COMMENTS ────────────────────────────────────────────────────────────────
 
-app.get('/api/recipes/:id/comments', async (req, res) => {
+app.get('/api/recipes/:id/comments', publicLimiter, async (req, res) => {
   try {
     const comments = await db.all(`
       SELECT c.id, c.text, c.created_at, c.user_id,
@@ -715,11 +1041,11 @@ app.get('/api/recipes/:id/comments', async (req, res) => {
     `, [req.params.id]);
     res.json(comments);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
-app.post('/api/recipes/:id/comments', auth, async (req, res) => {
+app.post('/api/recipes/:id/comments', auth, commentLimiter, async (req, res) => {
   try {
     const { text } = req.body;
     if (!text?.trim()) return res.status(400).json({ error: 'Comentário não pode ser vazio' });
@@ -755,7 +1081,7 @@ app.post('/api/recipes/:id/comments', auth, async (req, res) => {
 
     res.status(201).json(comment);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -774,7 +1100,7 @@ app.get('/api/notifications', auth, async (req, res) => {
     `, [req.user.id]);
     res.json(notifs);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -783,7 +1109,7 @@ app.put('/api/notifications/read', auth, async (req, res) => {
     await db.run('UPDATE notifications SET read = 1 WHERE user_id = ?', [req.user.id]);
     res.json({ ok: true });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -792,7 +1118,7 @@ app.get('/api/notifications/unread-count', auth, async (req, res) => {
     const row = await db.get('SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND read = 0', [req.user.id]);
     res.json({ count: parseInt(row?.count ?? 0) });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -981,12 +1307,11 @@ app.get('/api/health', (_, res) => res.json({ ok: true, db: 'postgresql', time: 
 
 // ── 404 e erros — sempre JSON ────────────────────────────────────────────────
 app.use((req, res) => {
-  res.status(404).json({ error: `Rota não encontrada: ${req.method} ${req.path}` });
+  res.status(404).json({ error: 'Rota não encontrada' });
 });
 
 app.use((err, req, res, _next) => {
-  console.error('Unhandled error:', err);
-  res.status(500).json({ error: err.message ?? 'Erro interno do servidor' });
+  serverError(res, err);
 });
 
 // ── INICIAR ──────────────────────────────────────────────────────────────────
@@ -996,6 +1321,16 @@ db.init().then(() => {
     console.log(`   Base de dados: PostgreSQL`);
     console.log(`   Health check:  http://localhost:${PORT}/api/health\n`);
   });
+
+  // Clean up expired/used tokens every 24h to prevent table bloat
+  setInterval(async () => {
+    try {
+      await db.run("DELETE FROM email_verification_tokens WHERE expires_at < NOW() OR used = TRUE");
+      await db.run("DELETE FROM password_reset_tokens WHERE expires_at < NOW() OR used = TRUE");
+    } catch (e) {
+      console.error('Token cleanup error:', e.message);
+    }
+  }, 24 * 60 * 60 * 1000);
 }).catch((err) => {
   console.error('Erro ao iniciar a base de dados:', err);
   process.exit(1);
