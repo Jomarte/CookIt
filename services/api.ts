@@ -19,7 +19,10 @@ async function request(path: string, options: RequestInit = {}) {
     throw new Error(`Servidor offline ou erro inesperado (${res.status})`);
   }
 
-  if (!res.ok) throw new Error(data.error ?? 'Erro desconhecido');
+  if (!res.ok) {
+    const msg = (data?.error || 'Erro desconhecido').slice(0, 200);
+    throw new Error(msg);
+  }
   return data;
 }
 

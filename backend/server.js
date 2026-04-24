@@ -56,6 +56,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) throw new Error('JWT_SECRET env var is required');
+if (JWT_SECRET.length < 32) throw new Error('JWT_SECRET must be at least 32 characters');
 
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
@@ -94,6 +95,41 @@ const forgotLimiter = rateLimit({
   message: { error: 'Demasiados pedidos de reset. Tenta novamente mais tarde.' },
 });
 
+// Rate limit for public read endpoints (unauthenticated)
+const publicLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados pedidos. Tenta novamente em breve.' },
+});
+
+const commentLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados comentários. Aguarda um momento.' },
+});
+
+// OWASP: Never expose internal error details in production
+const IS_PROD = process.env.NODE_ENV === 'production';
+function serverError(res, err, fallback = 'Erro interno do servidor') {
+  console.error(err);
+  res.status(500).json({ error: IS_PROD ? fallback : (err?.message ?? fallback) });
+}
+
+// OWASP: Input validation helpers
+const VALID_DATE = /^\d{4}-\d{2}-\d{2}$/;
+function isValidDate(s) {
+  if (!VALID_DATE.test(s)) return false;
+  const d = new Date(s);
+  return !isNaN(d.getTime()) && d <= new Date();
+}
+function sanitizeStr(s, maxLen = 500) {
+  return typeof s === 'string' ? s.trim().slice(0, maxLen) : '';
+}
+
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: false }));
 
@@ -116,17 +152,21 @@ function auth(req, res, next) {
 app.post('/api/auth/register', authLimiter, async (req, res) => {
   try {
     const { name, username, email, password, terms_accepted } = req.body;
+    const normalizedEmail = email?.trim().toLowerCase();
 
-    if (!name || !username || !email || !password)
+    if (!name || !username || !normalizedEmail || !password)
       return res.status(400).json({ error: 'Preenche todos os campos' });
     if (password.length < 8)
       return res.status(400).json({ error: 'A password deve ter pelo menos 8 caracteres' });
     if (!terms_accepted)
       return res.status(400).json({ error: 'Tens de aceitar os Termos e a Política de Privacidade' });
+    if (name.trim().length > 100) return res.status(400).json({ error: 'Nome demasiado longo' });
+    if (username.trim().length > 50) return res.status(400).json({ error: 'Username demasiado longo' });
+    if (password.length > 128) return res.status(400).json({ error: 'Password demasiado longa' });
 
     const existing = await db.get(
       'SELECT id FROM users WHERE email = ? OR username = ?',
-      [email, username]
+      [normalizedEmail, username]
     );
     if (existing) return res.status(409).json({ error: 'Email ou username já existe' });
 
@@ -134,14 +174,14 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
     const now = new Date().toISOString();
     await db.run(
       'INSERT INTO users (name, username, email, password, terms_accepted_at) VALUES (?, ?, ?, ?, ?)',
-      [name, username, email, hash, now]
+      [name, username, normalizedEmail, hash, now]
     );
 
     const user = await db.get(
       `SELECT id, name, first_name, last_name, username, email, avatar, bio, cooking_type,
               nationality, followers, following, recipes_count, email_verified, created_at
        FROM users WHERE email = ?`,
-      [email]
+      [normalizedEmail]
     );
     if (!user) return res.status(500).json({ error: 'Erro ao criar utilizador' });
 
@@ -152,8 +192,7 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
     const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
     res.status(201).json({ user, token });
   } catch (e) {
-    console.error('Register error:', e);
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -161,11 +200,12 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
 app.post('/api/auth/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = email?.trim().toLowerCase();
 
-    if (!email || !password)
+    if (!normalizedEmail || !password)
       return res.status(400).json({ error: 'Preenche todos os campos' });
 
-    const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
+    const user = await db.get('SELECT * FROM users WHERE email = ?', [normalizedEmail]);
     if (!user) return res.status(401).json({ error: 'Credenciais inválidas' });
 
     const valid = bcrypt.compareSync(password, user.password);
@@ -176,8 +216,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
 
     res.json({ user: userSafe, token });
   } catch (e) {
-    console.error('Login error:', e);
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -193,7 +232,7 @@ app.get('/api/auth/me', auth, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'Utilizador não encontrado' });
     res.json(user);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -201,6 +240,17 @@ app.get('/api/auth/me', auth, async (req, res) => {
 app.put('/api/auth/me', auth, async (req, res) => {
   try {
     const { name, first_name, last_name, username, bio, cooking_type, nationality, avatar } = req.body;
+
+    if (name && name.length > 100) return res.status(400).json({ error: 'Nome demasiado longo' });
+    if (username && username.length > 50) return res.status(400).json({ error: 'Username demasiado longo' });
+    if (bio && bio.length > 500) return res.status(400).json({ error: 'Bio demasiado longa' });
+
+    if (avatar && avatar.length > 7 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Avatar demasiado grande (máx. 5 MB)' });
+    }
+    if (avatar && !avatar.startsWith('data:image/')) {
+      return res.status(400).json({ error: 'Formato de avatar inválido' });
+    }
 
     if (username) {
       const existing = await db.get('SELECT id FROM users WHERE username = ? AND id != ?', [username, req.user.id]);
@@ -219,7 +269,7 @@ app.put('/api/auth/me', auth, async (req, res) => {
     );
     res.json(user);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -229,7 +279,7 @@ app.delete('/api/auth/me', auth, async (req, res) => {
     await db.run('DELETE FROM users WHERE id = ?', [req.user.id]);
     res.json({ ok: true });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -248,7 +298,7 @@ function parseRecipe(row) {
 }
 
 // Listar receitas (feed)
-app.get('/api/recipes', async (req, res) => {
+app.get('/api/recipes', publicLimiter, async (req, res) => {
   try {
     const recipes = await db.all(`
       SELECT r.*, u.name as author_name, u.username as author_username, u.avatar as author_avatar, u.cooking_type as author_cooking_type
@@ -266,12 +316,12 @@ app.get('/api/recipes', async (req, res) => {
 
     res.json(result);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
 // Receita por ID
-app.get('/api/recipes/:id', async (req, res) => {
+app.get('/api/recipes/:id', publicLimiter, async (req, res) => {
   try {
     const r = await db.get(`
       SELECT r.*, u.name as author_name, u.username as author_username, u.avatar as author_avatar, u.cooking_type as author_cooking_type
@@ -288,7 +338,7 @@ app.get('/api/recipes/:id', async (req, res) => {
 
     res.json(recipe);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -298,6 +348,15 @@ app.post('/api/recipes', auth, async (req, res) => {
     const { title, image, category, cuisine, dish_type, cooking_method, difficulty, prep_time, cook_time, servings, calories, cost, diet, tags, ingredients, steps } = req.body;
 
     if (!title?.trim()) return res.status(400).json({ error: 'Título obrigatório' });
+    if (title.trim().length > 200) return res.status(400).json({ error: 'Título demasiado longo' });
+
+    // OWASP: Validate image field (base64 data URI, max 5MB)
+    if (image && image.length > 7 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Imagem demasiado grande (máx. 5 MB)' });
+    }
+    if (image && !image.startsWith('data:image/')) {
+      return res.status(400).json({ error: 'Formato de imagem inválido' });
+    }
 
     await db.run(
       `INSERT INTO recipes (title, image, category, cuisine, dish_type, cooking_method, difficulty, prep_time, cook_time, servings, calories, cost, diet, tags, author_id)
@@ -348,7 +407,7 @@ app.post('/api/recipes', auth, async (req, res) => {
     res.status(201).json(result);
   } catch (e) {
     console.error('Create recipe error:', e);
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -361,6 +420,14 @@ app.put('/api/recipes/:id', auth, async (req, res) => {
     const { title, image, cuisine, dish_type, cooking_method, difficulty, prep_time, cook_time, servings, calories, cost, diet, tags, ingredients, steps } = req.body;
 
     if (!title?.trim()) return res.status(400).json({ error: 'Título obrigatório' });
+
+    // OWASP: Validate image field (base64 data URI, max 5MB)
+    if (image && image.length > 7 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Imagem demasiado grande (máx. 5 MB)' });
+    }
+    if (image && !image.startsWith('data:image/')) {
+      return res.status(400).json({ error: 'Formato de imagem inválido' });
+    }
 
     await db.run(
       `UPDATE recipes SET title=?, image=?, cuisine=?, dish_type=?, cooking_method=?, difficulty=?, prep_time=?, cook_time=?, servings=?, calories=?, cost=?, diet=?, tags=? WHERE id=?`,
@@ -401,7 +468,7 @@ app.put('/api/recipes/:id', auth, async (req, res) => {
     res.json(result);
   } catch (e) {
     console.error('Update recipe error:', e);
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -416,12 +483,12 @@ app.delete('/api/recipes/:id', auth, async (req, res) => {
     await db.run('UPDATE users SET recipes_count = GREATEST(0, recipes_count - 1) WHERE id = ?', [req.user.id]);
     res.json({ ok: true });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
 // ── USERS ───────────────────────────────────────────────────────────────────
-app.get('/api/users/:id', async (req, res) => {
+app.get('/api/users/:id', publicLimiter, async (req, res) => {
   try {
     const user = await db.get(
       'SELECT id, name, first_name, last_name, username, avatar, bio, cooking_type, nationality, followers, following, recipes_count, created_at FROM users WHERE id = ?',
@@ -430,11 +497,11 @@ app.get('/api/users/:id', async (req, res) => {
     if (!user) return res.status(404).json({ error: 'Utilizador não encontrado' });
     res.json(user);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
-app.get('/api/users/:id/recipes', async (req, res) => {
+app.get('/api/users/:id/recipes', publicLimiter, async (req, res) => {
   try {
     const rows = await db.all(`
       SELECT r.*, u.name as author_name, u.username as author_username, u.avatar as author_avatar
@@ -444,11 +511,11 @@ app.get('/api/users/:id/recipes', async (req, res) => {
     `, [req.params.id]);
     res.json(rows.map(parseRecipe));
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
-app.get('/api/users/:id/cooked', async (req, res) => {
+app.get('/api/users/:id/cooked', publicLimiter, async (req, res) => {
   try {
     const rows = await db.all(`
       SELECT r.*, u.name as author_name, u.username as author_username, u.avatar as author_avatar
@@ -460,13 +527,13 @@ app.get('/api/users/:id/cooked', async (req, res) => {
     `, [req.params.id]);
     res.json(rows.map(parseRecipe));
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
 // ── RANKINGS ─────────────────────────────────────────────────────────────────
 
-app.get('/api/rankings', async (req, res) => {
+app.get('/api/rankings', publicLimiter, async (req, res) => {
   try {
     const users = await db.all(`
       SELECT
@@ -519,7 +586,7 @@ app.get('/api/rankings', async (req, res) => {
     }));
 
     res.json(result);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 // ── FOLLOWS ─────────────────────────────────────────────────────────────────
@@ -529,7 +596,7 @@ app.get('/api/users/:id/follow', auth, async (req, res) => {
     const row = await db.get('SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?', [req.user.id, req.params.id]);
     res.json({ following: !!row });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -546,7 +613,7 @@ app.post('/api/users/:id/follow', auth, async (req, res) => {
     const me = await db.get('SELECT following FROM users WHERE id = ?', [req.user.id]);
     res.json({ following: true, followers: target.followers, myFollowing: me.following });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -562,7 +629,7 @@ app.delete('/api/users/:id/follow', auth, async (req, res) => {
     const me = await db.get('SELECT following FROM users WHERE id = ?', [req.user.id]);
     res.json({ following: false, followers: target.followers, myFollowing: me.following });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -582,7 +649,7 @@ app.get('/api/users/me/shopping', auth, async (req, res) => {
       category: r.category,
       checked: r.checked,
     })));
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 app.post('/api/users/me/shopping', auth, async (req, res) => {
@@ -598,7 +665,7 @@ app.post('/api/users/me/shopping', auth, async (req, res) => {
       );
     }
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 app.patch('/api/users/me/shopping/:itemId/check', auth, async (req, res) => {
@@ -608,14 +675,14 @@ app.patch('/api/users/me/shopping/:itemId/check', auth, async (req, res) => {
       [req.user.id, req.params.itemId]
     );
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 app.delete('/api/users/me/shopping/:itemId', auth, async (req, res) => {
   try {
     await db.run('DELETE FROM shopping_list WHERE user_id = ? AND item_id = ?', [req.user.id, req.params.itemId]);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 app.delete('/api/users/me/shopping', auth, async (req, res) => {
@@ -627,7 +694,7 @@ app.delete('/api/users/me/shopping', auth, async (req, res) => {
       await db.run('DELETE FROM shopping_list WHERE user_id = ?', [req.user.id]);
     }
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 // ── LIKES ───────────────────────────────────────────────────────────────────
@@ -636,7 +703,7 @@ app.get('/api/users/me/liked', auth, async (req, res) => {
   try {
     const rows = await db.all('SELECT recipe_id FROM recipe_likes WHERE user_id = ?', [req.user.id]);
     res.json(rows.map(r => String(r.recipe_id)));
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 app.post('/api/recipes/:id/like', auth, async (req, res) => {
@@ -647,7 +714,7 @@ app.post('/api/recipes/:id/like', auth, async (req, res) => {
       await db.run('UPDATE recipes SET likes = likes + 1 WHERE id = ?', [req.params.id]);
     }
     res.json({ liked: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 app.delete('/api/recipes/:id/like', auth, async (req, res) => {
@@ -655,7 +722,7 @@ app.delete('/api/recipes/:id/like', auth, async (req, res) => {
     await db.run('DELETE FROM recipe_likes WHERE user_id = ? AND recipe_id = ?', [req.user.id, req.params.id]);
     await db.run('UPDATE recipes SET likes = GREATEST(0, likes - 1) WHERE id = ?', [req.params.id]);
     res.json({ liked: false });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 // ── SAVED ───────────────────────────────────────────────────────────────────
@@ -664,7 +731,7 @@ app.get('/api/users/me/saved', auth, async (req, res) => {
   try {
     const rows = await db.all('SELECT recipe_id FROM saved_recipes WHERE user_id = ?', [req.user.id]);
     res.json(rows.map(r => String(r.recipe_id)));
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 app.post('/api/recipes/:id/save', auth, async (req, res) => {
@@ -672,14 +739,14 @@ app.post('/api/recipes/:id/save', auth, async (req, res) => {
     const already = await db.get('SELECT 1 FROM saved_recipes WHERE user_id = ? AND recipe_id = ?', [req.user.id, req.params.id]);
     if (!already) await db.run('INSERT INTO saved_recipes (user_id, recipe_id) VALUES (?, ?)', [req.user.id, req.params.id]);
     res.json({ saved: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 app.delete('/api/recipes/:id/save', auth, async (req, res) => {
   try {
     await db.run('DELETE FROM saved_recipes WHERE user_id = ? AND recipe_id = ?', [req.user.id, req.params.id]);
     res.json({ saved: false });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 // ── COOKED ──────────────────────────────────────────────────────────────────
@@ -691,7 +758,7 @@ app.get('/api/users/me/cooked', auth, async (req, res) => {
       recipeId: String(r.recipe_id),
       date: r.cooked_at ? r.cooked_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
     })));
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 app.post('/api/recipes/:id/cooked', auth, async (req, res) => {
@@ -701,13 +768,14 @@ app.post('/api/recipes/:id/cooked', auth, async (req, res) => {
       const recipe = await db.get('SELECT cooked_count FROM recipes WHERE id = ?', [req.params.id]);
       return res.json({ cooked_count: recipe?.cooked_count ?? 0 });
     }
-    const cookedAt = req.body?.cooked_at ?? new Date().toISOString().slice(0, 10);
+    const rawDate = req.body?.cooked_at;
+    const cookedAt = (rawDate && isValidDate(rawDate)) ? rawDate : new Date().toISOString().slice(0, 10);
     await db.run('INSERT INTO user_cooked (user_id, recipe_id, cooked_at) VALUES (?, ?, ?)', [req.user.id, req.params.id, cookedAt]);
     await db.run('UPDATE recipes SET cooked_count = cooked_count + 1 WHERE id = ?', [req.params.id]);
     const recipe = await db.get('SELECT cooked_count FROM recipes WHERE id = ?', [req.params.id]);
     res.json({ cooked_count: recipe?.cooked_count ?? 0 });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -723,7 +791,7 @@ app.delete('/api/recipes/:id/cooked', auth, async (req, res) => {
     const recipe = await db.get('SELECT cooked_count FROM recipes WHERE id = ?', [req.params.id]);
     res.json({ cooked_count: recipe?.cooked_count ?? 0 });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -735,7 +803,7 @@ app.get('/api/users/me/ratings', auth, async (req, res) => {
     const result = {};
     rows.forEach(r => { result[String(r.recipe_id)] = r.rating; });
     res.json(result);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { serverError(res, e); }
 });
 
 app.post('/api/recipes/:id/rate', auth, async (req, res) => {
@@ -771,13 +839,13 @@ app.post('/api/recipes/:id/rate', auth, async (req, res) => {
 
     res.json({ rating: Math.round((parseFloat(stats.avg_rating ?? 0)) * 10) / 10, rating_count: parseInt(stats.rating_count ?? 0) });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
 // ── COMMENTS ────────────────────────────────────────────────────────────────
 
-app.get('/api/recipes/:id/comments', async (req, res) => {
+app.get('/api/recipes/:id/comments', publicLimiter, async (req, res) => {
   try {
     const comments = await db.all(`
       SELECT c.id, c.text, c.created_at, c.user_id,
@@ -789,11 +857,11 @@ app.get('/api/recipes/:id/comments', async (req, res) => {
     `, [req.params.id]);
     res.json(comments);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
-app.post('/api/recipes/:id/comments', auth, async (req, res) => {
+app.post('/api/recipes/:id/comments', auth, commentLimiter, async (req, res) => {
   try {
     const { text } = req.body;
     if (!text?.trim()) return res.status(400).json({ error: 'Comentário não pode ser vazio' });
@@ -829,7 +897,7 @@ app.post('/api/recipes/:id/comments', auth, async (req, res) => {
 
     res.status(201).json(comment);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -848,7 +916,7 @@ app.get('/api/notifications', auth, async (req, res) => {
     `, [req.user.id]);
     res.json(notifs);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -857,7 +925,7 @@ app.put('/api/notifications/read', auth, async (req, res) => {
     await db.run('UPDATE notifications SET read = 1 WHERE user_id = ?', [req.user.id]);
     res.json({ ok: true });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -866,7 +934,7 @@ app.get('/api/notifications/unread-count', auth, async (req, res) => {
     const row = await db.get('SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND read = 0', [req.user.id]);
     res.json({ count: parseInt(row?.count ?? 0) });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
@@ -875,12 +943,11 @@ app.get('/api/health', (_, res) => res.json({ ok: true, db: 'postgresql', time: 
 
 // ── 404 e erros — sempre JSON ────────────────────────────────────────────────
 app.use((req, res) => {
-  res.status(404).json({ error: `Rota não encontrada: ${req.method} ${req.path}` });
+  res.status(404).json({ error: 'Rota não encontrada' });
 });
 
 app.use((err, req, res, _next) => {
-  console.error('Unhandled error:', err);
-  res.status(500).json({ error: err.message ?? 'Erro interno do servidor' });
+  serverError(res, err);
 });
 
 // ── INICIAR ──────────────────────────────────────────────────────────────────
@@ -890,6 +957,16 @@ db.init().then(() => {
     console.log(`   Base de dados: PostgreSQL`);
     console.log(`   Health check:  http://localhost:${PORT}/api/health\n`);
   });
+
+  // Clean up expired/used tokens every 24h to prevent table bloat
+  setInterval(async () => {
+    try {
+      await db.run("DELETE FROM email_verification_tokens WHERE expires_at < NOW() OR used = TRUE");
+      await db.run("DELETE FROM password_reset_tokens WHERE expires_at < NOW() OR used = TRUE");
+    } catch (e) {
+      console.error('Token cleanup error:', e.message);
+    }
+  }, 24 * 60 * 60 * 1000);
 }).catch((err) => {
   console.error('Erro ao iniciar a base de dados:', err);
   process.exit(1);
