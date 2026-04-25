@@ -192,6 +192,7 @@ async function init() {
   // New columns on users (safe to run multiple times — IF NOT EXISTS)
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS terms_accepted_at TIMESTAMPTZ DEFAULT NULL`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS streak INTEGER DEFAULT 0`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS email_verification_tokens (
