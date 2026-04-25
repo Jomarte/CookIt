@@ -55,7 +55,7 @@ const SORT_KEYS = [
 
 export default function DiscoverScreen() {
   const router = useRouter();
-  const { savedRecipes, toggleSaved, recipes, setRecipes, token } = useStore();
+  const { savedRecipes, toggleSaved, recipes, setRecipes, token, language } = useStore();
   const t = useT();
   const d = t.discover;
   const [search, setSearch] = useState('');
@@ -78,8 +78,8 @@ export default function DiscoverScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const fridgeSuggestions = useMemo<IngredientEntry[]>(
-    () => (fridgeInput.trim().length > 0 ? getIngredientSuggestions(fridgeInput) : []),
-    [fridgeInput]
+    () => (fridgeInput.trim().length > 0 ? getIngredientSuggestions(fridgeInput, language) : []),
+    [fridgeInput, language]
   );
   const [sortBy, setSortBy] = useState('');
   const scrollRef = useRef<ScrollView>(null);

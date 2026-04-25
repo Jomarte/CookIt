@@ -254,7 +254,7 @@ export default function SettingsScreen() {
               <Text style={[styles.langOptionText, language === 'en' && styles.langOptionTextActive]}>{s.langEN}</Text>
               {language === 'en' && <Ionicons name="checkmark" size={18} color={COLORS.primary} />}
             </TouchableOpacity>
-            <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setLangModal(false)}>
+            <TouchableOpacity style={[styles.modalCancelBtn, { flex: 0, width: '100%' }]} onPress={() => setLangModal(false)}>
               <Text style={styles.modalCancelText}>{t.common.cancel}</Text>
             </TouchableOpacity>
           </View>

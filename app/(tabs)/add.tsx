@@ -52,7 +52,7 @@ export default function AddScreen() {
   const router = useRouter();
   const t = useT();
   const a = t.add;
-  const { token, addNotification } = useStore();
+  const { token, addNotification, language } = useStore();
   const fileInputRef = useRef<any>(null);
   const [photo, setPhoto] = useState<string | null>(null);
   const [title, setTitle] = useState('');
@@ -441,7 +441,7 @@ export default function AddScreen() {
         <View style={styles.section}>
           <Text style={styles.label}>{a.ingredientsTitle}</Text>
           {ingredients.map((ing, i) => {
-            const suggestions = focusedIngredient === i ? getIngredientSuggestions(ing.name) : [];
+            const suggestions = focusedIngredient === i ? getIngredientSuggestions(ing.name, language) : [];
             const noAmount = NO_AMOUNT_UNITS.includes(ing.unit);
             return (
               <View key={i} style={styles.ingredientBlock}>

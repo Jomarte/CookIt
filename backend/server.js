@@ -675,7 +675,7 @@ app.delete('/api/recipes/:id', auth, async (req, res) => {
 app.get('/api/users/:id', publicLimiter, async (req, res) => {
   try {
     const user = await db.get(
-      'SELECT id, name, first_name, last_name, username, avatar, bio, cooking_type, nationality, followers, following, recipes_count, created_at FROM users WHERE id = ?',
+      'SELECT id, name, first_name, last_name, username, avatar, bio, cooking_type, nationality, followers, following, recipes_count, streak, created_at FROM users WHERE id = ?',
       [req.params.id]
     );
     if (!user) return res.status(404).json({ error: 'Utilizador não encontrado' });

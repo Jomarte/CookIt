@@ -50,7 +50,7 @@ export default function EditRecipeScreen() {
   const router = useRouter();
   const t = useT();
   const a = t.add;
-  const { token } = useStore();
+  const { token, language } = useStore();
   const fileInputRef = useRef<any>(null);
   const PT_CUISINES_FILTERED = PT_CUISINES.filter(c => c !== 'Todas');
   const PT_DISH_TYPES_FILTERED = PT_DISH_TYPES.filter(d => d !== 'Todos');
@@ -425,7 +425,7 @@ export default function EditRecipeScreen() {
         <View style={styles.section}>
           <Text style={styles.label}>{a.ingredientsTitle}</Text>
           {ingredients.map((ing, i) => {
-            const suggestions = focusedIngredient === i ? getIngredientSuggestions(ing.name) : [];
+            const suggestions = focusedIngredient === i ? getIngredientSuggestions(ing.name, language) : [];
             const noAmount = NO_AMOUNT_UNITS.includes(ing.unit);
             return (
               <View key={i} style={styles.ingredientBlock}>
