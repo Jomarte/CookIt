@@ -279,21 +279,7 @@ export default function RecipeDetailScreen() {
             </View>
           </View>
 
-          {/* Author */}
-          <View style={styles.authorCard}>
-            <View style={styles.authorAvatar}>
-              <Text style={styles.authorAvatarText}>{initial}</Text>
-            </View>
-            <View style={styles.authorInfo}>
-              <Text style={styles.authorName}>{recipe.author_name ?? t.feed.defaultAuthor}</Text>
-              <Text style={styles.authorUsername}>@{recipe.author_username ?? ''}</Text>
-            </View>
-            <TouchableOpacity style={styles.followBtn}>
-              <Text style={styles.followBtnText}>{t.userProfile.follow}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Diet tags */}
+          {/* Diet tags — junto às stats */}
           {recipe.diet?.length > 0 && (
             <View style={styles.dietRow}>
               {recipe.diet.map((d: string) => (
@@ -691,41 +677,6 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 13, fontWeight: '800', color: COLORS.text1, fontFamily: FONTS.bodyBold },
   statLabel: { fontSize: 10, color: COLORS.text3, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3, fontFamily: FONTS.body },
   statDivider: { width: 1, backgroundColor: COLORS.border, alignSelf: 'stretch', marginVertical: 4 },
-
-  authorCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface1,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 12,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  authorAvatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: COLORS.primaryDim,
-    borderWidth: 2,
-    borderColor: COLORS.borderActive,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  authorAvatarText: { fontSize: 18, fontWeight: '900', color: COLORS.primary, fontFamily: FONTS.bodyBold },
-  authorInfo: { flex: 1 },
-  authorName: { fontSize: 14, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.bodyBold },
-  authorUsername: { fontSize: 12, color: COLORS.text3, marginTop: 2, fontFamily: FONTS.body },
-  followBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: COLORS.primaryDim,
-    borderWidth: 1.5,
-    borderColor: COLORS.borderActive,
-  },
-  followBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.primary, fontFamily: FONTS.bodyBold },
 
   dietRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
   dietBadge: {
