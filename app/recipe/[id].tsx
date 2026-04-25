@@ -25,13 +25,13 @@ import { useT } from '../../i18n';
 const TAB_KEYS = ['Receita', 'Comentários'] as const;
 
 export default function RecipeDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, tab } = useLocalSearchParams<{ id: string; tab?: string }>();
   const router = useRouter();
   const t = useT();
   const r = t.recipe;
   const [recipe, setRecipe] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<typeof TAB_KEYS[number]>('Receita');
+  const [activeTab, setActiveTab] = useState<typeof TAB_KEYS[number]>(tab === 'Comentários' ? 'Comentários' : 'Receita');
   const [servings, setServings] = useState(2);
   const { savedRecipes, cookedRecipes, shoppingList, toggleSaved, toggleCooked, addToShoppingList, setRating, userRatings, token, user, language } = useStore();
   const userRating = userRatings[String(id)] ?? 0;
@@ -242,12 +242,18 @@ export default function RecipeDetailScreen() {
                 <Text style={[styles.metaChipText, { color: COLORS.green }]}>{recipe.cost}</Text>
               </View>
             ) : null}
-            {recipe.diet?.map((d: string) => (
-              <View key={d} style={styles.dietBadge}>
-                <Text style={styles.dietBadgeText}>{d}</Text>
-              </View>
-            ))}
           </View>
+
+          {/* Diet tags */}
+          {recipe.diet?.length > 0 && (
+            <View style={styles.dietRow}>
+              {recipe.diet.map((d: string) => (
+                <View key={d} style={styles.dietBadge}>
+                  <Text style={styles.dietBadgeText}>{d}</Text>
+                </View>
+              ))}
+            </View>
+          )}
 
           {/* Stats Row */}
           <View style={styles.statsRow}>

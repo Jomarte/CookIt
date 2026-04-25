@@ -176,7 +176,7 @@ export default function FeedScreen() {
               {likeCount >= 1000 ? `${(likeCount / 1000).toFixed(1)}K` : likeCount}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.socialBtn} onPress={() => router.push(`/recipe/${recipe.id}`)} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.socialBtn} onPress={() => router.push(`/recipe/${recipe.id}?tab=Coment%C3%A1rios`)} activeOpacity={0.7}>
             <Ionicons name="chatbubble-outline" size={20} color={COLORS.text2} />
             {commentCount > 0 && <Text style={styles.socialCount}>{commentCount}</Text>}
           </TouchableOpacity>
