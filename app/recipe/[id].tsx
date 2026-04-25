@@ -242,6 +242,11 @@ export default function RecipeDetailScreen() {
                 <Text style={[styles.metaChipText, { color: COLORS.green }]}>{recipe.cost}</Text>
               </View>
             ) : null}
+            {recipe.diet?.map((d: string) => (
+              <View key={d} style={styles.dietBadge}>
+                <Text style={styles.dietBadgeText}>{d}</Text>
+              </View>
+            ))}
           </View>
 
           {/* Stats Row */}
@@ -278,17 +283,6 @@ export default function RecipeDetailScreen() {
               <Text style={styles.statLabel}>{r.statCooked}</Text>
             </View>
           </View>
-
-          {/* Diet tags — junto às stats */}
-          {recipe.diet?.length > 0 && (
-            <View style={styles.dietRow}>
-              {recipe.diet.map((d: string) => (
-                <View key={d} style={styles.dietBadge}>
-                  <Text style={styles.dietBadgeText}>{d}</Text>
-                </View>
-              ))}
-            </View>
-          )}
 
           {/* Tabs */}
           <View style={styles.tabs}>
