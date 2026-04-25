@@ -277,7 +277,37 @@ app.put('/api/auth/me', auth, async (req, res) => {
 // Apagar conta
 app.delete('/api/auth/me', auth, async (req, res) => {
   try {
-    await db.run('DELETE FROM users WHERE id = ?', [req.user.id]);
+    const userId = req.user.id;
+
+    // Decrement follower/following counters before cascade removes the rows
+    await db.run(
+      'UPDATE users SET followers = GREATEST(0, followers - 1) WHERE id IN (SELECT following_id FROM follows WHERE follower_id = ?)',
+      [userId]
+    );
+    await db.run(
+      'UPDATE users SET following = GREATEST(0, following - 1) WHERE id IN (SELECT follower_id FROM follows WHERE following_id = ?)',
+      [userId]
+    );
+
+    // Decrement like/save counters on other users' recipes
+    await db.run(
+      'UPDATE recipes SET likes = GREATEST(0, likes - 1) WHERE id IN (SELECT recipe_id FROM recipe_likes WHERE user_id = ?)',
+      [userId]
+    );
+    await db.run(
+      'UPDATE recipes SET saves = GREATEST(0, saves - 1) WHERE id IN (SELECT recipe_id FROM saved_recipes WHERE user_id = ?)',
+      [userId]
+    );
+
+    // Delete ratings made by this user (no FK cascade on user_id in ratings)
+    await db.run('DELETE FROM ratings WHERE user_id = ?', [userId]);
+
+    // Delete user's recipes — cascades ingredients, steps, comments, recipe_likes, saved_recipes, user_cooked, ratings on those recipes
+    await db.run('DELETE FROM recipes WHERE author_id = ?', [userId]);
+
+    // Delete the user — cascades follows, recipe_likes, saved_recipes, user_cooked, shopping_list, notifications, tokens, comments
+    await db.run('DELETE FROM users WHERE id = ?', [userId]);
+
     res.json({ ok: true });
   } catch (e) {
     serverError(res, e);
