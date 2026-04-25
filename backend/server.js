@@ -706,11 +706,27 @@ app.delete('/api/recipes/:id', auth, async (req, res) => {
 app.get('/api/users/:id', publicLimiter, async (req, res) => {
   try {
     const user = await db.get(
-      'SELECT id, name, first_name, last_name, username, avatar, bio, cooking_type, nationality, followers, following, recipes_count, streak, created_at FROM users WHERE id = ?',
+      'SELECT id, name, first_name, last_name, username, avatar, bio, cooking_type, nationality, followers, following, recipes_count, created_at FROM users WHERE id = ?',
       [req.params.id]
     );
     if (!user) return res.status(404).json({ error: 'Utilizador não encontrado' });
-    res.json(user);
+
+    // Compute streak dynamically from user_cooked
+    const cookedDates = await db.all(
+      'SELECT DISTINCT cooked_at as date FROM user_cooked WHERE user_id = ? AND cooked_at IS NOT NULL ORDER BY date DESC',
+      [req.params.id]
+    );
+    const dateSet = new Set(cookedDates.map(r => r.date));
+    let streak = 0;
+    const cursor = new Date();
+    while (true) {
+      const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
+      if (!dateSet.has(key)) break;
+      streak++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+
+    res.json({ ...user, streak });
   } catch (e) {
     serverError(res, e);
   }
