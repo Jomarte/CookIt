@@ -9,7 +9,7 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://cookit-qo0c.onrender.com/api",
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "YOUR_WEB_CLIENT_ID_HERE"
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "365818732859-g77g2qce2q2ft5o479pe7kc0hc03gfiv.apps.googleusercontent.com"
       }
     },
     "production": {
@@ -19,7 +19,7 @@
       "ios": {},
       "env": {
         "EXPO_PUBLIC_API_URL": "https://cookit-qo0c.onrender.com/api",
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "YOUR_WEB_CLIENT_ID_HERE"
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "365818732859-g77g2qce2q2ft5o479pe7kc0hc03gfiv.apps.googleusercontent.com"
       }
     }
   },
