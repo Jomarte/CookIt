@@ -11,6 +11,11 @@ const fs = require('fs');
 
 const crypto = require('crypto');
 const { Resend } = require('resend');
+const { OAuth2Client } = require('google-auth-library');
+
+const googleClient = process.env.GOOGLE_CLIENT_ID
+  ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
+  : null;
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const API_URL = process.env.API_URL || `http://localhost:${process.env.PORT || 3001}`;
@@ -194,6 +199,83 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
 
     const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
     res.status(201).json({ user, token });
+  } catch (e) {
+    serverError(res, e);
+  }
+});
+
+// Google Sign-In
+app.post('/api/auth/google', authLimiter, async (req, res) => {
+  try {
+    if (!googleClient) return res.status(503).json({ error: 'Google Sign-In não configurado' });
+
+    const { idToken } = req.body;
+    if (!idToken) return res.status(400).json({ error: 'idToken em falta' });
+
+    // Verify token with Google
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch {
+      return res.status(401).json({ error: 'Token Google inválido' });
+    }
+
+    const { sub: googleId, email, name, picture } = payload;
+    const normalizedEmail = email?.trim().toLowerCase();
+
+    if (!normalizedEmail) return res.status(400).json({ error: 'Email em falta no token Google' });
+
+    // Find existing user by google_id or email
+    let user = await db.get(
+      'SELECT id, name, first_name, last_name, username, email, avatar, bio, cooking_type, nationality, followers, following, recipes_count, email_verified, google_id, created_at FROM users WHERE google_id = ? OR email = ?',
+      [googleId, normalizedEmail]
+    );
+
+    let isNew = false;
+
+    if (!user) {
+      // New user — create account
+      isNew = true;
+      const baseUsername = (name || 'chef')
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '')
+        .slice(0, 20) || 'chef';
+
+      // Ensure unique username
+      let username = baseUsername;
+      let suffix = 1;
+      while (true) {
+        const exists = await db.get('SELECT id FROM users WHERE username = ?', [username]);
+        if (!exists) break;
+        username = `${baseUsername}${suffix++}`;
+      }
+
+      const now = new Date().toISOString();
+      await db.run(
+        'INSERT INTO users (name, username, email, password, avatar, google_id, email_verified, terms_accepted_at) VALUES (?, ?, ?, NULL, ?, ?, TRUE, ?)',
+        [name || 'Chef', username, normalizedEmail, picture || null, googleId, now]
+      );
+
+      user = await db.get(
+        'SELECT id, name, first_name, last_name, username, email, avatar, bio, cooking_type, nationality, followers, following, recipes_count, email_verified, google_id, created_at FROM users WHERE email = ?',
+        [normalizedEmail]
+      );
+    } else if (!user.google_id) {
+      // Existing email user — link google account
+      await db.run('UPDATE users SET google_id = ?, email_verified = TRUE WHERE id = ?', [googleId, user.id]);
+      user.google_id = googleId;
+      user.email_verified = true;
+    }
+
+    if (!user) return res.status(500).json({ error: 'Erro ao criar utilizador' });
+
+    const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
+    const { google_id: _, ...userSafe } = user;
+    res.json({ user: userSafe, token, is_new: isNew });
   } catch (e) {
     serverError(res, e);
   }

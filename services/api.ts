@@ -37,6 +37,9 @@ export const api = {
   login: (body: { email: string; password: string }) =>
     request('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
 
+  googleLogin: (idToken: string) =>
+    request('/auth/google', { method: 'POST', body: JSON.stringify({ idToken }) }),
+
   me: (token: string) =>
     request('/auth/me', { headers: authHeader(token) }),
 

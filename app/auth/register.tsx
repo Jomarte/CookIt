@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { COLORS } from '../../constants/Colors';
 import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
@@ -36,7 +37,28 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
+
+  async function handleGoogleSignIn() {
+    setError('');
+    setGoogleLoading(true);
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      const idToken = userInfo.data?.idToken;
+      if (!idToken) throw new Error('Não foi possível obter o token Google');
+      const { user, token, is_new } = await api.googleLogin(idToken);
+      setAuth(user, token);
+      router.replace(is_new ? '/auth/setup-profile' : '/(tabs)');
+    } catch (e: any) {
+      if (e.code === statusCodes.SIGN_IN_CANCELLED) return;
+      if (e.code === statusCodes.IN_PROGRESS) return;
+      setError(e.message || 'Erro ao entrar com Google');
+    } finally {
+      setGoogleLoading(false);
+    }
+  }
 
   async function handleRegister() {
     if (!termsAccepted) {
@@ -181,6 +203,30 @@ export default function RegisterScreen() {
               }
             </TouchableOpacity>
           </View>
+
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>ou</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.googleBtn, googleLoading && styles.btnDisabled]}
+            onPress={handleGoogleSignIn}
+            disabled={googleLoading}
+          >
+            {googleLoading ? (
+              <ActivityIndicator color={COLORS.text1} size="small" />
+            ) : (
+              <>
+                <Image
+                  source={{ uri: 'https://www.google.com/favicon.ico' }}
+                  style={styles.googleIcon}
+                />
+                <Text style={styles.googleBtnText}>Continuar com Google</Text>
+              </>
+            )}
+          </TouchableOpacity>
 
           <TouchableOpacity style={styles.loginLink} onPress={() => router.push('/auth/login')}>
             <Text style={styles.loginLinkText}>
@@ -334,7 +380,32 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
 
-  loginLink: { marginTop: 16 },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    alignSelf: 'stretch',
+    marginTop: 4,
+  },
+  dividerLine: { flex: 1, height: 1, backgroundColor: COLORS.border },
+  dividerText: { fontSize: 13, color: COLORS.text3, fontFamily: FONTS.body },
+
+  googleBtn: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 15,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface1,
+  },
+  googleIcon: { width: 20, height: 20, borderRadius: 4 },
+  googleBtnText: { fontSize: 15, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.bodyBold },
+
+  loginLink: { marginTop: 8 },
   loginLinkText: { fontSize: 14, color: COLORS.text3, fontFamily: FONTS.body },
   loginLinkBold: { color: COLORS.primary, fontWeight: '700', fontFamily: FONTS.bodyBold },
 });

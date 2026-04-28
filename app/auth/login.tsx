@@ -13,11 +13,16 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { COLORS } from '../../constants/Colors';
 import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 import { useStore } from '../../store/useStore';
 import { useT } from '../../i18n';
+
+GoogleSignin.configure({
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '',
+});
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -28,9 +33,30 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
 
   if (token) return <Redirect href="/(tabs)" />;
+
+  async function handleGoogleSignIn() {
+    setError('');
+    setGoogleLoading(true);
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      const idToken = userInfo.data?.idToken;
+      if (!idToken) throw new Error('Não foi possível obter o token Google');
+      const { user, token: jwt, is_new } = await api.googleLogin(idToken);
+      setAuth(user, jwt);
+      router.replace(is_new ? '/auth/setup-profile' : '/(tabs)');
+    } catch (e: any) {
+      if (e.code === statusCodes.SIGN_IN_CANCELLED) return;
+      if (e.code === statusCodes.IN_PROGRESS) return;
+      setError(e.message || 'Erro ao entrar com Google');
+    } finally {
+      setGoogleLoading(false);
+    }
+  }
 
   async function handleLogin() {
     setError('');
@@ -127,6 +153,24 @@ export default function LoginScreen() {
           <Text style={styles.dividerText}>{au.or}</Text>
           <View style={styles.dividerLine} />
         </View>
+
+        <TouchableOpacity
+          style={[styles.googleBtn, googleLoading && styles.btnDisabled]}
+          onPress={handleGoogleSignIn}
+          disabled={googleLoading}
+        >
+          {googleLoading ? (
+            <ActivityIndicator color={COLORS.text1} size="small" />
+          ) : (
+            <>
+              <Image
+                source={{ uri: 'https://www.google.com/favicon.ico' }}
+                style={styles.googleIcon}
+              />
+              <Text style={styles.googleBtnText}>Continuar com Google</Text>
+            </>
+          )}
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.registerBtn}
@@ -252,6 +296,21 @@ const styles = StyleSheet.create({
   },
   dividerLine: { flex: 1, height: 1, backgroundColor: COLORS.border },
   dividerText: { fontSize: 13, color: COLORS.text3, fontFamily: FONTS.body },
+
+  googleBtn: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 15,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface1,
+  },
+  googleIcon: { width: 20, height: 20, borderRadius: 4 },
+  googleBtnText: { fontSize: 15, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.bodyBold },
 
   registerBtn: {
     alignSelf: 'stretch',

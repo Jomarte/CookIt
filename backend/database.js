@@ -193,6 +193,8 @@ async function init() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS terms_accepted_at TIMESTAMPTZ DEFAULT NULL`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS streak INTEGER DEFAULT 0`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT DEFAULT NULL`);
+  await pool.query(`ALTER TABLE users ALTER COLUMN password DROP NOT NULL`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS email_verification_tokens (
