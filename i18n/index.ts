@@ -315,6 +315,11 @@ const pt = {
     setupErrorUsername: 'O username deve ter pelo menos 3 caracteres',
     setupErrorUsernameSpaces: 'O username não pode ter espaços',
     setupAvatarError: 'Erro ao carregar imagem',
+    termsLabel: 'Aceito os ',
+    termsLink: 'Termos e Condições',
+    termsAnd: ' e a ',
+    termsPrivacyLink: 'Política de Privacidade',
+    termsError: 'Tens de aceitar os Termos e a Política de Privacidade para continuar',
   },
 
   notifications: {
@@ -690,6 +695,11 @@ const en: typeof pt = {
     setupErrorUsername: 'Username must have at least 3 characters',
     setupErrorUsernameSpaces: 'Username cannot contain spaces',
     setupAvatarError: 'Error loading image',
+    termsLabel: 'I accept the ',
+    termsLink: 'Terms and Conditions',
+    termsAnd: ' and the ',
+    termsPrivacyLink: 'Privacy Policy',
+    termsError: 'You must accept the Terms and Privacy Policy to continue',
   },
 
   notifications: {

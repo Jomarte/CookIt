@@ -6,6 +6,8 @@ const rateLimit = require('express-rate-limit');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('./database');
+const path = require('path');
+const fs = require('fs');
 
 const crypto = require('crypto');
 const { Resend } = require('resend');
@@ -1347,6 +1349,17 @@ app.get('/api/discover', auth, async (req, res) => {
     console.error('Discover error:', e);
     res.status(500).json({ error: e.message });
   }
+});
+
+// ── PRIVACY POLICY & TERMS ──────────────────────────────────────────────────
+app.get('/privacy', (_, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(fs.readFileSync(path.join(__dirname, 'privacy-policy.html')));
+});
+
+app.get('/terms', (_, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(fs.readFileSync(path.join(__dirname, 'terms.html')));
 });
 
 // ── HEALTH ──────────────────────────────────────────────────────────────────

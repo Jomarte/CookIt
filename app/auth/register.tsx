@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -20,6 +21,9 @@ import { api } from '../../services/api';
 import { useStore } from '../../store/useStore';
 import { useT } from '../../i18n';
 
+const PRIVACY_POLICY_URL = 'https://cookit-qo0c.onrender.com/privacy';
+const TERMS_URL = 'https://cookit-qo0c.onrender.com/terms';
+
 export default function RegisterScreen() {
   const router = useRouter();
   const t = useT();
@@ -30,10 +34,15 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   async function handleRegister() {
+    if (!termsAccepted) {
+      setError(au.termsError);
+      return;
+    }
     setError('');
     setLoading(true);
     try {
@@ -140,10 +149,31 @@ export default function RegisterScreen() {
               </View>
             </View>
 
+            {/* Terms checkbox */}
             <TouchableOpacity
-              style={[styles.btn, loading && styles.btnDisabled]}
+              style={styles.termsRow}
+              onPress={() => setTermsAccepted(v => !v)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+                {termsAccepted && <Ionicons name="checkmark" size={13} color={COLORS.bg} />}
+              </View>
+              <Text style={styles.termsText}>
+                {au.termsLabel}
+                <Text style={styles.termsLink} onPress={() => Linking.openURL(TERMS_URL)}>
+                  {au.termsLink}
+                </Text>
+                {au.termsAnd}
+                <Text style={styles.termsLink} onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}>
+                  {au.termsPrivacyLink}
+                </Text>
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.btn, (loading || !termsAccepted) && styles.btnDisabled]}
               onPress={handleRegister}
-              disabled={loading}
+              disabled={loading || !termsAccepted}
             >
               {loading
                 ? <ActivityIndicator color={COLORS.bg} />
@@ -268,6 +298,41 @@ const styles = StyleSheet.create({
   },
   btnDisabled: { opacity: 0.6 },
   btnText: { fontSize: 16, fontWeight: '800', color: COLORS.bg, fontFamily: FONTS.bodyBold },
+
+  termsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 4,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  checkboxChecked: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  termsText: {
+    fontSize: 13,
+    color: COLORS.text2,
+    fontFamily: FONTS.body,
+    flex: 1,
+    flexWrap: 'wrap',
+  },
+  termsLink: {
+    color: COLORS.primary,
+    fontWeight: '700',
+    fontFamily: FONTS.bodyBold,
+    textDecorationLine: 'underline',
+  },
 
   loginLink: { marginTop: 16 },
   loginLinkText: { fontSize: 14, color: COLORS.text3, fontFamily: FONTS.body },
