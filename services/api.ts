@@ -21,10 +21,7 @@ async function request(path: string, options: RequestInit = {}) {
 
   if (!res.ok) {
     const msg = (data?.error || 'Erro desconhecido').slice(0, 200);
-    const err: any = new Error(msg);
-    if (data?.needs_verification) err.needs_verification = true;
-    if (data?.email) err.email = data.email;
-    throw err;
+    throw new Error(msg);
   }
   return data;
 }
@@ -166,7 +163,4 @@ export const api = {
 
   sendVerification: (token: string): Promise<{ ok: boolean }> =>
     request('/auth/send-verification', { method: 'POST', headers: authHeader(token) }),
-
-  resendVerification: (email: string): Promise<{ ok: boolean }> =>
-    request('/auth/resend-verification', { method: 'POST', body: JSON.stringify({ email }) }),
 };

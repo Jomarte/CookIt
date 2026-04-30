@@ -66,10 +66,6 @@ export default function LoginScreen() {
       setAuth(user, token);
       router.replace('/(tabs)');
     } catch (e: any) {
-      if (e.needs_verification) {
-        router.replace({ pathname: '/auth/verify-email-sent', params: { email: e.email || email } });
-        return;
-      }
       setError(e.message);
     } finally {
       setLoading(false);
