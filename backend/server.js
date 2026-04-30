@@ -197,8 +197,7 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
       console.error('Verification email error:', e.message)
     );
 
-    const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
-    res.status(201).json({ user, token });
+    res.status(201).json({ needs_verification: true, email: normalizedEmail });
   } catch (e) {
     serverError(res, e);
   }
@@ -295,6 +294,14 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
 
     const valid = bcrypt.compareSync(password, user.password);
     if (!valid) return res.status(401).json({ error: 'Credenciais inválidas' });
+
+    if (!user.email_verified) {
+      return res.status(403).json({
+        error: 'Confirma o teu email antes de entrar. Verifica a tua caixa de entrada.',
+        needs_verification: true,
+        email: user.email,
+      });
+    }
 
     const { password: _, ...userSafe } = user;
     const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
@@ -399,6 +406,24 @@ app.delete('/api/auth/me', auth, async (req, res) => {
 });
 
 // ── EMAIL VERIFICATION ──────────────────────────────────────────────────────
+
+// Public: resend verification email by email address (for unverified users who can't auth)
+app.post('/api/auth/resend-verification', forgotLimiter, async (req, res) => {
+  try {
+    const { email } = req.body;
+    const normalizedEmail = email?.trim().toLowerCase();
+    if (!normalizedEmail) return res.status(400).json({ error: 'Email em falta' });
+
+    const user = await db.get('SELECT id, email, name, email_verified FROM users WHERE email = ?', [normalizedEmail]);
+    // Always return ok to avoid email enumeration
+    if (!user || user.email_verified) return res.json({ ok: true });
+
+    await sendVerificationEmail(user.id, user.email, user.name);
+    res.json({ ok: true });
+  } catch (e) {
+    serverError(res, e);
+  }
+});
 
 // Authenticated: resend verification email (rate-limited to 5/hr via forgotLimiter)
 app.post('/api/auth/send-verification', auth, forgotLimiter, async (req, res) => {

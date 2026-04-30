@@ -68,9 +68,8 @@ export default function RegisterScreen() {
     setError('');
     setLoading(true);
     try {
-      const { user, token } = await api.register({ name, username, email, password, terms_accepted: true });
-      setAuth(user, token);
-      router.replace('/auth/setup-profile');
+      await api.register({ name, username, email, password, terms_accepted: true });
+      router.replace({ pathname: '/auth/verify-email-sent', params: { email } });
     } catch (e: any) {
       setError(e.message);
     } finally {
