@@ -61,10 +61,10 @@ export default function RegisterScreen() {
   }
 
   function validatePassword(pw: string): string | null {
-    if (pw.length < 8) return 'A password deve ter pelo menos 8 caracteres';
-    if (!/[A-Z]/.test(pw)) return 'A password deve ter pelo menos uma letra maiúscula';
-    if (!/[0-9]/.test(pw)) return 'A password deve ter pelo menos um número';
-    if (!/[^A-Za-z0-9]/.test(pw)) return 'A password deve ter pelo menos um símbolo (ex: !@#$%)';
+    if (pw.length < 7) return au.passwordRuleLength;
+    if (!/[A-Z]/.test(pw)) return au.passwordRuleUpper;
+    if (!/[0-9]/.test(pw)) return au.passwordRuleNumber;
+    if (!/[^A-Za-z0-9]/.test(pw)) return au.passwordRuleSymbol;
     return null;
   }
 
@@ -185,10 +185,10 @@ export default function RegisterScreen() {
               {password.length > 0 && (
                 <View style={styles.pwRules}>
                   {[
-                    { ok: password.length >= 8, label: 'Mínimo 8 caracteres' },
-                    { ok: /[A-Z]/.test(password), label: 'Uma letra maiúscula' },
-                    { ok: /[0-9]/.test(password), label: 'Um número' },
-                    { ok: /[^A-Za-z0-9]/.test(password), label: 'Um símbolo (!@#$%...)' },
+                    { ok: password.length >= 7, label: au.passwordRuleLength },
+                    { ok: /[A-Z]/.test(password), label: au.passwordRuleUpper },
+                    { ok: /[0-9]/.test(password), label: au.passwordRuleNumber },
+                    { ok: /[^A-Za-z0-9]/.test(password), label: au.passwordRuleSymbol },
                   ].map(({ ok, label }) => (
                     <View key={label} style={styles.pwRule}>
                       <Ionicons
