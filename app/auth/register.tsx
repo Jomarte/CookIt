@@ -60,9 +60,22 @@ export default function RegisterScreen() {
     }
   }
 
+  function validatePassword(pw: string): string | null {
+    if (pw.length < 8) return 'A password deve ter pelo menos 8 caracteres';
+    if (!/[A-Z]/.test(pw)) return 'A password deve ter pelo menos uma letra maiúscula';
+    if (!/[0-9]/.test(pw)) return 'A password deve ter pelo menos um número';
+    if (!/[^A-Za-z0-9]/.test(pw)) return 'A password deve ter pelo menos um símbolo (ex: !@#$%)';
+    return null;
+  }
+
   async function handleRegister() {
     if (!termsAccepted) {
       setError(au.termsError);
+      return;
+    }
+    const pwError = validatePassword(password);
+    if (pwError) {
+      setError(pwError);
       return;
     }
     setError('');
@@ -169,6 +182,25 @@ export default function RegisterScreen() {
                   />
                 </TouchableOpacity>
               </View>
+              {password.length > 0 && (
+                <View style={styles.pwRules}>
+                  {[
+                    { ok: password.length >= 8, label: 'Mínimo 8 caracteres' },
+                    { ok: /[A-Z]/.test(password), label: 'Uma letra maiúscula' },
+                    { ok: /[0-9]/.test(password), label: 'Um número' },
+                    { ok: /[^A-Za-z0-9]/.test(password), label: 'Um símbolo (!@#$%...)' },
+                  ].map(({ ok, label }) => (
+                    <View key={label} style={styles.pwRule}>
+                      <Ionicons
+                        name={ok ? 'checkmark-circle' : 'ellipse-outline'}
+                        size={13}
+                        color={ok ? '#4CAF50' : COLORS.text3}
+                      />
+                      <Text style={[styles.pwRuleText, ok && styles.pwRuleOk]}>{label}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
 
             {/* Terms checkbox */}
@@ -408,4 +440,9 @@ const styles = StyleSheet.create({
   loginLink: { marginTop: 8 },
   loginLinkText: { fontSize: 14, color: COLORS.text3, fontFamily: FONTS.body },
   loginLinkBold: { color: COLORS.primary, fontWeight: '700', fontFamily: FONTS.bodyBold },
+
+  pwRules: { gap: 4, marginTop: 8, paddingHorizontal: 2 },
+  pwRule: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  pwRuleText: { fontSize: 12, color: COLORS.text3, fontFamily: FONTS.body },
+  pwRuleOk: { color: '#4CAF50' },
 });

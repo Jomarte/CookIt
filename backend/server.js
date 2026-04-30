@@ -166,6 +166,12 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Preenche todos os campos' });
     if (password.length < 8)
       return res.status(400).json({ error: 'A password deve ter pelo menos 8 caracteres' });
+    if (!/[A-Z]/.test(password))
+      return res.status(400).json({ error: 'A password deve ter pelo menos uma letra maiúscula' });
+    if (!/[0-9]/.test(password))
+      return res.status(400).json({ error: 'A password deve ter pelo menos um número' });
+    if (!/[^A-Za-z0-9]/.test(password))
+      return res.status(400).json({ error: 'A password deve ter pelo menos um símbolo (ex: !@#$%)' });
     if (!terms_accepted)
       return res.status(400).json({ error: 'Tens de aceitar os Termos e a Política de Privacidade' });
     if (name.trim().length > 100) return res.status(400).json({ error: 'Nome demasiado longo' });
