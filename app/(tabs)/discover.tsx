@@ -326,7 +326,7 @@ export default function DiscoverScreen() {
             <View style={styles.fridgeCard}>
               <View style={styles.fridgeCardTag}>
                 <Ionicons name="restaurant-outline" size={11} color={COLORS.primary} />
-                <Text style={styles.fridgeCardTagText}>FRIDGE MODE</Text>
+                <Text style={styles.fridgeCardTagText}>{d.fridgeModeTag}</Text>
               </View>
               <Text style={styles.fridgeCardTitle}>{d.fridgeCardTitle}</Text>
               <Text style={styles.fridgeCardSub}>{d.fridgeCardSub}</Text>
@@ -431,11 +431,11 @@ export default function DiscoverScreen() {
           {!isFiltering && (forYouLoading || forYouRecipes.length > 0) && (
             <View style={styles.section}>
               <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionTitle}>Para Ti</Text>
+                <Text style={styles.sectionTitle}>{d.forYou}</Text>
                 {forYouPersonalized && !forYouLoading && (
                   <View style={styles.personalizedBadge}>
                     <Ionicons name="sparkles" size={10} color={COLORS.primary} />
-                    <Text style={styles.personalizedBadgeText}>Personalizado</Text>
+                    <Text style={styles.personalizedBadgeText}>{d.personalized}</Text>
                   </View>
                 )}
               </View>
@@ -482,7 +482,7 @@ export default function DiscoverScreen() {
                             <Ionicons name="time-outline" size={11} color={COLORS.text3} />
                             <Text style={styles.forYouCardMetaText}>{totalTime > 0 ? `${totalTime}min` : '—'}</Text>
                             {recipe.cuisine ? (
-                              <Text style={styles.forYouCardCuisine} numberOfLines={1}>{recipe.cuisine}</Text>
+                              <Text style={styles.forYouCardCuisine} numberOfLines={1}>{d.cuisines[PT_CUISINES.indexOf(recipe.cuisine)] ?? recipe.cuisine}</Text>
                             ) : null}
                           </View>
                         </View>
@@ -641,11 +641,11 @@ export default function DiscoverScreen() {
                               <Text style={styles.recipeCardMetaText}>{totalTime}min</Text>
                             </View>
                             <View style={[styles.recipeCardDiff, { borderColor: diffColor }]}>
-                              <Text style={[styles.recipeCardDiffText, { color: diffColor }]}>{recipe.difficulty}</Text>
+                              <Text style={[styles.recipeCardDiffText, { color: diffColor }]}>{t.common.difficulty(recipe.difficulty)}</Text>
                             </View>
                             {recipe.cuisine ? (
                               <View style={styles.recipeCardCuisine}>
-                                <Text style={styles.recipeCardCuisineText}>{recipe.cuisine}</Text>
+                                <Text style={styles.recipeCardCuisineText}>{d.cuisines[PT_CUISINES.indexOf(recipe.cuisine)] ?? recipe.cuisine}</Text>
                               </View>
                             ) : null}
                           </View>

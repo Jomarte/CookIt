@@ -45,6 +45,7 @@ const pt = {
     medium: 'Médio',
     hard: 'Difícil',
     difficulty: (v: string) => ({ 'Fácil': 'Fácil', 'Médio': 'Médio', 'Difícil': 'Difícil' } as Record<string, string>)[v] ?? v,
+    diet: (v: string) => v,
   },
 
   feed: {
@@ -71,6 +72,9 @@ const pt = {
     fridgeCardSub: 'Adiciona os ingredientes que tens e encontramos a receita perfeita para ti.',
     fridgeInputExample: 'Ex: ovos, tomate...',
     customIngredient: 'personalizado',
+    fridgeModeTag: 'FRIDGE MODE',
+    forYou: 'Para Ti',
+    personalized: 'Personalizado',
     findRecipes: 'Encontrar Receitas',
     exploreCuisines: 'Explorar Culinárias',
     results: 'Resultados',
@@ -270,6 +274,7 @@ const pt = {
     cookIt: 'Cozinhar',
     cookedDone: 'Cozinhado!',
     inList: 'Na lista!',
+    level: 'Nível',
     deleteMsg: 'Esta ação é irreversível. Tens a certeza?',
   },
 
@@ -429,6 +434,12 @@ const en: typeof pt = {
     medium: 'Medium',
     hard: 'Hard',
     difficulty: (v: string) => ({ 'Fácil': 'Easy', 'Médio': 'Medium', 'Difícil': 'Hard' } as Record<string, string>)[v] ?? v,
+    diet: (v: string) => ({
+      'Vegetariano': 'Vegetarian', 'Vegan': 'Vegan', 'Pescetariano': 'Pescatarian',
+      'Sem Glúten': 'Gluten-Free', 'Sem Lactose': 'Lactose-Free', 'Low Carb': 'Low Carb',
+      'Keto': 'Keto', 'Alta Proteína': 'High Protein', 'Saudável': 'Healthy',
+      'Meal Prep': 'Meal Prep', 'Comfort Food': 'Comfort Food', 'Light': 'Light',
+    } as Record<string, string>)[v] ?? v,
   },
 
   feed: {
@@ -455,6 +466,9 @@ const en: typeof pt = {
     fridgeCardSub: "Add your ingredients and we'll find the perfect recipe for you.",
     fridgeInputExample: 'Ex: eggs, tomato...',
     customIngredient: 'custom',
+    fridgeModeTag: 'FRIDGE MODE',
+    forYou: 'For You',
+    personalized: 'Personalized',
     findRecipes: 'Find Recipes',
     exploreCuisines: 'Explore Cuisines',
     results: 'Results',
@@ -654,6 +668,7 @@ const en: typeof pt = {
     cookIt: 'Cook it',
     cookedDone: 'Cooked!',
     inList: 'In list!',
+    level: 'Level',
     deleteMsg: 'This action is irreversible. Are you sure?',
   },
 

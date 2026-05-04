@@ -22,9 +22,9 @@ import { computeStreak, getLast7Days, useStore } from '../../store/useStore';
 import { useT } from '../../i18n';
 
 const TABS = [
-  { key: 'Receitas', icon: 'chef-hat', lib: 'mci' },
-  { key: 'Guardadas', icon: 'bookmark-outline', lib: 'ion' },
-  { key: 'Cozinhei', icon: 'pot-steam-outline', lib: 'mci' },
+  { key: 'recipes', icon: 'chef-hat', lib: 'mci' },
+  { key: 'saved', icon: 'bookmark-outline', lib: 'ion' },
+  { key: 'cooked', icon: 'pot-steam-outline', lib: 'mci' },
 ];
 
 const FLAG_CODES: Record<string, string> = {
@@ -55,7 +55,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const t = useT();
   const p = t.profile;
-  const [activeTab, setActiveTab] = useState('Receitas');
+  const [activeTab, setActiveTab] = useState('recipes');
   const [showCalendar, setShowCalendar] = useState(true);
   const [allRecipes, setAllRecipes] = useState<any[]>([]);
   const [loadingRecipes, setLoadingRecipes] = useState(true);
@@ -93,8 +93,8 @@ export default function ProfileScreen() {
   const cookedList = allRecipes.filter((r) => cookedRecipes.includes(String(r.id)));
 
   const displayList =
-    activeTab === 'Receitas' ? myRecipes :
-    activeTab === 'Guardadas' ? savedList :
+    activeTab === 'recipes' ? myRecipes :
+    activeTab === 'saved' ? savedList :
     cookedList;
 
   // Streak
@@ -104,32 +104,33 @@ export default function ProfileScreen() {
 
   const isOwner = user?.email === 'jmgpcl@gmail.com';
 
+  const ai = t.achievements.items;
   // Lista completa de badges (IDs iguais à página de conquistas)
   const allBadges: Badge[] = [
-    { id: 'cook_1', label: 'Primeiro Prato', icon: 'flame-outline', color: COLORS.star, earned: isOwner || cookedRecipes.length >= 1, desc: '' },
-    { id: 'cook_5', label: 'Cozinheiro Ativo', icon: 'restaurant-outline', color: COLORS.green, earned: isOwner || cookedRecipes.length >= 5, desc: '' },
-    { id: 'cook_10', label: 'Chef em Progresso', icon: 'ribbon-outline', color: COLORS.primary, earned: isOwner || cookedRecipes.length >= 10, desc: '' },
-    { id: 'cook_25', label: 'Chef Experiente', icon: 'trophy-outline', color: COLORS.star, earned: isOwner || cookedRecipes.length >= 25, desc: '' },
-    { id: 'cook_50', label: 'Mestre da Cozinha', icon: 'chef-hat', color: '#E07B39', earned: isOwner || cookedRecipes.length >= 50, desc: '' },
-    { id: 'cook_100', label: 'Fogo Azul', icon: 'flame', color: '#3B8BFF', earned: isOwner || cookedRecipes.length >= 100, desc: '' },
-    { id: 'cook_250', label: 'Chama Imortal', icon: 'flame', color: '#9B30FF', earned: isOwner || cookedRecipes.length >= 250, desc: '' },
-    { id: 'cook_500', label: 'Deus da Cozinha', icon: 'flame', color: '#FFD700', earned: isOwner || cookedRecipes.length >= 500, desc: '' },
-    { id: 'streak_3', label: 'Fogo Aceso', icon: 'flame', color: '#FF8C00', earned: isOwner || streak >= 3, desc: '' },
-    { id: 'streak_7', label: 'Semana em Chamas', icon: 'flame', color: COLORS.accent, earned: isOwner || streak >= 7, desc: '' },
-    { id: 'streak_14', label: 'Duas Semanas', icon: 'flame', color: '#FF4500', earned: isOwner || streak >= 14, desc: '' },
-    { id: 'streak_30', label: 'Mês de Fogo', icon: 'flame', color: '#E91E63', earned: isOwner || streak >= 30, desc: '' },
-    { id: 'streak_100', label: 'Centenário', icon: 'flame', color: '#3B8BFF', earned: isOwner || streak >= 100, desc: '' },
-    { id: 'streak_365', label: 'Um Ano Inteiro', icon: 'flame', color: '#FFD700', earned: isOwner || streak >= 365, desc: '' },
-    { id: 'saved_1', label: 'Guardador', icon: 'bookmark-outline', color: COLORS.primary, earned: isOwner || savedRecipes.length >= 1, desc: '' },
-    { id: 'saved_5', label: 'Colecionador', icon: 'bookmark', color: COLORS.primary, earned: isOwner || savedRecipes.length >= 5, desc: '' },
-    { id: 'saved_20', label: 'Arquivo Pessoal', icon: 'library-outline', color: '#6366F1', earned: isOwner || savedRecipes.length >= 20, desc: '' },
-    { id: 'saved_50', label: 'Biblioteca do Chef', icon: 'book-outline', color: '#8B5CF6', earned: isOwner || savedRecipes.length >= 50, desc: '' },
-    { id: 'publisher', label: 'Publicador', icon: 'paper-plane-outline', color: COLORS.green, earned: isOwner || myRecipes.length >= 1, desc: '' },
-    { id: 'publish_5', label: 'Criador', icon: 'create-outline', color: COLORS.green, earned: isOwner || myRecipes.length >= 5, desc: '' },
-    { id: 'publish_20', label: 'Chef Influencer', icon: 'megaphone-outline', color: '#EC4899', earned: isOwner || myRecipes.length >= 20, desc: '' },
-    { id: 'publish_50', label: 'Estrela da Cozinha', icon: 'star', color: COLORS.star, earned: isOwner || myRecipes.length >= 50, desc: '' },
-    { id: 'legend_all', label: 'O Completo', icon: 'diamond-outline', color: '#3B8BFF', earned: isOwner, desc: '' },
-    { id: 'legend_diamond', label: 'Diamante', icon: 'diamond-outline', color: '#67E8F9', earned: isOwner || cookedRecipes.length >= 1000, desc: '' },
+    { id: 'cook_1',   label: ai['cook_1']?.label ?? '',   icon: 'flame-outline',       color: COLORS.star,    earned: isOwner || cookedRecipes.length >= 1,    desc: ai['cook_1']?.desc ?? '' },
+    { id: 'cook_5',   label: ai['cook_5']?.label ?? '',   icon: 'restaurant-outline',  color: COLORS.green,   earned: isOwner || cookedRecipes.length >= 5,    desc: ai['cook_5']?.desc ?? '' },
+    { id: 'cook_10',  label: ai['cook_10']?.label ?? '',  icon: 'ribbon-outline',      color: COLORS.primary, earned: isOwner || cookedRecipes.length >= 10,   desc: ai['cook_10']?.desc ?? '' },
+    { id: 'cook_25',  label: ai['cook_25']?.label ?? '',  icon: 'trophy-outline',      color: COLORS.star,    earned: isOwner || cookedRecipes.length >= 25,   desc: ai['cook_25']?.desc ?? '' },
+    { id: 'cook_50',  label: ai['cook_50']?.label ?? '',  icon: 'chef-hat',            color: '#E07B39',      earned: isOwner || cookedRecipes.length >= 50,   desc: ai['cook_50']?.desc ?? '' },
+    { id: 'cook_100', label: ai['cook_100']?.label ?? '', icon: 'flame',               color: '#3B8BFF',      earned: isOwner || cookedRecipes.length >= 100,  desc: ai['cook_100']?.desc ?? '' },
+    { id: 'cook_250', label: ai['cook_250']?.label ?? '', icon: 'flame',               color: '#9B30FF',      earned: isOwner || cookedRecipes.length >= 250,  desc: ai['cook_250']?.desc ?? '' },
+    { id: 'cook_500', label: ai['cook_500']?.label ?? '', icon: 'flame',               color: '#FFD700',      earned: isOwner || cookedRecipes.length >= 500,  desc: ai['cook_500']?.desc ?? '' },
+    { id: 'streak_3',   label: ai['streak_3']?.label ?? '',   icon: 'flame', color: '#FF8C00',    earned: isOwner || streak >= 3,   desc: ai['streak_3']?.desc ?? '' },
+    { id: 'streak_7',   label: ai['streak_7']?.label ?? '',   icon: 'flame', color: COLORS.accent, earned: isOwner || streak >= 7,   desc: ai['streak_7']?.desc ?? '' },
+    { id: 'streak_14',  label: ai['streak_14']?.label ?? '',  icon: 'flame', color: '#FF4500',    earned: isOwner || streak >= 14,  desc: ai['streak_14']?.desc ?? '' },
+    { id: 'streak_30',  label: ai['streak_30']?.label ?? '',  icon: 'flame', color: '#E91E63',    earned: isOwner || streak >= 30,  desc: ai['streak_30']?.desc ?? '' },
+    { id: 'streak_100', label: ai['streak_100']?.label ?? '', icon: 'flame', color: '#3B8BFF',    earned: isOwner || streak >= 100, desc: ai['streak_100']?.desc ?? '' },
+    { id: 'streak_365', label: ai['streak_365']?.label ?? '', icon: 'flame', color: '#FFD700',    earned: isOwner || streak >= 365, desc: ai['streak_365']?.desc ?? '' },
+    { id: 'saved_1',  label: ai['saved_1']?.label ?? '',  icon: 'bookmark-outline', color: COLORS.primary, earned: isOwner || savedRecipes.length >= 1,  desc: ai['saved_1']?.desc ?? '' },
+    { id: 'saved_5',  label: ai['saved_5']?.label ?? '',  icon: 'bookmark',         color: COLORS.primary, earned: isOwner || savedRecipes.length >= 5,  desc: ai['saved_5']?.desc ?? '' },
+    { id: 'saved_20', label: ai['saved_20']?.label ?? '', icon: 'library-outline',  color: '#6366F1',      earned: isOwner || savedRecipes.length >= 20, desc: ai['saved_20']?.desc ?? '' },
+    { id: 'saved_50', label: ai['saved_50']?.label ?? '', icon: 'book-outline',     color: '#8B5CF6',      earned: isOwner || savedRecipes.length >= 50, desc: ai['saved_50']?.desc ?? '' },
+    { id: 'publisher',  label: ai['publisher']?.label ?? '',  icon: 'paper-plane-outline', color: COLORS.green, earned: isOwner || myRecipes.length >= 1,  desc: ai['publisher']?.desc ?? '' },
+    { id: 'publish_5',  label: ai['publish_5']?.label ?? '',  icon: 'create-outline',      color: COLORS.green, earned: isOwner || myRecipes.length >= 5,  desc: ai['publish_5']?.desc ?? '' },
+    { id: 'publish_20', label: ai['publish_20']?.label ?? '', icon: 'megaphone-outline',   color: '#EC4899',    earned: isOwner || myRecipes.length >= 20, desc: ai['publish_20']?.desc ?? '' },
+    { id: 'publish_50', label: ai['publish_50']?.label ?? '', icon: 'star',                color: COLORS.star,  earned: isOwner || myRecipes.length >= 50, desc: ai['publish_50']?.desc ?? '' },
+    { id: 'legend_all',     label: ai['legend_all']?.label ?? '',     icon: 'diamond-outline', color: '#3B8BFF', earned: isOwner,                              desc: ai['legend_all']?.desc ?? '' },
+    { id: 'legend_diamond', label: ai['legend_diamond']?.label ?? '', icon: 'diamond-outline', color: '#67E8F9', earned: isOwner || cookedRecipes.length >= 1000, desc: ai['legend_diamond']?.desc ?? '' },
   ];
 
   // Badges a mostrar no perfil: os selecionados ou os primeiros 8 por defeito
@@ -168,7 +169,7 @@ export default function ProfileScreen() {
         setAllRecipes((prev) => prev.filter((r) => r.id !== id));
       } catch (e: any) {
         if (Platform.OS === 'web') alert(e.message);
-        else Alert.alert('Erro', e.message);
+        else Alert.alert(t.common.error, e.message);
       } finally {
         setDeletingId(null);
       }
@@ -188,9 +189,9 @@ export default function ProfileScreen() {
   const renderRecipeCard = ({ item }: { item: any }) => {
     if (!item) return <View style={styles.gridCell} />;
     const isDeleting = deletingId === item.id;
-    const isOwn = activeTab === 'Receitas';
+    const isOwn = activeTab === 'recipes';
 
-    const destination = activeTab === 'Guardadas'
+    const destination = activeTab === 'saved'
       ? `/recipe/card/${item.id}`
       : `/recipe/${item.id}`;
 
@@ -429,8 +430,8 @@ export default function ProfileScreen() {
               <Ionicons name="restaurant-outline" size={32} color={COLORS.primary} />
             </View>
             <Text style={styles.emptyTabText}>
-              {activeTab === 'Guardadas' ? p.noSaved :
-               activeTab === 'Cozinhei' ? p.noMarked :
+              {activeTab === 'saved' ? p.noSaved :
+               activeTab === 'cooked' ? p.noMarked :
                p.noRecipes}
             </Text>
           </View>

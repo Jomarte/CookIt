@@ -36,8 +36,8 @@ const FLAG_CODES: Record<string, string> = {
 };
 
 const TABS = [
-  { key: 'Receitas', icon: 'chef-hat', lib: 'mci' },
-  { key: 'Cozinhei', icon: 'pot-steam-outline', lib: 'mci' },
+  { key: 'recipes', icon: 'chef-hat', lib: 'mci' },
+  { key: 'cooked', icon: 'pot-steam-outline', lib: 'mci' },
 ];
 
 export default function UserProfileScreen() {
@@ -54,7 +54,7 @@ export default function UserProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('Receitas');
+  const [activeTab, setActiveTab] = useState('recipes');
 
   const loadProfile = useCallback(async () => {
     if (me && String(me.id) === String(id)) {
@@ -102,18 +102,19 @@ export default function UserProfileScreen() {
   const streak = profile?.streak ?? 0;
   const cookedCount = profile?.cooked_count ?? cookedRecipes.length;
 
+  const ai = t.achievements.items;
   const badges = [
-    { id: 'cook_1',   label: 'Primeiro Prato',   icon: 'flame-outline',    color: COLORS.star,  earned: cookedCount >= 1 },
-    { id: 'cook_5',   label: 'Cozinheiro Ativo',  icon: 'restaurant-outline', color: COLORS.green, earned: cookedCount >= 5 },
-    { id: 'cook_10',  label: 'Chef em Progresso', icon: 'ribbon-outline',   color: COLORS.primary, earned: cookedCount >= 10 },
-    { id: 'cook_25',  label: 'Chef Experiente',   icon: 'trophy-outline',   color: COLORS.star,  earned: cookedCount >= 25 },
-    { id: 'streak_3', label: 'Fogo Aceso',        icon: 'flame',            color: '#FF8C00',    earned: streak >= 3 },
-    { id: 'streak_7', label: 'Semana em Chamas',  icon: 'flame',            color: COLORS.accent, earned: streak >= 7 },
-    { id: 'publisher',label: 'Publicador',        icon: 'paper-plane-outline', color: COLORS.green, earned: publishedRecipes.length >= 1 },
-    { id: 'publish_5',label: 'Criador',           icon: 'create-outline',   color: COLORS.green, earned: publishedRecipes.length >= 5 },
+    { id: 'cook_1',    label: ai['cook_1']?.label ?? '',    icon: 'flame-outline',       color: COLORS.star,    earned: cookedCount >= 1 },
+    { id: 'cook_5',    label: ai['cook_5']?.label ?? '',    icon: 'restaurant-outline',  color: COLORS.green,   earned: cookedCount >= 5 },
+    { id: 'cook_10',   label: ai['cook_10']?.label ?? '',   icon: 'ribbon-outline',      color: COLORS.primary, earned: cookedCount >= 10 },
+    { id: 'cook_25',   label: ai['cook_25']?.label ?? '',   icon: 'trophy-outline',      color: COLORS.star,    earned: cookedCount >= 25 },
+    { id: 'streak_3',  label: ai['streak_3']?.label ?? '',  icon: 'flame',               color: '#FF8C00',      earned: streak >= 3 },
+    { id: 'streak_7',  label: ai['streak_7']?.label ?? '',  icon: 'flame',               color: COLORS.accent,  earned: streak >= 7 },
+    { id: 'publisher', label: ai['publisher']?.label ?? '', icon: 'paper-plane-outline', color: COLORS.green,   earned: publishedRecipes.length >= 1 },
+    { id: 'publish_5', label: ai['publish_5']?.label ?? '', icon: 'create-outline',      color: COLORS.green,   earned: publishedRecipes.length >= 5 },
   ];
 
-  const displayList = activeTab === 'Receitas' ? publishedRecipes : cookedRecipes;
+  const displayList = activeTab === 'recipes' ? publishedRecipes : cookedRecipes;
 
   const renderRecipeCard = ({ item }: { item: any }) => {
     if (!item) return <View style={styles.gridCell} />;
@@ -340,7 +341,7 @@ export default function UserProfileScreen() {
               <Ionicons name="restaurant-outline" size={32} color={COLORS.primary} />
             </View>
             <Text style={styles.emptyTabText}>
-              {activeTab === 'Cozinhei' ? u.noMarked : u.noRecipes}
+              {activeTab === 'cooked' ? u.noMarked : u.noRecipes}
             </Text>
           </View>
         ) : (

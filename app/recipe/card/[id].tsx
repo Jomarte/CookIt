@@ -15,6 +15,7 @@ import { COLORS } from '../../../constants/Colors';
 import { FONTS } from '../../../constants/Fonts';
 import { api } from '../../../services/api';
 import { useStore } from '../../../store/useStore';
+import { useT } from '../../../i18n';
 
 export default function RecipeCardScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -26,6 +27,7 @@ export default function RecipeCardScreen() {
   const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
   const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set());
   const { cookedRecipes, shoppingList, toggleCooked, addToShoppingList } = useStore();
+  const t = useT();
 
   useEffect(() => {
     api.getRecipe(id)
@@ -80,7 +82,7 @@ export default function RecipeCardScreen() {
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
         <View style={styles.centered}>
-          <Text style={{ color: COLORS.text3, fontFamily: FONTS.body }}>Receita não encontrada</Text>
+          <Text style={{ color: COLORS.text3, fontFamily: FONTS.body }}>{t.recipe.notFound}</Text>
         </View>
       </SafeAreaView>
     );
@@ -137,7 +139,7 @@ export default function RecipeCardScreen() {
                 <Text style={styles.authorAvatarText}>{initial}</Text>
               </View>
               <View>
-                <Text style={styles.authorName}>{recipe.author_name ?? 'Cozinheiro'}</Text>
+                <Text style={styles.authorName}>{recipe.author_name ?? t.feed.defaultAuthor}</Text>
                 <Text style={styles.authorUsername}>@{recipe.author_username ?? ''}</Text>
               </View>
             </View>
@@ -146,7 +148,7 @@ export default function RecipeCardScreen() {
               <View style={styles.dietRow}>
                 {recipe.diet.slice(0, 2).map((d: string) => (
                   <View key={d} style={styles.dietBadge}>
-                    <Text style={styles.dietBadgeText}>{d}</Text>
+                    <Text style={styles.dietBadgeText}>{t.common.diet(d)}</Text>
                   </View>
                 ))}
               </View>
@@ -159,25 +161,25 @@ export default function RecipeCardScreen() {
           <View style={styles.statItem}>
             <Ionicons name="time-outline" size={18} color={COLORS.primary} />
             <Text style={styles.statValue}>{recipe.prep_time ?? 0}min</Text>
-            <Text style={styles.statLabel}>Prep</Text>
+            <Text style={styles.statLabel}>{t.recipe.prep}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Ionicons name="flame-outline" size={18} color={COLORS.accent} />
             <Text style={styles.statValue}>{recipe.cook_time ?? 0}min</Text>
-            <Text style={styles.statLabel}>Cozedura</Text>
+            <Text style={styles.statLabel}>{t.recipe.cookTime}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Ionicons name="people-outline" size={18} color={COLORS.green} />
             <Text style={styles.statValue}>{recipe.servings ?? 2}</Text>
-            <Text style={styles.statLabel}>Doses</Text>
+            <Text style={styles.statLabel}>{t.recipe.statDoses}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Ionicons name="bar-chart-outline" size={18} color={COLORS.text2} />
-            <Text style={styles.statValue}>{recipe.difficulty ?? '—'}</Text>
-            <Text style={styles.statLabel}>Nível</Text>
+            <Text style={styles.statValue}>{t.common.difficulty(recipe.difficulty ?? '')}</Text>
+            <Text style={styles.statLabel}>{t.recipe.level}</Text>
           </View>
         </View>
 
@@ -186,7 +188,7 @@ export default function RecipeCardScreen() {
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
               <View style={styles.sectionAccent} />
-              <Text style={styles.sectionTitle}>Ingredientes</Text>
+              <Text style={styles.sectionTitle}>{t.recipe.ingredients}</Text>
             </View>
             <View style={styles.sectionRight}>
               {checkedCount > 0 && (
@@ -231,7 +233,7 @@ export default function RecipeCardScreen() {
         <View style={styles.section}>
           <View style={styles.sectionTitleRow}>
             <View style={[styles.sectionAccent, { backgroundColor: COLORS.accent }]} />
-            <Text style={styles.sectionTitle}>Preparação</Text>
+            <Text style={styles.sectionTitle}>{t.recipe.preparation}</Text>
           </View>
 
           <View style={{ height: 14 }} />
@@ -286,7 +288,7 @@ export default function RecipeCardScreen() {
                 color={isCooked ? COLORS.primary : COLORS.bg}
               />
               <Text style={[styles.bottomBtnCookedText, isCooked && styles.bottomBtnCookedTextActive]}>
-                {isCooked ? 'Cozinhado!' : 'Cozinhar'}
+                {isCooked ? t.recipe.cookedDone : t.recipe.cookIt}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -295,7 +297,7 @@ export default function RecipeCardScreen() {
             >
               <Ionicons name={isInList ? 'cart' : 'cart-outline'} size={20} color={isInList ? COLORS.primary : COLORS.bg} />
               <Text style={[styles.bottomBtnListText, isInList && styles.bottomBtnListTextActive]}>
-                {isInList ? 'Na lista!' : 'Adicionar à lista'}
+                {isInList ? t.recipe.inList : t.recipe.addToList}
               </Text>
             </TouchableOpacity>
           </View>
