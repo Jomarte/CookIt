@@ -22,75 +22,7 @@ import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 import { useStore } from '../../store/useStore';
 import { useT } from '../../i18n';
-
-const COUNTRIES = [
-  { code: 'za', name: 'África do Sul' },
-  { code: 'de', name: 'Alemanha' },
-  { code: 'ao', name: 'Angola' },
-  { code: 'sa', name: 'Arábia Saudita' },
-  { code: 'dz', name: 'Argélia' },
-  { code: 'ar', name: 'Argentina' },
-  { code: 'au', name: 'Austrália' },
-  { code: 'at', name: 'Áustria' },
-  { code: 'bd', name: 'Bangladesh' },
-  { code: 'be', name: 'Bélgica' },
-  { code: 'br', name: 'Brasil' },
-  { code: 'bg', name: 'Bulgária' },
-  { code: 'cv', name: 'Cabo Verde' },
-  { code: 'ca', name: 'Canadá' },
-  { code: 'cl', name: 'Chile' },
-  { code: 'cn', name: 'China' },
-  { code: 'co', name: 'Colômbia' },
-  { code: 'kr', name: 'Coreia do Sul' },
-  { code: 'hr', name: 'Croácia' },
-  { code: 'dk', name: 'Dinamarca' },
-  { code: 'eg', name: 'Egito' },
-  { code: 'ae', name: 'Emirados Árabes' },
-  { code: 'sk', name: 'Eslováquia' },
-  { code: 'es', name: 'Espanha' },
-  { code: 'us', name: 'Estados Unidos' },
-  { code: 'et', name: 'Etiópia' },
-  { code: 'ph', name: 'Filipinas' },
-  { code: 'fi', name: 'Finlândia' },
-  { code: 'fr', name: 'França' },
-  { code: 'gh', name: 'Gana' },
-  { code: 'gr', name: 'Grécia' },
-  { code: 'hu', name: 'Hungria' },
-  { code: 'in', name: 'Índia' },
-  { code: 'id', name: 'Indonésia' },
-  { code: 'ir', name: 'Irão' },
-  { code: 'iq', name: 'Iraque' },
-  { code: 'il', name: 'Israel' },
-  { code: 'it', name: 'Itália' },
-  { code: 'jp', name: 'Japão' },
-  { code: 'my', name: 'Malásia' },
-  { code: 'ma', name: 'Marrocos' },
-  { code: 'mx', name: 'México' },
-  { code: 'mz', name: 'Moçambique' },
-  { code: 'ng', name: 'Nigéria' },
-  { code: 'no', name: 'Noruega' },
-  { code: 'nz', name: 'Nova Zelândia' },
-  { code: 'nl', name: 'Países Baixos' },
-  { code: 'pk', name: 'Paquistão' },
-  { code: 'pe', name: 'Peru' },
-  { code: 'pl', name: 'Polónia' },
-  { code: 'pt', name: 'Portugal' },
-  { code: 'ke', name: 'Quénia' },
-  { code: 'gb', name: 'Reino Unido' },
-  { code: 'cz', name: 'República Checa' },
-  { code: 'ro', name: 'Roménia' },
-  { code: 'ru', name: 'Rússia' },
-  { code: 'rs', name: 'Sérvia' },
-  { code: 'sg', name: 'Singapura' },
-  { code: 'se', name: 'Suécia' },
-  { code: 'ch', name: 'Suíça' },
-  { code: 'th', name: 'Tailândia' },
-  { code: 'tn', name: 'Tunísia' },
-  { code: 'tr', name: 'Turquia' },
-  { code: 'ua', name: 'Ucrânia' },
-  { code: 've', name: 'Venezuela' },
-  { code: 'vn', name: 'Vietname' },
-];
+import { COUNTRIES, getCountryCode, translateNationality } from '../../constants/Countries';
 
 function flagUrl(code: string) {
   return `https://flagcdn.com/w40/${code}.png`;
@@ -156,7 +88,7 @@ export default function EditProfileScreen() {
   const router = useRouter();
   const t = useT();
   const au = t.auth;
-  const { user, token, updateUser } = useStore();
+  const { user, token, updateUser, language } = useStore();
 
   const nameParts = (user?.name ?? '').trim().split(/\s+/);
   const [firstName, setFirstName] = useState(user?.first_name ?? nameParts[0] ?? '');
@@ -177,7 +109,9 @@ export default function EditProfileScreen() {
   const filteredCountries = useMemo(() => {
     const q = countrySearch.toLowerCase().trim();
     if (!q) return COUNTRIES;
-    return COUNTRIES.filter((c) => c.name.toLowerCase().includes(q));
+    return COUNTRIES.filter((c) =>
+      c.pt.toLowerCase().includes(q) || c.en.toLowerCase().includes(q)
+    );
   }, [countrySearch]);
 
   async function handleAvatarChange(e: any) {
@@ -417,12 +351,12 @@ export default function EditProfileScreen() {
               <Ionicons name="earth-outline" size={17} color={COLORS.text3} />
               {nationality && (
                 <Image
-                  source={{ uri: flagUrl(COUNTRIES.find((c) => c.name === nationality)?.code ?? '') }}
+                  source={{ uri: flagUrl(getCountryCode(nationality ?? '')) }}
                   style={styles.flagImg}
                 />
               )}
               <Text style={[styles.input, !nationality && { color: COLORS.text3 }]}>
-                {nationality ?? au.setupNationalityPlaceholder}
+                {nationality ? translateNationality(nationality, language) : au.setupNationalityPlaceholder}
               </Text>
               {nationality ? (
                 <TouchableOpacity onPress={() => setNationality(null)}>
@@ -469,20 +403,20 @@ export default function EditProfileScreen() {
 
             <FlatList
               data={filteredCountries}
-              keyExtractor={(item) => item.name}
+              keyExtractor={(item) => item.code}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
               style={styles.modalList}
               renderItem={({ item }) => {
-                const isSelected = nationality === item.name;
+                const isSelected = nationality === item.pt;
                 return (
                   <TouchableOpacity
                     style={[styles.countryRow, isSelected && styles.countryRowSelected]}
-                    onPress={() => { setNationality(item.name); setShowCountryPicker(false); }}
+                    onPress={() => { setNationality(item.pt); setShowCountryPicker(false); }}
                   >
                     <Image source={{ uri: flagUrl(item.code) }} style={styles.flagImg} />
                     <Text style={[styles.countryName, isSelected && styles.countryNameSelected]}>
-                      {item.name}
+                      {language === 'en' ? item.en : item.pt}
                     </Text>
                     {isSelected && <Ionicons name="checkmark" size={16} color={COLORS.primary} />}
                   </TouchableOpacity>

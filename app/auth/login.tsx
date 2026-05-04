@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   StyleSheet,
   Text,
@@ -28,13 +29,14 @@ export default function LoginScreen() {
   const router = useRouter();
   const t = useT();
   const au = t.auth;
-  const { setAuth, token } = useStore();
+  const { setAuth, token, language, setLanguage } = useStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
+  const [langModal, setLangModal] = useState(false);
 
   if (token) return <Redirect href="/(tabs)" />;
 
@@ -74,6 +76,12 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Language button */}
+      <TouchableOpacity style={styles.langBtn} onPress={() => setLangModal(true)}>
+        <Ionicons name="language-outline" size={18} color={COLORS.text2} />
+        <Text style={styles.langBtnText}>{language === 'pt' ? '🇵🇹' : '🇬🇧'}</Text>
+      </TouchableOpacity>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.inner}
@@ -167,7 +175,7 @@ export default function LoginScreen() {
                 source={{ uri: 'https://www.google.com/favicon.ico' }}
                 style={styles.googleIcon}
               />
-              <Text style={styles.googleBtnText}>Continuar com Google</Text>
+              <Text style={styles.googleBtnText}>{language === 'pt' ? 'Continuar com Google' : 'Continue with Google'}</Text>
             </>
           )}
         </TouchableOpacity>
@@ -179,6 +187,29 @@ export default function LoginScreen() {
           <Text style={styles.registerBtnText}>{au.createNewAccount}</Text>
         </TouchableOpacity>
       </KeyboardAvoidingView>
+
+      {/* Language modal */}
+      <Modal visible={langModal} transparent animationType="fade">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setLangModal(false)}>
+          <View style={styles.modalBox} onStartShouldSetResponder={() => true}>
+            <Text style={styles.modalTitle}>{t.settings.languageModalTitle}</Text>
+            <TouchableOpacity
+              style={[styles.langOption, language === 'pt' && styles.langOptionActive]}
+              onPress={() => { setLanguage('pt'); setLangModal(false); }}
+            >
+              <Text style={[styles.langOptionText, language === 'pt' && styles.langOptionTextActive]}>{t.settings.langPT}</Text>
+              {language === 'pt' && <Ionicons name="checkmark" size={18} color={COLORS.primary} />}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.langOption, language === 'en' && styles.langOptionActive]}
+              onPress={() => { setLanguage('en'); setLangModal(false); }}
+            >
+              <Text style={[styles.langOptionText, language === 'en' && styles.langOptionTextActive]}>{t.settings.langEN}</Text>
+              {language === 'en' && <Ionicons name="checkmark" size={18} color={COLORS.primary} />}
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -322,4 +353,62 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface1,
   },
   registerBtnText: { fontSize: 15, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.bodyBold },
+
+  langBtn: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    zIndex: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: COLORS.surface2,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  langBtnText: { fontSize: 15 },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBox: {
+    backgroundColor: COLORS.surface1,
+    borderRadius: 20,
+    padding: 20,
+    width: 260,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  modalTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text1,
+    textAlign: 'center',
+    marginBottom: 4,
+    fontFamily: FONTS.bodyBold,
+  },
+  langOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface2,
+  },
+  langOptionActive: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primaryDim,
+  },
+  langOptionText: { fontSize: 15, color: COLORS.text1, fontFamily: FONTS.body },
+  langOptionTextActive: { color: COLORS.primary, fontWeight: '700', fontFamily: FONTS.bodyBold },
 });

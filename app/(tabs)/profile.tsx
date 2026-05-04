@@ -20,6 +20,7 @@ import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 import { computeStreak, getLast7Days, useStore } from '../../store/useStore';
 import { useT } from '../../i18n';
+import { translateNationality } from '../../constants/Countries';
 
 const TABS = [
   { key: 'recipes', icon: 'chef-hat', lib: 'mci' },
@@ -289,7 +290,7 @@ export default function ProfileScreen() {
                         style={styles.nationalityFlag}
                       />
                     )}
-                    <Text style={styles.nationalityText}>{user.nationality}</Text>
+                    <Text style={styles.nationalityText}>{translateNationality(user.nationality, language)}</Text>
                   </View>
                 ) : null}
               </View>

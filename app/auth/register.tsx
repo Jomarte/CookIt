@@ -29,7 +29,7 @@ export default function RegisterScreen() {
   const router = useRouter();
   const t = useT();
   const au = t.auth;
-  const { setAuth } = useStore();
+  const { setAuth, language } = useStore();
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -255,7 +255,7 @@ export default function RegisterScreen() {
                   source={{ uri: 'https://www.google.com/favicon.ico' }}
                   style={styles.googleIcon}
                 />
-                <Text style={styles.googleBtnText}>Continuar com Google</Text>
+                <Text style={styles.googleBtnText}>{language === 'pt' ? 'Continuar com Google' : 'Continue with Google'}</Text>
               </>
             )}
           </TouchableOpacity>

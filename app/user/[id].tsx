@@ -19,6 +19,7 @@ import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 import { useStore } from '../../store/useStore';
 import { useT } from '../../i18n';
+import { getCountryCode, translateNationality } from '../../constants/Countries';
 
 const FLAG_CODES: Record<string, string> = {
   'África do Sul':'za','Alemanha':'de','Angola':'ao','Arábia Saudita':'sa','Argélia':'dz',
@@ -45,7 +46,7 @@ export default function UserProfileScreen() {
   const router = useRouter();
   const t = useT();
   const u = t.userProfile;
-  const { user: me, token, setAuth } = useStore();
+  const { user: me, token, setAuth, language } = useStore();
 
   const [profile, setProfile] = useState<any>(null);
   const [publishedRecipes, setPublishedRecipes] = useState<any[]>([]);
@@ -227,13 +228,13 @@ export default function UserProfileScreen() {
                 ) : null}
                 {profile.nationality ? (
                   <View style={styles.nationalityBadge}>
-                    {FLAG_CODES[profile.nationality] && (
+                    {getCountryCode(profile.nationality) && (
                       <Image
-                        source={{ uri: `https://flagcdn.com/w40/${FLAG_CODES[profile.nationality]}.png` }}
+                        source={{ uri: `https://flagcdn.com/w40/${getCountryCode(profile.nationality)}.png` }}
                         style={styles.nationalityFlag}
                       />
                     )}
-                    <Text style={styles.nationalityText}>{profile.nationality}</Text>
+                    <Text style={styles.nationalityText}>{translateNationality(profile.nationality, language)}</Text>
                   </View>
                 ) : null}
               </View>
