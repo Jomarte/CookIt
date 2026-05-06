@@ -3,60 +3,22 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('./database');
 const path = require('path');
 const fs = require('fs');
 
 const crypto = require('crypto');
-const { Resend } = require('resend');
 const { OAuth2Client } = require('google-auth-library');
 
 const googleClient = process.env.GOOGLE_CLIENT_ID
   ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
   : null;
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const API_URL = process.env.API_URL || `http://localhost:${process.env.PORT || 3001}`;
-const FROM_EMAIL = process.env.FROM_EMAIL || 'CookIt <onboarding@resend.dev>';
 
 function generateToken() {
   return crypto.randomBytes(32).toString('hex');
-}
-
-async function sendVerificationEmail(userId, email, name) {
-  const token = generateToken();
-  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
-  await db.run(
-    'INSERT INTO email_verification_tokens (user_id, token, expires_at) VALUES (?, ?, ?)',
-    [userId, token, expires.toISOString()]
-  );
-  if (!resend) {
-    console.log(`[DEV] Verify email link: ${API_URL}/api/auth/verify-email?token=${token}`);
-    return;
-  }
-  const verifyUrl = `${API_URL}/api/auth/verify-email?token=${token}`;
-  await resend.emails.send({
-    from: FROM_EMAIL,
-    to: email,
-    subject: 'Confirma o teu email — CookIt',
-    html: `<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:480px;margin:40px auto;padding:20px;background:#FBF5EF;"><h2 style="color:#C2622D;margin-bottom:8px;">CookIt</h2><p style="color:#1A1A1A;">Olá ${name},</p><p style="color:#555;">Clica no botão abaixo para confirmar o teu endereço de email:</p><a href="${verifyUrl}" style="display:inline-block;background:#C2622D;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700;margin:16px 0;">Confirmar email</a><p style="color:#999;font-size:12px;margin-top:24px;">Este link expira em 24 horas. Se não criaste uma conta no CookIt, ignora este email.</p></body></html>`,
-  });
-}
-
-async function sendPasswordResetEmail(email, name, token) {
-  if (!resend) {
-    console.log(`[DEV] Reset link: ${API_URL}/api/auth/reset-password?token=${token}`);
-    return;
-  }
-  const resetUrl = `${API_URL}/api/auth/reset-password?token=${token}`;
-  await resend.emails.send({
-    from: FROM_EMAIL,
-    to: email,
-    subject: 'Recuperar password — CookIt',
-    html: `<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:480px;margin:40px auto;padding:20px;background:#FBF5EF;"><h2 style="color:#C2622D;">CookIt — Recuperar password</h2><p style="color:#1A1A1A;">Olá ${name},</p><p style="color:#555;">Clica no link abaixo para definir uma nova password. O link expira em 1 hora.</p><a href="${resetUrl}" style="display:inline-block;background:#C2622D;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700;margin:16px 0;">Redefinir password</a><p style="color:#999;font-size:12px;margin-top:24px;">Se não pediste um reset de password, ignora este email.</p></body></html>`,
-  });
 }
 
 const app = express();
@@ -95,13 +57,6 @@ const authLimiter = rateLimit({
   message: { error: 'Demasiadas tentativas. Tenta novamente em 15 minutos.' },
 });
 
-const forgotLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 5,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Demasiados pedidos de reset. Tenta novamente mais tarde.' },
-});
 
 // Rate limit for public read endpoints (unauthenticated)
 const publicLimiter = rateLimit({
@@ -157,59 +112,6 @@ function auth(req, res, next) {
 // ── AUTH ────────────────────────────────────────────────────────────────────
 
 // Registar
-app.post('/api/auth/register', authLimiter, async (req, res) => {
-  try {
-    const { name, username, email, password, terms_accepted } = req.body;
-    const normalizedEmail = email?.trim().toLowerCase();
-
-    if (!name || !username || !normalizedEmail || !password)
-      return res.status(400).json({ error: 'Preenche todos os campos' });
-    if (password.length < 7)
-      return res.status(400).json({ error: 'A password deve ter pelo menos 7 caracteres' });
-    if (!/[A-Z]/.test(password))
-      return res.status(400).json({ error: 'A password deve ter pelo menos uma letra maiúscula' });
-    if (!/[0-9]/.test(password))
-      return res.status(400).json({ error: 'A password deve ter pelo menos um número' });
-    if (!/[^A-Za-z0-9]/.test(password))
-      return res.status(400).json({ error: 'A password deve ter pelo menos um símbolo (ex: !@#$%)' });
-    if (!terms_accepted)
-      return res.status(400).json({ error: 'Tens de aceitar os Termos e a Política de Privacidade' });
-    if (name.trim().length > 100) return res.status(400).json({ error: 'Nome demasiado longo' });
-    if (username.trim().length > 50) return res.status(400).json({ error: 'Username demasiado longo' });
-    if (password.length > 128) return res.status(400).json({ error: 'Password demasiado longa' });
-
-    const existing = await db.get(
-      'SELECT id FROM users WHERE email = ? OR username = ?',
-      [normalizedEmail, username]
-    );
-    if (existing) return res.status(409).json({ error: 'Email ou username já existe' });
-
-    const hash = bcrypt.hashSync(password, 10);
-    const now = new Date().toISOString();
-    await db.run(
-      'INSERT INTO users (name, username, email, password, terms_accepted_at) VALUES (?, ?, ?, ?, ?)',
-      [name, username, normalizedEmail, hash, now]
-    );
-
-    const user = await db.get(
-      `SELECT id, name, first_name, last_name, username, email, avatar, bio, cooking_type,
-              nationality, followers, following, recipes_count, email_verified, created_at
-       FROM users WHERE email = ?`,
-      [normalizedEmail]
-    );
-    if (!user) return res.status(500).json({ error: 'Erro ao criar utilizador' });
-
-    sendVerificationEmail(user.id, user.email, user.name).catch(e =>
-      console.error('Verification email error:', e.message)
-    );
-
-    const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
-    res.status(201).json({ user, token });
-  } catch (e) {
-    serverError(res, e);
-  }
-});
-
 // Google Sign-In
 app.post('/api/auth/google', authLimiter, async (req, res) => {
   try {
@@ -287,30 +189,6 @@ app.post('/api/auth/google', authLimiter, async (req, res) => {
   }
 });
 
-// Login
-app.post('/api/auth/login', authLimiter, async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const normalizedEmail = email?.trim().toLowerCase();
-
-    if (!normalizedEmail || !password)
-      return res.status(400).json({ error: 'Preenche todos os campos' });
-
-    const user = await db.get('SELECT * FROM users WHERE email = ?', [normalizedEmail]);
-    if (!user) return res.status(401).json({ error: 'Credenciais inválidas' });
-
-    const valid = bcrypt.compareSync(password, user.password);
-    if (!valid) return res.status(401).json({ error: 'Credenciais inválidas' });
-
-    const { password: _, ...userSafe } = user;
-    const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
-
-    res.json({ user: userSafe, token });
-  } catch (e) {
-    serverError(res, e);
-  }
-});
-
 // Perfil do utilizador atual
 app.get('/api/auth/me', auth, async (req, res) => {
   try {
@@ -336,10 +214,10 @@ app.put('/api/auth/me', auth, async (req, res) => {
     if (username && username.length > 50) return res.status(400).json({ error: 'Username demasiado longo' });
     if (bio && bio.length > 500) return res.status(400).json({ error: 'Bio demasiado longa' });
 
-    if (avatar && avatar.length > 7 * 1024 * 1024) {
+    if (avatar && !avatar.startsWith('https://') && avatar.length > 7 * 1024 * 1024) {
       return res.status(400).json({ error: 'Avatar demasiado grande (máx. 5 MB)' });
     }
-    if (avatar && !avatar.startsWith('data:image/')) {
+    if (avatar && !avatar.startsWith('data:image/') && !avatar.startsWith('https://')) {
       return res.status(400).json({ error: 'Formato de avatar inválido' });
     }
 
@@ -401,190 +279,6 @@ app.delete('/api/auth/me', auth, async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     serverError(res, e);
-  }
-});
-
-// ── EMAIL VERIFICATION ──────────────────────────────────────────────────────
-
-// Authenticated: resend verification email (rate-limited to 5/hr via forgotLimiter)
-app.post('/api/auth/send-verification', auth, forgotLimiter, async (req, res) => {
-  try {
-    const user = await db.get(
-      'SELECT id, email, name, email_verified FROM users WHERE id = ?',
-      [req.user.id]
-    );
-    if (!user) return res.status(404).json({ error: 'Utilizador não encontrado' });
-    if (user.email_verified) return res.json({ ok: true });
-
-    await sendVerificationEmail(user.id, user.email, user.name);
-    res.json({ ok: true });
-  } catch (e) {
-    serverError(res, e);
-  }
-});
-
-// Public: browser clicks email link — validate token and mark email verified
-// Rate-limited (publicLimiter) to prevent token enumeration
-app.get('/api/auth/verify-email', publicLimiter, async (req, res) => {
-  const { token } = req.query;
-  res.setHeader('Content-Type', 'text/html');
-
-  if (!token || typeof token !== 'string' || token.length !== 64) {
-    return res.status(400).send('<h2>Link inválido.</h2>');
-  }
-
-  try {
-    const row = await db.get(
-      'SELECT * FROM email_verification_tokens WHERE token = ? AND used = FALSE',
-      [token]
-    );
-
-    if (!row) {
-      return res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;text-align:center;">
-        <h2 style="color:#D4A853;">Link expirado ou já utilizado</h2>
-        <p>Abre o CookIt e pede um novo link de verificação.</p>
-      </body></html>`);
-    }
-
-    if (new Date(row.expires_at) < new Date()) {
-      return res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;text-align:center;">
-        <h2 style="color:#D4A853;">Link expirado</h2>
-        <p>Abre o CookIt e pede um novo link de verificação.</p>
-      </body></html>`);
-    }
-
-    await db.run('UPDATE users SET email_verified = TRUE WHERE id = ?', [row.user_id]);
-    await db.run('UPDATE email_verification_tokens SET used = TRUE WHERE id = ?', [row.id]);
-
-    res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;text-align:center;">
-      <h2 style="color:#C2622D;">Email confirmado!</h2>
-      <p>A tua conta está verificada. Abre o CookIt e continua a cozinhar.</p>
-      <p style="margin-top:24px;"><a href="cookit://" style="color:#C2622D;font-weight:700;">Abrir CookIt</a></p>
-    </body></html>`);
-  } catch (e) {
-    console.error('verify-email error:', e);
-    res.status(500).send(IS_PROD ? '<h2>Erro interno. Tenta novamente.</h2>' : `<h2>Erro: ${e.message}</h2>`);
-  }
-});
-
-// ── PASSWORD RESET ──────────────────────────────────────────────────────────
-
-// Public: request password reset email (forgotLimiter: 5/hr per IP)
-app.post('/api/auth/forgot-password', forgotLimiter, async (req, res) => {
-  const rawEmail = req.body?.email;
-  const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : '';
-  // Always return 200 — don't reveal whether email exists (OWASP)
-  try {
-    const user = await db.get('SELECT id, email, name FROM users WHERE email = ?', [email]);
-    if (user) {
-      const token = generateToken();
-      const expires = new Date(Date.now() + 60 * 60 * 1000); // 1h
-      await db.run(
-        'INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)',
-        [user.id, token, expires.toISOString()]
-      );
-      await sendPasswordResetEmail(user.email, user.name, token);
-    }
-    res.json({ ok: true });
-  } catch (e) {
-    console.error('Forgot password error:', e.message);
-    res.json({ ok: true }); // still return ok to not reveal errors
-  }
-});
-
-// Public: browser opens reset link — render HTML form
-app.get('/api/auth/reset-password', publicLimiter, async (req, res) => {
-  const { token } = req.query;
-  res.setHeader('Content-Type', 'text/html');
-
-  if (!token || typeof token !== 'string' || token.length !== 64) {
-    return res.status(400).send('<h2>Link inválido.</h2>');
-  }
-
-  try {
-    const row = await db.get(
-      'SELECT * FROM password_reset_tokens WHERE token = ? AND used = FALSE',
-      [token]
-    );
-
-    if (!row || new Date(row.expires_at) < new Date()) {
-      return res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;text-align:center;">
-        <h2 style="color:#D4A853;">Link expirado ou inválido</h2>
-        <p>Pede um novo link na app CookIt.</p>
-      </body></html>`);
-    }
-
-    const safeToken = token.replace(/[^a-f0-9]/g, '');
-
-    res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;">
-      <h2 style="color:#C2622D;margin-bottom:4px;">CookIt</h2>
-      <h3 style="margin-top:0;">Nova password</h3>
-      <form method="POST" action="/api/auth/reset-password" id="f">
-        <input type="hidden" name="token" value="${safeToken}" />
-        <input type="password" name="password" placeholder="Nova password (mín. 8 caracteres)"
-               required minlength="8"
-               style="width:100%;padding:12px;margin:8px 0;border:1.5px solid #ccc;border-radius:10px;box-sizing:border-box;font-size:15px;" />
-        <input type="password" name="confirm" placeholder="Confirmar password"
-               required minlength="8"
-               style="width:100%;padding:12px;margin:8px 0;border:1.5px solid #ccc;border-radius:10px;box-sizing:border-box;font-size:15px;" />
-        <p id="err" style="color:#C2622D;display:none;">As passwords não coincidem.</p>
-        <button type="submit"
-                style="background:#C2622D;color:white;padding:14px;border:none;border-radius:10px;cursor:pointer;width:100%;font-size:16px;font-weight:700;margin-top:8px;">
-          Guardar nova password
-        </button>
-      </form>
-      <script>
-        document.getElementById('f').onsubmit = function(e) {
-          var p = this.password.value, c = this.confirm.value;
-          if (p !== c) { e.preventDefault(); document.getElementById('err').style.display='block'; }
-        };
-      </script>
-    </body></html>`);
-  } catch (e) {
-    console.error('reset-password GET error:', e);
-    res.status(500).send(IS_PROD ? '<h2>Erro interno. Tenta novamente.</h2>' : `<h2>Erro: ${e.message}</h2>`);
-  }
-});
-
-// Public: process reset form POST (publicLimiter applied)
-app.post('/api/auth/reset-password', publicLimiter, async (req, res) => {
-  res.setHeader('Content-Type', 'text/html');
-  const { token, password, confirm } = req.body;
-
-  if (!token || !password) return res.status(400).send('<h2>Dados em falta.</h2>');
-  if (password !== confirm) return res.status(400).send('<h2>As passwords não coincidem.</h2>');
-  if (password.length < 8) return res.status(400).send('<h2>Password demasiado curta (mín. 8 caracteres).</h2>');
-  if (password.length > 128) return res.status(400).send('<h2>Password demasiado longa.</h2>');
-  // Token must be 64 hex chars
-  if (typeof token !== 'string' || token.length !== 64 || !/^[a-f0-9]+$/.test(token)) {
-    return res.status(400).send('<h2>Token inválido.</h2>');
-  }
-
-  try {
-    const row = await db.get(
-      'SELECT * FROM password_reset_tokens WHERE token = ? AND used = FALSE',
-      [token]
-    );
-
-    if (!row || new Date(row.expires_at) < new Date()) {
-      return res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;text-align:center;">
-        <h2 style="color:#D4A853;">Link expirado</h2><p>Pede um novo link na app.</p>
-      </body></html>`);
-    }
-
-    const hash = bcrypt.hashSync(password, 10);
-    await db.run('UPDATE users SET password = ? WHERE id = ?', [hash, row.user_id]);
-    // Invalidate all outstanding reset tokens for this user (not just the one used)
-    await db.run('UPDATE password_reset_tokens SET used = TRUE WHERE user_id = ?', [row.user_id]);
-
-    res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;text-align:center;">
-      <h2 style="color:#C2622D;">Password alterada!</h2>
-      <p>Abre o CookIt e inicia sessão com a nova password.</p>
-      <p style="margin-top:24px;"><a href="cookit://" style="color:#C2622D;font-weight:700;">Abrir CookIt</a></p>
-    </body></html>`);
-  } catch (e) {
-    console.error('reset-password error:', e);
-    res.status(500).send(IS_PROD ? '<h2>Erro interno. Tenta novamente.</h2>' : `<h2>Erro: ${e.message}</h2>`);
   }
 });
 
@@ -1475,15 +1169,6 @@ db.init().then(() => {
     console.log(`   Health check:  http://localhost:${PORT}/api/health\n`);
   });
 
-  // Clean up expired/used tokens every 24h to prevent table bloat
-  setInterval(async () => {
-    try {
-      await db.run("DELETE FROM email_verification_tokens WHERE expires_at < NOW() OR used = TRUE");
-      await db.run("DELETE FROM password_reset_tokens WHERE expires_at < NOW() OR used = TRUE");
-    } catch (e) {
-      console.error('Token cleanup error:', e.message);
-    }
-  }, 24 * 60 * 60 * 1000);
 }).catch((err) => {
   console.error('Erro ao iniciar a base de dados:', err);
   process.exit(1);

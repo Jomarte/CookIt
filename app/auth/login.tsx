@@ -2,12 +2,9 @@ import { useRouter, Redirect } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Image,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
   ActivityIndicator,
@@ -28,12 +25,7 @@ GoogleSignin.configure({
 export default function LoginScreen() {
   const router = useRouter();
   const t = useT();
-  const au = t.auth;
   const { setAuth, token, language, setLanguage } = useStore();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
   const [langModal, setLangModal] = useState(false);
@@ -60,20 +52,6 @@ export default function LoginScreen() {
     }
   }
 
-  async function handleLogin() {
-    setError('');
-    setLoading(true);
-    try {
-      const { user, token } = await api.login({ email, password });
-      setAuth(user, token);
-      router.replace('/(tabs)');
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
   return (
     <SafeAreaView style={styles.container}>
       {/* Language button */}
@@ -82,10 +60,7 @@ export default function LoginScreen() {
         <Text style={styles.langBtnText}>{language === 'pt' ? '🇵🇹' : '🇬🇧'}</Text>
       </TouchableOpacity>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.inner}
-      >
+      <View style={styles.inner}>
         {/* Logo */}
         <View style={styles.wordmarkWrap}>
           <Image source={require('../../assets/images/logo-new.png')} style={styles.logoImage} />
@@ -95,8 +70,12 @@ export default function LoginScreen() {
           </View>
         </View>
 
-        <Text style={styles.title}>{au.loginTitle}</Text>
-        <Text style={styles.subtitle}>{au.loginSubtitle}</Text>
+        <Text style={styles.title}>
+          {language === 'pt' ? 'Bem-vindo ao CookIt' : 'Welcome to CookIt'}
+        </Text>
+        <Text style={styles.subtitle}>
+          {language === 'pt' ? 'Entra com a tua conta Google para começar' : 'Sign in with your Google account to get started'}
+        </Text>
 
         {error ? (
           <View style={styles.errorBox}>
@@ -104,63 +83,6 @@ export default function LoginScreen() {
             <Text style={styles.errorMsg}>{error}</Text>
           </View>
         ) : null}
-
-        <View style={styles.form}>
-          <View style={styles.inputWrap}>
-            <Text style={styles.label}>{au.email}</Text>
-            <View style={styles.inputRow}>
-              <Ionicons name="mail-outline" size={18} color={COLORS.text3} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder={au.emailPlaceholder}
-                placeholderTextColor={COLORS.text3}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={email}
-                onChangeText={setEmail}
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputWrap}>
-            <Text style={styles.label}>{au.password}</Text>
-            <View style={styles.inputRow}>
-              <Ionicons name="lock-closed-outline" size={18} color={COLORS.text3} style={styles.inputIcon} />
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                placeholder="••••••••"
-                placeholderTextColor={COLORS.text3}
-                secureTextEntry={!showPassword}
-                value={password}
-                onChangeText={setPassword}
-              />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
-                <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={18}
-                  color={COLORS.text3}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.btn, loading && styles.btnDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading
-              ? <ActivityIndicator color={COLORS.bg} />
-              : <Text style={styles.btnText}>{au.loginBtn}</Text>
-            }
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.dividerRow}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>{au.or}</Text>
-          <View style={styles.dividerLine} />
-        </View>
 
         <TouchableOpacity
           style={[styles.googleBtn, googleLoading && styles.btnDisabled]}
@@ -175,18 +97,13 @@ export default function LoginScreen() {
                 source={{ uri: 'https://www.google.com/favicon.ico' }}
                 style={styles.googleIcon}
               />
-              <Text style={styles.googleBtnText}>{language === 'pt' ? 'Continuar com Google' : 'Continue with Google'}</Text>
+              <Text style={styles.googleBtnText}>
+                {language === 'pt' ? 'Continuar com Google' : 'Continue with Google'}
+              </Text>
             </>
           )}
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.registerBtn}
-          onPress={() => router.push('/auth/register')}
-        >
-          <Text style={styles.registerBtnText}>{au.createNewAccount}</Text>
-        </TouchableOpacity>
-      </KeyboardAvoidingView>
+      </View>
 
       {/* Language modal */}
       <Modal visible={langModal} transparent animationType="fade">
@@ -221,20 +138,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 28,
-    gap: 10,
+    gap: 12,
   },
 
-  wordmarkWrap: { alignItems: 'center', gap: 14, marginBottom: 10 },
+  wordmarkWrap: { alignItems: 'center', gap: 14, marginBottom: 16 },
   logoImage: {
     width: 88,
     height: 88,
     borderRadius: 26,
     borderWidth: 2.5,
     borderColor: COLORS.borderActive,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
   },
   wordmark: { flexDirection: 'row', alignItems: 'baseline' },
   wordmarkCook: {
@@ -262,10 +175,16 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: COLORS.text1,
     letterSpacing: -0.4,
-    marginTop: 6,
+    textAlign: 'center',
     fontFamily: FONTS.titleBold,
   },
-  subtitle: { fontSize: 14, color: COLORS.text3, marginBottom: 4, fontFamily: FONTS.body },
+  subtitle: {
+    fontSize: 14,
+    color: COLORS.text3,
+    textAlign: 'center',
+    marginBottom: 8,
+    fontFamily: FONTS.body,
+  },
 
   errorBox: {
     flexDirection: 'row',
@@ -281,52 +200,7 @@ const styles = StyleSheet.create({
   },
   errorMsg: { color: COLORS.accent, fontSize: 13, fontWeight: '600', flex: 1, fontFamily: FONTS.body },
 
-  form: { alignSelf: 'stretch', gap: 14 },
-  inputWrap: { gap: 7 },
-  label: { fontSize: 11, fontWeight: '700', color: COLORS.text3, textTransform: 'uppercase', letterSpacing: 0.8, fontFamily: FONTS.bodyBold },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface2,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    paddingHorizontal: 14,
-  },
-  inputIcon: { marginRight: 8 },
-  input: {
-    flex: 1,
-    paddingVertical: 14,
-    fontSize: 15,
-    color: COLORS.text1,
-    fontFamily: FONTS.body,
-  },
-  eyeBtn: { padding: 4 },
-
-  btn: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 16,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 4,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    elevation: 3,
-  },
   btnDisabled: { opacity: 0.6 },
-  btnText: { fontSize: 16, fontWeight: '900', color: COLORS.bg, letterSpacing: 0.3, fontFamily: FONTS.bodyBold },
-
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    alignSelf: 'stretch',
-    marginVertical: 4,
-  },
-  dividerLine: { flex: 1, height: 1, backgroundColor: COLORS.border },
-  dividerText: { fontSize: 13, color: COLORS.text3, fontFamily: FONTS.body },
 
   googleBtn: {
     alignSelf: 'stretch',
@@ -334,25 +208,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    paddingVertical: 15,
+    paddingVertical: 16,
     borderRadius: 16,
     borderWidth: 1.5,
     borderColor: COLORS.border,
     backgroundColor: COLORS.surface1,
   },
   googleIcon: { width: 20, height: 20, borderRadius: 4 },
-  googleBtnText: { fontSize: 15, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.bodyBold },
-
-  registerBtn: {
-    alignSelf: 'stretch',
-    paddingVertical: 15,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-    backgroundColor: COLORS.surface1,
-  },
-  registerBtnText: { fontSize: 15, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.bodyBold },
+  googleBtnText: { fontSize: 16, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.bodyBold },
 
   langBtn: {
     position: 'absolute',

@@ -31,12 +31,6 @@ function authHeader(token: string) {
 }
 
 export const api = {
-  register: (body: { name: string; username: string; email: string; password: string; terms_accepted: boolean }) =>
-    request('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
-
-  login: (body: { email: string; password: string }) =>
-    request('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
-
   googleLogin: (idToken: string) =>
     request('/auth/google', { method: 'POST', body: JSON.stringify({ idToken }) }),
 
@@ -157,10 +151,4 @@ export const api = {
     request(`/discover?page=${page}&pageSize=${pageSize}`, { headers: authHeader(token) }),
 
   health: () => request('/health'),
-
-  forgotPassword: (email: string): Promise<{ ok: boolean }> =>
-    request('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
-
-  sendVerification: (token: string): Promise<{ ok: boolean }> =>
-    request('/auth/send-verification', { method: 'POST', headers: authHeader(token) }),
 };
