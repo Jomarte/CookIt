@@ -1450,6 +1450,11 @@ app.get('/terms', (_, res) => {
   res.send(fs.readFileSync(path.join(__dirname, 'terms.html')));
 });
 
+app.get('/delete-account', (_, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(fs.readFileSync(path.join(__dirname, 'delete-account.html')));
+});
+
 // ── HEALTH ──────────────────────────────────────────────────────────────────
 app.get('/api/health', (_, res) => res.json({ ok: true, db: 'postgresql', time: new Date().toISOString() }));
 

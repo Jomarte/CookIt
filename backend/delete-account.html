@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Delete Account — CookIt</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #FBF5EF;
+      color: #1A1A1A;
+      padding: 40px 20px;
+      max-width: 680px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+    .logo {
+      font-size: 28px;
+      font-weight: 900;
+      font-style: italic;
+      margin-bottom: 32px;
+      display: inline-block;
+    }
+    .logo span { color: #C2622D; }
+    h1 {
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: #1A1A1A;
+    }
+    .subtitle {
+      color: #666;
+      font-size: 15px;
+      margin-bottom: 36px;
+    }
+    h2 {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1A1A1A;
+      margin-bottom: 12px;
+      margin-top: 32px;
+    }
+    p { color: #444; font-size: 15px; margin-bottom: 12px; }
+    ol, ul { padding-left: 20px; color: #444; font-size: 15px; }
+    li { margin-bottom: 8px; }
+    .step-box {
+      background: #fff;
+      border: 1px solid #E8DDD4;
+      border-radius: 14px;
+      padding: 24px;
+      margin-top: 12px;
+    }
+    .step-box ol { counter-reset: steps; list-style: none; padding: 0; }
+    .step-box ol li {
+      counter-increment: steps;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 12px 0;
+      border-bottom: 1px solid #F0E8E0;
+    }
+    .step-box ol li:last-child { border-bottom: none; }
+    .step-num {
+      background: #C2622D;
+      color: #fff;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .step-text { font-size: 15px; color: #333; padding-top: 2px; }
+    .step-text strong { color: #1A1A1A; }
+    .warn-box {
+      background: #FFF4E5;
+      border: 1px solid #F0C070;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-top: 16px;
+      font-size: 14px;
+      color: #7A4A00;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 14px;
+    }
+    th {
+      background: #F5EDE4;
+      text-align: left;
+      padding: 10px 14px;
+      font-weight: 700;
+      color: #555;
+      border-bottom: 1px solid #E8DDD4;
+    }
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #F0E8E0;
+      color: #444;
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    .badge-deleted {
+      display: inline-block;
+      background: #FDECEA;
+      color: #C0392B;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .footer {
+      margin-top: 48px;
+      padding-top: 20px;
+      border-top: 1px solid #E8DDD4;
+      font-size: 13px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="logo">Cook<span>It</span></div>
+
+  <h1>Delete Your Account &amp; Data</h1>
+  <p class="subtitle">This page explains how to permanently delete your CookIt account and all associated data.</p>
+
+  <h2>How to Delete Your Account</h2>
+  <p>You can delete your account directly inside the CookIt app at any time. No email or form is required.</p>
+
+  <div class="step-box">
+    <ol>
+      <li>
+        <div class="step-num">1</div>
+        <div class="step-text">Open the <strong>CookIt</strong> app on your device.</div>
+      </li>
+      <li>
+        <div class="step-num">2</div>
+        <div class="step-text">Tap the <strong>Profile</strong> tab at the bottom of the screen.</div>
+      </li>
+      <li>
+        <div class="step-num">3</div>
+        <div class="step-text">Tap the <strong>Settings</strong> icon (⚙) in the top-right corner of your profile.</div>
+      </li>
+      <li>
+        <div class="step-num">4</div>
+        <div class="step-text">Scroll down and tap <strong>Delete Account</strong>.</div>
+      </li>
+      <li>
+        <div class="step-num">5</div>
+        <div class="step-text">Confirm the deletion in the dialog that appears. Your account and all data will be permanently erased immediately.</div>
+      </li>
+    </ol>
+  </div>
+
+  <div class="warn-box">
+    ⚠️ <strong>This action is irreversible.</strong> Once confirmed, your account cannot be recovered.
+  </div>
+
+  <h2>What Data Is Deleted</h2>
+  <p>When you delete your CookIt account, the following data is permanently and immediately removed from our servers:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Data Type</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Profile information (name, username, email, avatar, bio, nationality)</td>
+        <td><span class="badge-deleted">Deleted immediately</span></td>
+      </tr>
+      <tr>
+        <td>All recipes you created (including ingredients, steps, and images)</td>
+        <td><span class="badge-deleted">Deleted immediately</span></td>
+      </tr>
+      <tr>
+        <td>Saved recipes and cooked history</td>
+        <td><span class="badge-deleted">Deleted immediately</span></td>
+      </tr>
+      <tr>
+        <td>Likes, ratings, and comments</td>
+        <td><span class="badge-deleted">Deleted immediately</span></td>
+      </tr>
+      <tr>
+        <td>Followers and following relationships</td>
+        <td><span class="badge-deleted">Deleted immediately</span></td>
+      </tr>
+      <tr>
+        <td>Shopping list</td>
+        <td><span class="badge-deleted">Deleted immediately</span></td>
+      </tr>
+      <tr>
+        <td>Notifications and authentication tokens</td>
+        <td><span class="badge-deleted">Deleted immediately</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p style="margin-top:16px;">We do not retain any personal data after account deletion. No backup copies are kept.</p>
+
+  <h2>Need Help?</h2>
+  <p>If you are unable to access the app or need assistance with account deletion, please contact us at <strong>jmgpcl@gmail.com</strong> with the subject line <em>"Account Deletion Request — CookIt"</em> and we will process your request within 7 days.</p>
+
+  <div class="footer">
+    CookIt &nbsp;·&nbsp; Last updated: May 2026
+  </div>
+
+</body>
+</html>
