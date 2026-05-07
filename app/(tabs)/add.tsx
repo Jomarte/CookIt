@@ -347,10 +347,10 @@ export default function AddScreen() {
               return (
                 <TouchableOpacity
                   key={ptVal}
-                  style={[styles.diffBtn, active && { borderColor: color, backgroundColor: `${color}18` }]}
+                  style={[styles.diffBtn, active && { backgroundColor: color }]}
                   onPress={() => setDifficulty(ptVal)}
                 >
-                  <Text style={[styles.diffBtnText, active && { color }]}>{a.difficulties[idx]}</Text>
+                  <Text style={[styles.diffBtnText, active && { color: '#fff' }]}>{a.difficulties[idx]}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -565,7 +565,20 @@ export default function AddScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={{ height: 120 }} />
+        {/* Big publish button */}
+        <TouchableOpacity
+          style={[styles.publishBtnLarge, publishing && styles.publishBtnDisabled]}
+          onPress={handlePublish}
+          disabled={publishing}
+          activeOpacity={0.85}
+        >
+          {publishing
+            ? <ActivityIndicator color="#fff" size="small" />
+            : <Text style={styles.publishBtnLargeText}>{a.publishShort}</Text>
+          }
+        </TouchableOpacity>
+
+        <View style={{ height: 40 }} />
       </ScrollView>
 
       {/* Native unit picker modal */}
@@ -618,13 +631,13 @@ const styles = StyleSheet.create({
   publishBtnDisabled: { opacity: 0.6 },
   publishBtnText: { fontSize: 14, fontWeight: '700', color: COLORS.bg, fontFamily: FONTS.bodyBold },
 
-  content: { padding: 16, gap: 12 },
+  content: { padding: 16, gap: 16 },
 
   photoArea: {
-    height: 200,
-    backgroundColor: COLORS.surface1,
-    borderRadius: 18,
-    borderWidth: 1.5,
+    height: 260,
+    backgroundColor: COLORS.surface2,
+    borderRadius: 20,
+    borderWidth: 2,
     borderColor: COLORS.borderActive,
     borderStyle: 'dashed',
     alignItems: 'center',
@@ -672,15 +685,11 @@ const styles = StyleSheet.create({
   photoSubtext: { fontSize: 12, color: COLORS.text3, fontFamily: FONTS.body },
 
   section: {
-    backgroundColor: COLORS.surface1,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 18,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
   },
-  label: { fontSize: 14, fontWeight: '700', color: COLORS.text1, marginBottom: 12, fontFamily: FONTS.bodyBold },
+  label: { fontSize: 15, fontWeight: '700', color: COLORS.text1, marginBottom: 12, fontFamily: FONTS.bodyBold },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   labelHint: { fontSize: 12, color: COLORS.text3, fontStyle: 'italic', fontFamily: FONTS.body },
   labelSelected: {
@@ -698,14 +707,18 @@ const styles = StyleSheet.create({
   },
 
   input: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingHorizontal: 14,
+    borderWidth: 0,
+    borderRadius: 14,
+    paddingHorizontal: 16,
     paddingVertical: 14,
-    fontSize: 15,
+    fontSize: 16,
     color: COLORS.text1,
-    backgroundColor: COLORS.surface2,
+    backgroundColor: COLORS.surface1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
 
   pillsRow: { gap: 8, flexDirection: 'row', paddingVertical: 2 },
@@ -724,38 +737,45 @@ const styles = StyleSheet.create({
   diffRow: { flexDirection: 'row', gap: 10 },
   diffBtn: {
     flex: 1,
-    paddingVertical: 13,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 0,
     alignItems: 'center',
     backgroundColor: COLORS.surface2,
   },
-  diffBtnText: { fontSize: 14, fontWeight: '600', color: COLORS.text3, fontFamily: FONTS.bodyBold },
+  diffBtnText: { fontSize: 14, fontWeight: '700', color: COLORS.text3, fontFamily: FONTS.bodyBold },
 
-  timeRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-end' },
-  timeField: { flex: 1 },
+  timeRow: { flexDirection: 'row', gap: 12, alignItems: 'stretch' },
+  timeField: {
+    flex: 1,
+    backgroundColor: COLORS.surface1,
+    borderRadius: 16,
+    padding: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
   timeLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: COLORS.text3,
     fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: 4,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    minHeight: 28,
-    textAlignVertical: 'bottom',
     fontFamily: FONTS.body,
+    textAlign: 'center',
   },
   timeInput: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 13,
-    fontSize: 16,
+    fontSize: 20,
+    fontWeight: '700',
     color: COLORS.text1,
     textAlign: 'center',
-    backgroundColor: COLORS.surface2,
+    paddingVertical: 4,
+    fontFamily: FONTS.bodyBold,
   },
 
   tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
@@ -776,19 +796,33 @@ const styles = StyleSheet.create({
   tagPillTextBlue: { color: COLORS.primary, fontWeight: '700' },
 
   ingredientBlock: {
-    marginBottom: 14,
+    marginBottom: 10,
   },
-  ingredientNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 0 },
-  ingredientDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.primary, flexShrink: 0 },
+  ingredientNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 0,
+    backgroundColor: COLORS.surface1,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  ingredientDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.primary, flexShrink: 0 },
   removeBtn: { padding: 2, flexShrink: 0 },
   ingredientAmountInput: {
-    width: 48,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 10,
+    width: 50,
+    borderWidth: 0,
+    borderRadius: 8,
     paddingHorizontal: 6,
-    paddingVertical: 11,
-    fontSize: 13,
+    paddingVertical: 8,
+    fontSize: 14,
+    fontWeight: '700',
     color: COLORS.text1,
     backgroundColor: COLORS.surface2,
     textAlign: 'center',
@@ -797,18 +831,15 @@ const styles = StyleSheet.create({
   ingredientInput: {
     flex: 1,
     minWidth: 0,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 11,
-    fontSize: 14,
+    borderWidth: 0,
+    paddingHorizontal: 4,
+    paddingVertical: 8,
+    fontSize: 15,
     color: COLORS.text1,
-    backgroundColor: COLORS.surface2,
+    backgroundColor: 'transparent',
   },
   ingredientInputMatched: {
-    borderColor: COLORS.borderActive,
-    backgroundColor: COLORS.primaryDim,
+    color: COLORS.primary,
   },
   ingredientAmountError: {
     borderColor: COLORS.red,
@@ -838,32 +869,41 @@ const styles = StyleSheet.create({
   addBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 8 },
   addBtnText: { fontSize: 14, fontWeight: '600', color: COLORS.primary, fontFamily: FONTS.bodyBold },
 
-  stepRow: { flexDirection: 'row', gap: 10, marginBottom: 12, alignItems: 'flex-start' },
+  stepRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 10,
+    alignItems: 'flex-start',
+    backgroundColor: COLORS.surface1,
+    borderRadius: 14,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
   stepNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: COLORS.primaryDim,
-    borderWidth: 1.5,
-    borderColor: COLORS.borderActive,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 10,
+    marginTop: 4,
     flexShrink: 0,
   },
-  stepNumberText: { fontSize: 13, fontWeight: '800', color: COLORS.primary, fontFamily: FONTS.bodyBold },
+  stepNumberText: { fontSize: 14, fontWeight: '800', color: '#fff', fontFamily: FONTS.bodyBold },
   stepInput: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
+    borderWidth: 0,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
     fontSize: 14,
     color: COLORS.text1,
-    minHeight: 70,
+    minHeight: 60,
     textAlignVertical: 'top',
-    backgroundColor: COLORS.surface2,
+    backgroundColor: 'transparent',
   },
   unitBtn: {
     height: 42,
@@ -911,4 +951,26 @@ const styles = StyleSheet.create({
   unitModalItemActive: { backgroundColor: COLORS.primaryDim },
   unitModalItemText: { fontSize: 15, color: COLORS.text1, fontFamily: FONTS.body },
   unitModalItemTextActive: { color: COLORS.primary, fontWeight: '700' },
+
+  publishBtnLarge: {
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: COLORS.primary,
+    backgroundImage: 'linear-gradient(135deg, #C2622D, #D4A853)' as any,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  publishBtnLargeText: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 0.5,
+    fontFamily: FONTS.bodyBold,
+  },
 });
