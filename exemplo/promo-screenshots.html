@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<title>CookIt — Screenshots Promocionais Play Store</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #111;
+  font-family: 'Lato', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px;
+  gap: 16px;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+}
+.controls button {
+  background: #C2622D;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+}
+.controls button:hover { background: #a8521f; }
+#label { min-width: 260px; text-align: center; }
+
+.instructions {
+  color: #aaa;
+  font-size: 13px;
+  text-align: center;
+  max-width: 600px;
+  line-height: 1.6;
+  margin-top: 8px;
+}
+.instructions strong { color: #C2622D; }
+
+/* Preview wrapper — scales 1080×1920 to fit screen */
+.preview-outer {
+  width: 405px;
+  height: 720px;
+  overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+  flex-shrink: 0;
+}
+
+.preview-inner {
+  width: 1080px;
+  height: 1920px;
+  transform: scale(0.375);
+  transform-origin: top left;
+}
+
+/* ═══════════════════════════════════════════ */
+/* PROMO SLIDE — 1080×1920 each              */
+/* ═══════════════════════════════════════════ */
+.slide {
+  width: 1080px;
+  height: 1920px;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.slide.active { display: flex; }
+
+/* ── Backgrounds ── */
+.bg-1 {
+  background: linear-gradient(160deg, #FBF5EF 0%, #F5EDE3 30%, #EDE0D0 60%, #D4A853 100%);
+}
+.bg-2 {
+  background: linear-gradient(160deg, #1A1A1A 0%, #3D2010 50%, #C2622D 100%);
+}
+.bg-3 {
+  background: linear-gradient(160deg, #FBF5EF 0%, #F5EDE3 40%, #C2622D 100%);
+}
+.bg-4 {
+  background: linear-gradient(160deg, #EDE0D0 0%, #D4A853 50%, #C2622D 100%);
+}
+.bg-5 {
+  background: linear-gradient(160deg, #FBF5EF 0%, #EDE0D0 40%, #8B3D18 100%);
+}
+.bg-6 {
+  background: linear-gradient(160deg, #1A1A1A 0%, #2D1A0E 40%, #D4A853 100%);
+}
+
+/* Decorative circles */
+.slide::before {
+  content: '';
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  top: -150px;
+  right: -200px;
+}
+.slide::after {
+  content: '';
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.04);
+  bottom: -100px;
+  left: -150px;
+}
+
+/* ── Text area ── */
+.slide-text {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 0 80px;
+  margin-bottom: 50px;
+}
+.slide-headline {
+  font-family: 'Playfair Display', serif;
+  font-size: 72px;
+  font-weight: 900;
+  line-height: 1.15;
+  margin-bottom: 20px;
+  letter-spacing: -1px;
+}
+.slide-sub {
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 1.4;
+  opacity: 0.8;
+}
+.text-dark .slide-headline { color: #1A1A1A; }
+.text-dark .slide-sub { color: #555; }
+.text-light .slide-headline { color: #fff; }
+.text-light .slide-sub { color: rgba(255,255,255,0.75); }
+
+/* ── Phone mockup ── */
+.phone-frame {
+  position: relative;
+  z-index: 2;
+  width: 520px;
+  height: 1060px;
+  border-radius: 52px;
+  background: #1A1A1A;
+  padding: 14px;
+  box-shadow:
+    0 30px 80px rgba(0,0,0,0.35),
+    0 0 0 2px rgba(255,255,255,0.1),
+    inset 0 0 0 1px rgba(255,255,255,0.05);
+}
+.phone-screen {
+  width: 100%;
+  height: 100%;
+  border-radius: 40px;
+  overflow: hidden;
+  position: relative;
+  background: #FBF5EF;
+}
+.phone-screen img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+/* Notch */
+.phone-notch {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 180px;
+  height: 34px;
+  background: #1A1A1A;
+  border-radius: 0 0 20px 20px;
+  z-index: 3;
+}
+
+/* ── Logo badge ── */
+.logo-badge {
+  position: relative;
+  z-index: 2;
+  margin-top: 50px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.logo-text {
+  font-family: 'Playfair Display', serif;
+  font-size: 48px;
+  font-weight: 900;
+}
+.logo-text .c { color: #1A1A1A; }
+.logo-text .k { color: #C2622D; }
+.logo-text-light .c { color: #fff; }
+.logo-text-light .k { color: #D4A853; }
+
+/* ── Variant: phone offset to side ── */
+.slide-layout-side {
+  flex-direction: row;
+  padding: 0 60px;
+  gap: 50px;
+}
+.slide-layout-side .slide-text {
+  flex: 1;
+  text-align: left;
+  padding: 0;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.slide-layout-side .phone-frame {
+  width: 440px;
+  height: 900px;
+  border-radius: 44px;
+  padding: 12px;
+  flex-shrink: 0;
+}
+.slide-layout-side .phone-screen { border-radius: 34px; }
+.slide-layout-side .phone-notch { width: 150px; height: 28px; border-radius: 0 0 16px 16px; }
+
+/* ── Feature pills ── */
+.feature-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 30px;
+}
+.feature-pill {
+  padding: 14px 28px;
+  border-radius: 30px;
+  font-size: 24px;
+  font-weight: 700;
+}
+.pill-light {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+}
+.pill-dark {
+  background: rgba(194,98,45,0.12);
+  color: #C2622D;
+}
+
+/* ── Accent line ── */
+.accent-line {
+  width: 80px;
+  height: 6px;
+  border-radius: 3px;
+  background: #C2622D;
+  margin-bottom: 30px;
+}
+.accent-line-light { background: #D4A853; }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <button onclick="go(-1)">&#8592; Anterior</button>
+  <span id="label">1/6 — Descobre Receitas</span>
+  <button onclick="go(1)">Pr&oacute;ximo &#8594;</button>
+</div>
+
+<div class="preview-outer">
+<div class="preview-inner">
+
+<!-- ═══════════════════════════════════ -->
+<!-- SLIDE 1: DISCOVER -->
+<!-- ═══════════════════════════════════ -->
+<div class="slide bg-1 active" id="s1">
+  <div class="slide-text text-dark">
+    <div class="accent-line"></div>
+    <div class="slide-headline">Descobre receitas de todo o mundo</div>
+    <div class="slide-sub">Explora cozinhas de diferentes culturas e encontra a tua próxima refeição favorita</div>
+  </div>
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <div class="phone-notch"></div>
+      <img src="Screenshot_20260507_200535_CookIt.jpg" alt="Discover">
+    </div>
+  </div>
+  <div class="logo-badge">
+    <div class="logo-text"><span class="c">Cook</span><span class="k">It</span></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!-- SLIDE 2: RECIPE DETAIL -->
+<!-- ═══════════════════════════════════ -->
+<div class="slide bg-2" id="s2">
+  <div class="slide-text text-light">
+    <div class="accent-line accent-line-light"></div>
+    <div class="slide-headline">Receitas detalhadas passo a passo</div>
+    <div class="slide-sub">Ingredientes, tempos, dificuldade e avaliações — tudo o que precisas</div>
+  </div>
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <div class="phone-notch"></div>
+      <img src="Screenshot_20260507_200143_CookIt.jpg" alt="Recipe Detail">
+    </div>
+  </div>
+  <div class="logo-badge">
+    <div class="logo-text logo-text-light"><span class="c">Cook</span><span class="k">It</span></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!-- SLIDE 3: PREPARATION STEPS -->
+<!-- ═══════════════════════════════════ -->
+<div class="slide bg-3" id="s3">
+  <div class="slide-text text-dark">
+    <div class="accent-line"></div>
+    <div class="slide-headline">Cozinha com confiança</div>
+    <div class="slide-sub">Segue os passos da preparação e avalia cada receita que experimentas</div>
+  </div>
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <div class="phone-notch"></div>
+      <img src="Screenshot_20260507_200154_CookIt.jpg" alt="Steps">
+    </div>
+  </div>
+  <div class="logo-badge">
+    <div class="logo-text"><span class="c">Cook</span><span class="k">It</span></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!-- SLIDE 4: PROFILE -->
+<!-- ═══════════════════════════════════ -->
+<div class="slide bg-4" id="s4">
+  <div class="slide-text text-light">
+    <div class="accent-line accent-line-light"></div>
+    <div class="slide-headline">Cria o teu perfil de chef</div>
+    <div class="slide-sub">Acompanha as tuas receitas, conquistas e calendário de cozinha</div>
+  </div>
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <div class="phone-notch"></div>
+      <img src="Screenshot_20260507_200207_CookIt.jpg" alt="Profile">
+    </div>
+  </div>
+  <div class="logo-badge">
+    <div class="logo-text logo-text-light"><span class="c">Cook</span><span class="k">It</span></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!-- SLIDE 5: SHOPPING LIST -->
+<!-- ═══════════════════════════════════ -->
+<div class="slide bg-5" id="s5">
+  <div class="slide-text text-dark">
+    <div class="accent-line"></div>
+    <div class="slide-headline">Lista de compras automática</div>
+    <div class="slide-sub">Adiciona ingredientes direto da receita e organiza as tuas compras</div>
+  </div>
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <div class="phone-notch"></div>
+      <img src="Screenshot_20260507_200251_CookIt.jpg" alt="Shopping List">
+    </div>
+  </div>
+  <div class="logo-badge">
+    <div class="logo-text"><span class="c">Cook</span><span class="k">It</span></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!-- SLIDE 6: ADD RECIPE -->
+<!-- ═══════════════════════════════════ -->
+<div class="slide bg-6" id="s6">
+  <div class="slide-text text-light">
+    <div class="accent-line accent-line-light"></div>
+    <div class="slide-headline">Partilha as tuas criações</div>
+    <div class="slide-sub">Publica receitas, escolhe a cozinha, dificuldade e ingredientes em segundos</div>
+  </div>
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <div class="phone-notch"></div>
+      <img src="Captura de ecrã 2026-05-07 200754.png" alt="Add Recipe">
+    </div>
+  </div>
+  <div class="logo-badge">
+    <div class="logo-text logo-text-light"><span class="c">Cook</span><span class="k">It</span></div>
+  </div>
+</div>
+
+</div><!-- /preview-inner -->
+</div><!-- /preview-outer -->
+
+<div class="instructions">
+  <strong>Como exportar (1080x1920) para o Google Play:</strong><br>
+  1. Abre este ficheiro no <strong>Chrome</strong> &rarr; <strong>F12</strong> &rarr; <strong>Toggle device toolbar</strong> (Ctrl+Shift+M)<br>
+  2. Tamanho: <strong>1080 &times; 1920</strong> &middot; DPR: <strong>1</strong><br>
+  3. <strong>&#8942;</strong> (3 pontos) &rarr; <strong>"Capture screenshot"</strong><br>
+  4. Usa as setas <strong>&larr; &rarr;</strong> ou os bot&otilde;es para navegar entre slides<br>
+  5. Repete para cada um dos 6 slides<br><br>
+  <strong>Dica:</strong> As screenshots reais do teu telem&oacute;vel s&atilde;o carregadas automaticamente se este HTML estiver na mesma pasta.
+</div>
+
+<script>
+const slides = ['s1','s2','s3','s4','s5','s6'];
+const names = [
+  'Descobre Receitas',
+  'Detalhe da Receita',
+  'Passos & Avaliação',
+  'Perfil de Chef',
+  'Lista de Compras',
+  'Partilha Receitas'
+];
+let cur = 0;
+
+function go(dir) {
+  document.getElementById(slides[cur]).classList.remove('active');
+  cur = (cur + dir + slides.length) % slides.length;
+  document.getElementById(slides[cur]).classList.add('active');
+  document.getElementById('label').textContent = (cur+1) + '/6 — ' + names[cur];
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') go(1);
+  if (e.key === 'ArrowLeft') go(-1);
+});
+</script>
+</body>
+</html>
