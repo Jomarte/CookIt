@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "android": {
-      "package": "com.cookit.app",
+      "package": "com.leitaonatario.cookit",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo-new.png",
