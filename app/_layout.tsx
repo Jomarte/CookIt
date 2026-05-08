@@ -124,6 +124,15 @@ function StoreHydrator() {
       }
 
       if (!auth?.token || !auth?.user) return;
+
+      // Verify user still exists on server before restoring session
+      try {
+        await api.me(auth.token);
+      } catch {
+        await storageRemove(AUTH_KEY);
+        return;
+      }
+
       store.setAuth(auth.user, auth.token);
 
       // Restore cached data immediately (works even if server is sleeping)
