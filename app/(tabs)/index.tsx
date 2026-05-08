@@ -97,7 +97,7 @@ export default function FeedScreen() {
           </View>
         </TouchableOpacity>
 
-        {/* Meta row: difficulty badge + time + rating */}
+        {/* Meta row: difficulty badge + time + rating (right) */}
         <View style={styles.postBody}>
           <View style={styles.metaRow}>
             <View style={[styles.diffBadgeFilled, { backgroundColor: diffColor }]}>
@@ -107,12 +107,13 @@ export default function FeedScreen() {
               <Ionicons name="time-outline" size={13} color={COLORS.text3} />
               <Text style={styles.metaText}>{totalTime} min</Text>
             </View>
-            {recipe.rating_count > 0 && (
-              <View style={styles.metaItem}>
-                <Ionicons name="star" size={12} color={COLORS.star} />
-                <Text style={[styles.metaText, { color: COLORS.star }]}>{Number(recipe.rating).toFixed(1)}</Text>
-              </View>
-            )}
+            <View style={{ flex: 1 }} />
+            <View style={styles.metaItem}>
+              <Ionicons name="star" size={12} color={recipe.rating_count > 0 ? COLORS.star : COLORS.text3} />
+              <Text style={[styles.metaText, { color: recipe.rating_count > 0 ? COLORS.star : COLORS.text3 }]}>
+                {recipe.rating_count > 0 ? Number(recipe.rating).toFixed(1) : '—'}
+              </Text>
+            </View>
           </View>
 
           {/* Title */}

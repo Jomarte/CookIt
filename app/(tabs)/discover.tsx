@@ -55,7 +55,7 @@ const SORT_KEYS = [
 
 export default function DiscoverScreen() {
   const router = useRouter();
-  const { savedRecipes, toggleSaved, recipes, setRecipes, token, language } = useStore();
+  const { likedRecipes, toggleLiked, recipes, setRecipes, token, language } = useStore();
   const t = useT();
   const d = t.discover;
   const [search, setSearch] = useState('');
@@ -168,9 +168,9 @@ export default function DiscoverScreen() {
     setFridgeInput('');
   };
 
-  const handleSave = useCallback((recipeId: string) => {
-    toggleSaved(recipeId);
-  }, [toggleSaved]);
+  const handleLike = useCallback((recipeId: string) => {
+    toggleLiked(recipeId);
+  }, [toggleLiked]);
 
   const isFiltering = !!search || fridgeList.length > 0 || activeCuisine !== 'Todas' ||
     activeDishType !== 'Todos' || !!activeDifficulty || selectedIngredients.length > 0;
@@ -449,7 +449,7 @@ export default function DiscoverScreen() {
                 >
                   {forYouRecipes.map((recipe) => {
                     const totalTime = (recipe.prep_time ?? 0) + (recipe.cook_time ?? 0);
-                    const isSaved = savedRecipes.includes(String(recipe.id));
+                    const isLiked = likedRecipes.includes(String(recipe.id));
                     return (
                       <TouchableOpacity
                         key={recipe.id}
@@ -467,12 +467,12 @@ export default function DiscoverScreen() {
                           )}
                           <TouchableOpacity
                             style={styles.forYouCardSave}
-                            onPress={() => handleSave(String(recipe.id))}
+                            onPress={() => handleLike(String(recipe.id))}
                           >
                             <Ionicons
-                              name={isSaved ? 'heart' : 'heart-outline'}
+                              name={isLiked ? 'heart' : 'heart-outline'}
                               size={14}
-                              color={isSaved ? '#E53935' : '#fff'}
+                              color={isLiked ? '#E53935' : '#fff'}
                             />
                           </TouchableOpacity>
                         </View>
@@ -605,7 +605,7 @@ export default function DiscoverScreen() {
               <View style={styles.recipeList}>
                 {filtered.map((recipe) => {
                   const totalTime = (recipe.prep_time ?? 0) + (recipe.cook_time ?? 0);
-                  const isSaved = savedRecipes.includes(String(recipe.id));
+                  const isLiked = likedRecipes.includes(String(recipe.id));
                   const diffColor = DIFF_COLORS[recipe.difficulty] ?? COLORS.text3;
                   return (
                     <TouchableOpacity
@@ -625,12 +625,12 @@ export default function DiscoverScreen() {
                         <View style={styles.recipeCardGradient} />
                         <TouchableOpacity
                           style={styles.recipeCardSaveBtn}
-                          onPress={() => handleSave(String(recipe.id))}
+                          onPress={() => handleLike(String(recipe.id))}
                         >
                           <Ionicons
-                            name={isSaved ? 'heart' : 'heart-outline'}
+                            name={isLiked ? 'heart' : 'heart-outline'}
                             size={18}
-                            color={isSaved ? '#E53935' : '#fff'}
+                            color={isLiked ? '#E53935' : '#fff'}
                           />
                         </TouchableOpacity>
                         <View style={styles.recipeCardOverlay}>

@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import React, { useState } from 'react';
 import {
   Alert,
@@ -84,6 +85,7 @@ export default function SettingsScreen() {
     setDeleting(true);
     try {
       await api.deleteMe(token!);
+      try { await GoogleSignin.signOut(); } catch {}
       logout();
       setDeleteModal(false);
       router.replace('/auth/login');
@@ -180,7 +182,8 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="log-out-outline"
             label={s.logout}
-            onPress={() => {
+            onPress={async () => {
+              try { await GoogleSignin.signOut(); } catch {}
               logout();
               router.replace('/auth/login');
             }}
