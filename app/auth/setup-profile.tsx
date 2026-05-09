@@ -166,7 +166,8 @@ export default function EditProfileScreen() {
       });
       // Garantir que o avatar local é mantido caso o backend não o devolva
       updateUser({ ...updated, avatar: updated.avatar ?? avatarPreview });
-      router.back();
+      if (router.canGoBack()) router.back();
+      else router.replace('/(tabs)');
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -183,7 +184,7 @@ export default function EditProfileScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); }}>
           <Ionicons name="arrow-back" size={20} color={COLORS.text2} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{au.setupHeaderTitle}</Text>
