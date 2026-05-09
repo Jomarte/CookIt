@@ -76,6 +76,9 @@ export default function DiscoverScreen() {
   const [forYouLoading, setForYouLoading] = useState(false);
   const [forYouPersonalized, setForYouPersonalized] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchMode, setSearchMode] = useState<'recipes' | 'chefs'>('recipes');
+  const [chefResults, setChefResults] = useState<any[]>([]);
+  const [chefLoading, setChefLoading] = useState(false);
 
   const fridgeSuggestions = useMemo<IngredientEntry[]>(
     () => (fridgeInput.trim().length > 0 ? getIngredientSuggestions(fridgeInput, language) : []),
@@ -103,6 +106,17 @@ export default function DiscoverScreen() {
       .catch(() => {})
       .finally(() => setForYouLoading(false));
   }, [token]);
+
+  useEffect(() => {
+    if (searchMode !== 'chefs' || !search.trim()) { setChefResults([]); return; }
+    const timer = setTimeout(async () => {
+      setChefLoading(true);
+      try { setChefResults(await api.searchUsers(search.trim())); }
+      catch { setChefResults([]); }
+      finally { setChefLoading(false); }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search, searchMode]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -241,7 +255,7 @@ export default function DiscoverScreen() {
           <Ionicons name="search-outline" size={16} color={COLORS.text3} />
           <TextInput
             style={styles.searchInput}
-            placeholder={d.searchPlaceholder}
+            placeholder={searchMode === 'chefs' ? d.chefSearchPlaceholder : d.searchPlaceholder}
             placeholderTextColor={COLORS.text3}
             value={fridgeMode ? fridgeIngredients : search}
             onChangeText={fridgeMode ? setFridgeIngredients : setSearch}
@@ -252,13 +266,80 @@ export default function DiscoverScreen() {
             </TouchableOpacity>
           ) : null}
         </View>
+        {/* Mode toggle */}
+        <View style={styles.modeToggle}>
+          <TouchableOpacity
+            style={[styles.modeBtn, searchMode === 'recipes' && styles.modeBtnActive]}
+            onPress={() => { setSearchMode('recipes'); setChefResults([]); }}
+          >
+            <Ionicons name="restaurant-outline" size={12} color={searchMode === 'recipes' ? COLORS.bg : COLORS.text3} />
+            <Text style={[styles.modeBtnText, searchMode === 'recipes' && styles.modeBtnTextActive]}>{d.searchRecipes}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modeBtn, searchMode === 'chefs' && styles.modeBtnActive]}
+            onPress={() => { setSearchMode('chefs'); setSearch(''); setFridgeIngredients(''); }}
+          >
+            <Ionicons name="person-outline" size={12} color={searchMode === 'chefs' ? COLORS.bg : COLORS.text3} />
+            <Text style={[styles.modeBtnText, searchMode === 'chefs' && styles.modeBtnTextActive]}>{d.searchChefs}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {loading ? (
+      {/* Chef search results */}
+      {searchMode === 'chefs' && (
+        <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          {!search.trim() ? (
+            <View style={styles.chefEmptyHint}>
+              <Ionicons name="person-outline" size={36} color={COLORS.text3} />
+              <Text style={styles.chefEmptyHintText}>{d.chefSearchPlaceholder}</Text>
+            </View>
+          ) : chefLoading ? (
+            <ActivityIndicator color={COLORS.primary} style={{ marginTop: 32 }} />
+          ) : chefResults.length === 0 ? (
+            <View style={styles.empty}>
+              <View style={styles.emptyIcon}><Ionicons name="person-outline" size={32} color={COLORS.primary} /></View>
+              <Text style={styles.emptyTitle}>{d.noChefs}</Text>
+              <Text style={styles.emptyText}>{d.noChefsSub}</Text>
+            </View>
+          ) : (
+            <View style={styles.chefList}>
+              {chefResults.map((chef) => (
+                <TouchableOpacity
+                  key={chef.id}
+                  style={styles.chefCard}
+                  onPress={() => router.push(`/user/${chef.id}`)}
+                  activeOpacity={0.85}
+                >
+                  {chef.avatar ? (
+                    <Image source={{ uri: chef.avatar }} style={styles.chefAvatar} />
+                  ) : (
+                    <View style={styles.chefAvatarPlaceholder}>
+                      <Text style={styles.chefAvatarLetter}>{(chef.name || '?')[0].toUpperCase()}</Text>
+                    </View>
+                  )}
+                  <View style={styles.chefInfo}>
+                    <Text style={styles.chefName} numberOfLines={1}>{chef.name}</Text>
+                    <Text style={styles.chefUsername}>@{chef.username}</Text>
+                    <View style={styles.chefMeta}>
+                      <Ionicons name="restaurant-outline" size={11} color={COLORS.text3} />
+                      <Text style={styles.chefMetaText}>{chef.recipes_count} {d.chefRecipes}</Text>
+                      <Ionicons name="people-outline" size={11} color={COLORS.text3} style={{ marginLeft: 8 }} />
+                      <Text style={styles.chefMetaText}>{chef.followers} {d.chefFollowers}</Text>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={COLORS.text3} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </ScrollView>
+      )}
+
+      {searchMode === 'recipes' && loading ? (
         <View style={styles.loadingWrap}>
           <ActivityIndicator color={COLORS.primary} size="large" />
         </View>
-      ) : (
+      ) : searchMode === 'recipes' ? (
         <ScrollView
           ref={scrollRef}
           showsVerticalScrollIndicator={false}
@@ -660,7 +741,7 @@ export default function DiscoverScreen() {
 
           <View style={{ height: 24 }} />
         </ScrollView>
-      )}
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -697,7 +778,38 @@ const styles = StyleSheet.create({
   filterBadgeText: { fontSize: 9, fontWeight: '800', color: COLORS.bg, fontFamily: FONTS.bodyBold },
 
   // Search
-  searchContainer: { paddingHorizontal: 16, paddingBottom: 12 },
+  searchContainer: { paddingHorizontal: 16, paddingBottom: 8 },
+  modeToggle: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  modeBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
+    backgroundColor: COLORS.surface2, borderWidth: 1.5, borderColor: COLORS.border,
+  },
+  modeBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  modeBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.text3, fontFamily: FONTS.bodyBold },
+  modeBtnTextActive: { color: COLORS.bg },
+
+  chefList: { paddingHorizontal: 16, paddingTop: 8 },
+  chefCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: COLORS.surface1, borderRadius: 16,
+    borderWidth: 1, borderColor: COLORS.border,
+    padding: 14, marginBottom: 10,
+  },
+  chefAvatar: { width: 52, height: 52, borderRadius: 26, borderWidth: 2, borderColor: COLORS.borderActive },
+  chefAvatarPlaceholder: {
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: COLORS.primaryDim, borderWidth: 2, borderColor: COLORS.borderActive,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  chefAvatarLetter: { fontSize: 22, fontWeight: '900', color: COLORS.primary, fontFamily: FONTS.bodyBold },
+  chefInfo: { flex: 1, gap: 2 },
+  chefName: { fontSize: 15, fontWeight: '700', color: COLORS.text1, fontFamily: FONTS.bodyBold },
+  chefUsername: { fontSize: 13, color: COLORS.text3, fontFamily: FONTS.body },
+  chefMeta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  chefMetaText: { fontSize: 12, color: COLORS.text3, fontFamily: FONTS.body },
+  chefEmptyHint: { alignItems: 'center', justifyContent: 'center', paddingTop: 60, gap: 12 },
+  chefEmptyHintText: { fontSize: 14, color: COLORS.text3, fontFamily: FONTS.body },
   searchWrap: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: COLORS.surface2,

@@ -487,6 +487,25 @@ app.delete('/api/recipes/:id', auth, async (req, res) => {
 });
 
 // ── USERS ───────────────────────────────────────────────────────────────────
+app.get('/api/users/search', publicLimiter, async (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (!q || q.length < 2) return res.json([]);
+  try {
+    const pattern = `%${q}%`;
+    const users = await db.all(
+      `SELECT id, name, username, avatar, bio, cooking_type, nationality, followers, recipes_count
+       FROM users
+       WHERE name LIKE ? OR username LIKE ?
+       ORDER BY followers DESC, recipes_count DESC
+       LIMIT 20`,
+      [pattern, pattern]
+    );
+    res.json(users);
+  } catch (e) {
+    serverError(res, e);
+  }
+});
+
 app.get('/api/users/:id', publicLimiter, async (req, res) => {
   try {
     const user = await db.get(

@@ -92,6 +92,13 @@ const pt = {
     cuisines: PT_CUISINES,
     dishTypes: PT_DISH_TYPES,
     difficulties: PT_DIFFICULTIES,
+    searchRecipes: 'Receitas',
+    searchChefs: 'Chefs',
+    chefSearchPlaceholder: 'Pesquisar chefs...',
+    noChefs: 'Nenhum chef encontrado',
+    noChefsSub: 'Tenta outro nome ou username',
+    chefRecipes: 'receitas',
+    chefFollowers: 'seguidores',
   },
 
   profile: {
@@ -486,6 +493,13 @@ const en: typeof pt = {
     cuisines: ['All', 'Portuguese', 'Italian', 'Japanese', 'Mexican', 'Indian', 'French', 'Mediterranean', 'American', 'Brazilian', 'Korean', 'Chinese', 'Thai', 'Arabic', 'African', 'Fusion', 'International'],
     dishTypes: ['All', 'Starter', 'Soup', 'Main Course', 'Side dish', 'Snack', 'Dessert', 'Breakfast', 'Brunch', 'Snack', 'Drink', 'Sauce', 'Bread / Pastry'],
     difficulties: ['Easy', 'Medium', 'Hard'],
+    searchRecipes: 'Recipes',
+    searchChefs: 'Chefs',
+    chefSearchPlaceholder: 'Search chefs...',
+    noChefs: 'No chefs found',
+    noChefsSub: 'Try a different name or username',
+    chefRecipes: 'recipes',
+    chefFollowers: 'followers',
   },
 
   profile: {

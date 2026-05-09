@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
 
   langBtn: {
     position: 'absolute',
-    top: 16,
+    top: 56,
     right: 16,
     zIndex: 10,
     flexDirection: 'row',

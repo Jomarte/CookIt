@@ -125,6 +125,8 @@ export const api = {
   postComment: (token: string, recipeId: number | string, text: string) =>
     request(`/recipes/${recipeId}/comments`, { method: 'POST', headers: authHeader(token), body: JSON.stringify({ text }) }),
 
+  searchUsers: (q: string) => request(`/users/search?q=${encodeURIComponent(q)}`),
+
   getUser: (id: number | string) => request(`/users/${id}`),
 
   getUserRecipes: (id: number | string) => request(`/users/${id}/recipes`),
