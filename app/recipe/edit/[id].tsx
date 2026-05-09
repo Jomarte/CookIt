@@ -22,11 +22,9 @@ import { FONTS } from '../../../constants/Fonts';
 import { api } from '../../../services/api';
 import { useStore } from '../../../store/useStore';
 import { getIngredientSuggestions, type IngredientEntry } from '../../../data/ingredients';
-import { useT, PT_CUISINES, PT_DISH_TYPES, PT_DIFFICULTIES, PT_DIETS, PT_COOKING_METHODS } from '../../../i18n';
+import { useT, PT_CUISINES, PT_DISH_TYPES, PT_DIFFICULTIES, PT_DIETS, PT_COOKING_METHODS, UNITS, NO_AMOUNT_UNITS, translateUnit } from '../../../i18n';
 
 const DIFF_COLORS: Record<string, string> = { 'Fácil': COLORS.green, 'Médio': COLORS.star, 'Difícil': COLORS.red };
-const UNITS = ['g', 'kg', 'ml', 'L', 'c.s.', 'c.c.', 'un.', 'fatia', 'dente', 'ramo', 'q.b.', 'pitada'];
-const NO_AMOUNT_UNITS = ['q.b.', 'pitada'];
 
 async function compressImage(dataUrl: string): Promise<string> {
   return new Promise((resolve) => {
@@ -238,7 +236,7 @@ export default function EditRecipeScreen() {
                     setUnitPickerIndex(null);
                   }}
                 >
-                  <Text style={[styles.unitOptionText, selected && styles.unitOptionTextSelected]}>{u}</Text>
+                  <Text style={[styles.unitOptionText, selected && styles.unitOptionTextSelected]}>{translateUnit(u, language)}</Text>
                   {selected && <Ionicons name="checkmark" size={16} color={COLORS.primary} />}
                 </TouchableOpacity>
               );
@@ -476,14 +474,14 @@ export default function EditRecipeScreen() {
                         flexShrink: 0,
                       } as any}
                     >
-                      {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+                      {UNITS.map((u) => <option key={u} value={u}>{translateUnit(u, language)}</option>)}
                     </select>
                   ) : (
                     <TouchableOpacity
                       style={[styles.unitBtn, ing.unit !== 'g' && styles.unitBtnActive]}
                       onPress={() => setUnitPickerIndex(i)}
                     >
-                      <Text style={[styles.unitBtnText, ing.unit !== 'g' && styles.unitBtnTextActive]}>{ing.unit}</Text>
+                      <Text style={[styles.unitBtnText, ing.unit !== 'g' && styles.unitBtnTextActive]}>{translateUnit(ing.unit, language)}</Text>
                       <Ionicons name="chevron-down" size={10} color={ing.unit !== 'g' ? COLORS.primary : COLORS.text3} />
                     </TouchableOpacity>
                   )}

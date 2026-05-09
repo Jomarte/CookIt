@@ -21,15 +21,13 @@ import { FONTS } from '../../constants/Fonts';
 import { api } from '../../services/api';
 import { useStore } from '../../store/useStore';
 import { getIngredientSuggestions, type IngredientEntry } from '../../data/ingredients';
-import { useT, PT_CUISINES, PT_DISH_TYPES, PT_DIFFICULTIES, PT_DIETS, PT_COOKING_METHODS } from '../../i18n';
+import { useT, PT_CUISINES, PT_DISH_TYPES, PT_DIFFICULTIES, PT_DIETS, PT_COOKING_METHODS, UNITS, NO_AMOUNT_UNITS, translateUnit } from '../../i18n';
 
 const DIFF_COLORS: Record<string, string> = {
   'Fácil': COLORS.green,
   'Médio': COLORS.star,
   'Difícil': COLORS.red,
 };
-const UNITS = ['g', 'kg', 'ml', 'L', 'c.s.', 'c.c.', 'un.', 'fatia', 'dente', 'ramo', 'q.b.', 'pitada'];
-const NO_AMOUNT_UNITS = ['q.b.', 'pitada'];
 
 async function compressImage(dataUrl: string): Promise<string> {
   return new Promise((resolve) => {
@@ -494,7 +492,7 @@ export default function AddScreen() {
                       } as any}
                     >
                       {UNITS.map((u) => (
-                        <option key={u} value={u}>{u}</option>
+                        <option key={u} value={u}>{translateUnit(u, language)}</option>
                       ))}
                     </select>
                   ) : (
@@ -502,7 +500,7 @@ export default function AddScreen() {
                       style={[styles.unitBtn, ing.unit !== 'g' && styles.unitBtnActive]}
                       onPress={() => setUnitPickerIndex(i)}
                     >
-                      <Text style={[styles.unitBtnText, ing.unit !== 'g' && styles.unitBtnTextActive]}>{ing.unit}</Text>
+                      <Text style={[styles.unitBtnText, ing.unit !== 'g' && styles.unitBtnTextActive]}>{translateUnit(ing.unit, language)}</Text>
                     </TouchableOpacity>
                   )}
                   {ingredients.length > 1 && (
@@ -592,7 +590,7 @@ export default function AddScreen() {
                 style={[styles.unitModalItem, ingredients[unitPickerIndex!]?.unit === u && styles.unitModalItemActive]}
                 onPress={() => { updateIngredientUnit(unitPickerIndex!, u); setUnitPickerIndex(null); }}
               >
-                <Text style={[styles.unitModalItemText, ingredients[unitPickerIndex!]?.unit === u && styles.unitModalItemTextActive]}>{u}</Text>
+                <Text style={[styles.unitModalItemText, ingredients[unitPickerIndex!]?.unit === u && styles.unitModalItemTextActive]}>{translateUnit(u, language)}</Text>
               </TouchableOpacity>
             ))}
           </View>

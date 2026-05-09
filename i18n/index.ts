@@ -809,3 +809,19 @@ export function useT(): T {
   const language = useStore((s) => s.language);
   return translations[language] ?? pt;
 }
+
+// Canonical unit keys (stored in DB — always PT)
+export const UNITS = ['g', 'kg', 'ml', 'L', 'c.s.', 'c.c.', 'un.', 'fatia', 'dente', 'ramo', 'q.b.', 'pitada'] as const;
+export const NO_AMOUNT_UNITS: string[] = ['q.b.', 'pitada'];
+
+const UNIT_LABELS_EN: Record<string, string> = {
+  'g': 'g', 'kg': 'kg', 'ml': 'ml', 'L': 'L',
+  'c.s.': 'tbsp', 'c.c.': 'tsp', 'un.': 'unit',
+  'fatia': 'slice', 'dente': 'clove', 'ramo': 'sprig',
+  'q.b.': 'to taste', 'pitada': 'pinch',
+};
+
+export function translateUnit(unit: string, lang: Lang): string {
+  if (lang === 'en') return UNIT_LABELS_EN[unit] ?? unit;
+  return unit;
+}
