@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "android": {
       "package": "com.leitaonatario.cookit",
-      "versionCode": 1,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo-new.png",
         "backgroundColor": "#FBF5EF"
