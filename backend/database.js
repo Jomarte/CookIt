@@ -199,6 +199,29 @@ async function init() {
   // Remove stored recipe images from shopping list — fetched via JOIN with recipes now
   await pool.query(`ALTER TABLE shopping_list DROP COLUMN IF EXISTS recipe_image`);
 
+  // AI scan quota columns on users
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_plan TEXT DEFAULT 'free'`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_scans_used INTEGER DEFAULT 0`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_scans_reset_at DATE DEFAULT NULL`);
+
+  // Scanned recipes (private "Quero Cozinhar" list)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS scan_recipes (
+      id          SERIAL PRIMARY KEY,
+      user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      image       TEXT,
+      title       TEXT NOT NULL,
+      ingredients TEXT DEFAULT '[]',
+      steps       TEXT DEFAULT '[]',
+      prep_time   INTEGER DEFAULT 0,
+      cook_time   INTEGER DEFAULT 0,
+      servings    INTEGER DEFAULT 2,
+      difficulty  TEXT DEFAULT 'Fácil',
+      cuisine     TEXT DEFAULT 'Internacional',
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS email_verification_tokens (
       id         SERIAL PRIMARY KEY,
