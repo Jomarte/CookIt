@@ -83,7 +83,7 @@ export default function ScannerScreen() {
             router.back();
             return;
           }
-          const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.75, base64: true });
+          const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.5, base64: true });
           if (result.canceled) { router.back(); return; }
           analyzePhoto(`data:image/jpeg;base64,${result.assets[0].base64}`);
         },
@@ -94,7 +94,7 @@ export default function ScannerScreen() {
           const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
-            quality: 0.75,
+            quality: 0.5,
             base64: true,
           });
           if (result.canceled) { router.back(); return; }

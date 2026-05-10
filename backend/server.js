@@ -1225,7 +1225,10 @@ app.post('/api/ai/scan', auth, aiLimiter, async (req, res) => {
     if (!image || typeof image !== 'string') {
       return res.status(400).json({ error: 'Imagem em falta' });
     }
-    const base64Match = image.match(/^data:image\/(\w+);base64,(.+)$/);
+    if (image.length > 2_800_000) {
+      return res.status(413).json({ error: 'Imagem demasiado grande. Usa uma foto com menor resolução.' });
+    }
+    const base64Match = image.match(/^data:image\/(jpeg|jpg|png|webp|gif);base64,([A-Za-z0-9+/=]+)$/);
     if (!base64Match) return res.status(400).json({ error: 'Formato de imagem inválido (deve ser data URL base64)' });
     const mediaType = `image/${base64Match[1]}`;
     const base64Data = base64Match[2];

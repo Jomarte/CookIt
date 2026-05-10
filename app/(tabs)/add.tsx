@@ -150,7 +150,7 @@ export default function AddScreen() {
             Alert.alert(a.permissionTitle, a.permissionCamera);
             return;
           }
-          const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.75, base64: true });
+          const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.5, base64: true });
           if (!result.canceled && result.assets[0].base64) {
             setPhoto(`data:image/jpeg;base64,${result.assets[0].base64}`);
           }
@@ -164,7 +164,7 @@ export default function AddScreen() {
             Alert.alert(a.permissionTitle, a.permissionGallery);
             return;
           }
-          const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.75, base64: true });
+          const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.5, base64: true });
           if (!result.canceled && result.assets[0].base64) {
             setPhoto(`data:image/jpeg;base64,${result.assets[0].base64}`);
           }
