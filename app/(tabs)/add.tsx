@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import React, { useState, useRef } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import {
@@ -72,6 +72,69 @@ export default function AddScreen() {
   const [publishing, setPublishing] = useState(false);
   const [unitPickerIndex, setUnitPickerIndex] = useState<number | null>(null);
   const [showErrors, setShowErrors] = useState(false);
+  const [analyzingAI, setAnalyzingAI] = useState(false);
+  const params = useLocalSearchParams();
+
+  React.useEffect(() => {
+    if (!params.scanData) return;
+    try {
+      const r = JSON.parse(params.scanData as string);
+      if (r.title) setTitle(r.title);
+      if (r.cuisine) setCuisine(r.cuisine);
+      if (r.difficulty && ['Fácil', 'Médio', 'Difícil'].includes(r.difficulty)) setDifficulty(r.difficulty);
+      if (r.prep_time) setPrepTime(String(r.prep_time));
+      if (r.cook_time) setCookTime(String(r.cook_time));
+      if (r.servings) setServings(String(r.servings));
+      if (Array.isArray(r.ingredients) && r.ingredients.length > 0) {
+        setIngredients(r.ingredients.map((ing: any) => ({
+          name: ing.name ?? '',
+          amount: ing.amount ?? '',
+          unit: ing.unit ?? 'g',
+          canonical: '',
+          category: 'Outros',
+        })));
+      }
+      if (Array.isArray(r.steps) && r.steps.length > 0) {
+        setSteps(r.steps.map((s: any) => String(s)));
+      }
+    } catch {}
+  }, []);
+
+  const handleAnalyzeWithAI = async () => {
+    if (!photo || !token) return;
+    setAnalyzingAI(true);
+    try {
+      const data = await api.scanRecipe(token, photo);
+      const r = data.recipe;
+      if (r.title) setTitle(r.title);
+      if (r.cuisine) setCuisine(r.cuisine);
+      if (r.difficulty && ['Fácil', 'Médio', 'Difícil'].includes(r.difficulty)) setDifficulty(r.difficulty);
+      if (r.prep_time) setPrepTime(String(r.prep_time));
+      if (r.cook_time) setCookTime(String(r.cook_time));
+      if (r.servings) setServings(String(r.servings));
+      if (Array.isArray(r.ingredients) && r.ingredients.length > 0) {
+        setIngredients(r.ingredients.map((ing: any) => ({
+          name: ing.name ?? '',
+          amount: ing.amount ?? '',
+          unit: ing.unit ?? 'g',
+          canonical: '',
+          category: 'Outros',
+        })));
+      }
+      if (Array.isArray(r.steps) && r.steps.length > 0) {
+        setSteps(r.steps.map((s: any) => String(s)));
+      }
+    } catch (err: any) {
+      const msg = err.message ?? '';
+      if (msg.includes('Limite') || msg.includes('upgrade')) {
+        Alert.alert(t.scanner.quotaTitle, t.scanner.quotaMsg);
+      } else {
+        Alert.alert(t.common.error, t.scanner.analyzeError);
+      }
+    } finally {
+      setAnalyzingAI(false);
+    }
+  };
 
   const handlePickPhoto = async () => {
     if (Platform.OS === 'web') {
@@ -290,6 +353,20 @@ export default function AddScreen() {
             </>
           )}
         </TouchableOpacity>
+
+        {photo && (
+          <TouchableOpacity
+            style={styles.aiBtn}
+            onPress={handleAnalyzeWithAI}
+            disabled={analyzingAI}
+            activeOpacity={0.85}
+          >
+            {analyzingAI
+              ? <ActivityIndicator size="small" color="#fff" />
+              : <Text style={styles.aiBtnText}>{t.scanner.analyzeBtn}</Text>
+            }
+          </TouchableOpacity>
+        )}
 
         {/* Title */}
         <View style={styles.section}>
@@ -630,6 +707,21 @@ const styles = StyleSheet.create({
   publishBtnText: { fontSize: 14, fontWeight: '700', color: COLORS.bg, fontFamily: FONTS.bodyBold },
 
   content: { padding: 16, gap: 16 },
+
+  aiBtn: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 14,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    alignItems: 'center' as const,
+    marginTop: 8,
+  },
+  aiBtnText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700' as const,
+    fontFamily: FONTS.bodyBold,
+  },
 
   photoArea: {
     height: 260,
