@@ -1244,12 +1244,14 @@ app.post('/api/ai/scan', auth, aiLimiter, async (req, res) => {
     const base64Data = base64Match[2];
 
     const userId = req.user.id;
-    const user = await db.get('SELECT ai_plan, ai_scans_used, ai_scans_reset_at FROM users WHERE id = ?', [userId]);
+    const user = await db.get('SELECT ai_plan, ai_scans_used, ai_scans_reset_at, email FROM users WHERE id = ?', [userId]);
     if (!user) return res.status(404).json({ error: 'Utilizador não encontrado' });
+
+    const isDevAccount = user.email === 'jmgpcl@gmail.com';
 
     const today = new Date().toISOString().slice(0, 10);
     let scansUsed = user.ai_scans_used ?? 0;
-    const plan = user.ai_plan ?? 'free';
+    const plan = isDevAccount ? 'weekly' : (user.ai_plan ?? 'free');
     const resetAt = user.ai_scans_reset_at;
 
     if (plan === 'weekly') {
