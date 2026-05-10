@@ -1290,18 +1290,17 @@ app.post('/api/ai/scan', auth, aiLimiter, async (req, res) => {
     try {
       recipe = JSON.parse(text.trim());
     } catch {
-      // API was called and paid for — count the scan
-      const newScansUsed = scansUsed + 1;
-      await db.run('UPDATE users SET ai_scans_used = ? WHERE id = ?', [newScansUsed, userId]);
-      return res.status(422).json({ error: 'A IA não conseguiu interpretar a imagem. Tenta com uma foto mais nítida.', scansUsed: newScansUsed, aiPlan: plan });
+      // Claude's fault — don't charge the user's quota
+      return res.status(422).json({ error: 'A IA não conseguiu interpretar a imagem. Tenta com uma foto mais nítida.', scansUsed, aiPlan: plan });
     }
 
     if (recipe.error === 'not_food') {
+      // User sent a non-food image — don't count either (no recipe was generated)
       return res.status(422).json({ error: 'A imagem não parece ser comida ou uma receita. Tenta com outra foto.' });
     }
 
-    // Normalize fields — apply defaults for anything missing (scan is always counted after this point)
-    recipe.title = (typeof recipe.title === 'string' && recipe.title.trim()) || 'Receita sem nome';
+    // Normalize optional fields with safe defaults
+    recipe.title = (typeof recipe.title === 'string' && recipe.title.trim()) || null;
     recipe.prep_time = Number.isFinite(recipe.prep_time) ? Math.round(recipe.prep_time) : 10;
     recipe.cook_time = Number.isFinite(recipe.cook_time) ? Math.round(recipe.cook_time) : 20;
     recipe.servings = Number.isFinite(recipe.servings) && recipe.servings > 0 ? Math.round(recipe.servings) : 4;
@@ -1309,6 +1308,12 @@ app.post('/api/ai/scan', auth, aiLimiter, async (req, res) => {
     recipe.cuisine = (typeof recipe.cuisine === 'string' && recipe.cuisine.trim()) || 'Internacional';
     recipe.ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
     recipe.steps = Array.isArray(recipe.steps) ? recipe.steps.map(String) : [];
+
+    // Only count if we actually got a usable recipe (title + at least ingredients or steps)
+    if (!recipe.title || (recipe.ingredients.length === 0 && recipe.steps.length === 0)) {
+      // Claude's fault — don't charge the user
+      return res.status(422).json({ error: 'A IA não conseguiu extrair a receita. Tenta com uma foto mais nítida.', scansUsed, aiPlan: plan });
+    }
 
     const newScansUsed = scansUsed + 1;
     await db.run('UPDATE users SET ai_scans_used = ? WHERE id = ?', [newScansUsed, userId]);
