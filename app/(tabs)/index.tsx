@@ -1,10 +1,11 @@
 import { useRouter } from 'expo-router';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   Image,
   Modal,
+  PanResponder,
   RefreshControl,
   ScrollView,
   Share,
@@ -38,6 +39,16 @@ export default function FeedScreen() {
   const { savedRecipes, toggleSaved, likedRecipes, toggleLiked, notifications, token, recipes, setRecipes } = useStore();
   const localUnread = notifications.filter((n) => !n.read).length;
   const unreadCount = localUnread + serverUnread;
+
+  const swipeResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, { dx, dy }) =>
+        Math.abs(dx) > 20 && Math.abs(dx) > Math.abs(dy) * 1.5,
+      onPanResponderRelease: (_, { dx }) => {
+        if (dx > 60) router.push('/scanner' as any);
+      },
+    })
+  ).current;
 
   const loadRecipes = useCallback(async () => {
     try {
@@ -206,6 +217,9 @@ export default function FeedScreen() {
         </View>
 
         <View style={{ flex: 1 }} />
+        <TouchableOpacity style={styles.notifBtn} onPress={() => router.push('/scanner' as any)}>
+          <Ionicons name="camera-outline" size={22} color={COLORS.text2} />
+        </TouchableOpacity>
         <TouchableOpacity style={styles.notifBtn} onPress={() => router.push('/rankings')}>
           <Ionicons name="trophy-outline" size={20} color={COLORS.text2} />
         </TouchableOpacity>
@@ -220,6 +234,7 @@ export default function FeedScreen() {
         </TouchableOpacity>
       </View>
 
+      <View style={{ flex: 1 }} {...swipeResponder.panHandlers}>
       {loading ? (
         <View style={styles.loadingWrap}>
           <ActivityIndicator size="large" color={COLORS.primary} />
@@ -249,6 +264,8 @@ export default function FeedScreen() {
           }
         />
       )}
+
+      </View>
 
       {/* Modal menu dos 3 pontos */}
       <Modal visible={menuRecipe !== null} transparent animationType="fade" onRequestClose={() => setMenuRecipe(null)}>
