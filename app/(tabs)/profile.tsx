@@ -25,7 +25,6 @@ import { translateNationality } from '../../constants/Countries';
 const TABS = [
   { key: 'recipes', icon: 'chef-hat', lib: 'mci' },
   { key: 'saved', icon: 'bookmark-outline', lib: 'ion' },
-  { key: 'wantcook', icon: 'star-outline', lib: 'ion' },
   { key: 'cooked', icon: 'pot-steam-outline', lib: 'mci' },
 ];
 
@@ -96,9 +95,14 @@ export default function ProfileScreen() {
   const savedList = allRecipes.filter((r) => savedRecipes.includes(String(r.id)));
   const cookedList = allRecipes.filter((r) => cookedRecipes.includes(String(r.id)));
 
+  const mergedSaved = [
+    ...savedList,
+    ...scanRecipes.map((s) => ({ ...s, _isScan: true })),
+  ];
+
   const displayList =
     activeTab === 'recipes' ? myRecipes :
-    activeTab === 'saved' ? savedList :
+    activeTab === 'saved' ? mergedSaved :
     activeTab === 'cooked' ? cookedList :
     [];
 
@@ -167,12 +171,10 @@ export default function ProfileScreen() {
   }, [streak]);
 
   useEffect(() => {
-    if (activeTab !== 'wantcook' || !token) return;
-    setLoadingScan(true);
+    if (activeTab !== 'saved' || !token) return;
     api.getScanRecipes(token)
       .then(setScanRecipes)
-      .catch(() => {})
-      .finally(() => setLoadingScan(false));
+      .catch(() => {});
   }, [activeTab, token]);
 
   const handleDeleteScanRecipe = (id: number) => {
@@ -219,8 +221,29 @@ export default function ProfileScreen() {
 
   const renderRecipeCard = ({ item }: { item: any }) => {
     if (!item) return <View style={styles.gridCell} />;
-    const isDeleting = deletingId === item.id;
-    const isOwn = activeTab === 'recipes';
+
+    if (item._isScan) {
+      return (
+        <TouchableOpacity
+          style={styles.gridCell}
+          activeOpacity={0.88}
+          onPress={() => router.push({ pathname: '/(tabs)/add', params: { scanData: JSON.stringify({ title: item.title, ingredients: item.ingredients, steps: item.steps, prep_time: item.prep_time, cook_time: item.cook_time, servings: item.servings, difficulty: item.difficulty, cuisine: item.cuisine }) } } as any)}
+          onLongPress={() => handleDeleteScanRecipe(item.id)}
+        >
+          <View style={styles.gridImageWrap}>
+            {item.image
+              ? <Image source={{ uri: item.image }} style={styles.gridPhoto} resizeMode="cover" />
+              : <View style={styles.gridPlaceholder}>
+                  <Ionicons name="sparkles-outline" size={22} color={COLORS.primary} />
+                </View>
+            }
+            <View style={styles.gridAiBadge}>
+              <Text style={styles.gridAiBadgeText}>AI</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      );
+    }
 
     const destination = activeTab === 'saved'
       ? `/recipe/card/${item.id}`
@@ -450,63 +473,8 @@ export default function ProfileScreen() {
           ))}
         </View>
 
-        {/* Quero Cozinhar tab */}
-        {activeTab === 'wantcook' && (
-          loadingScan ? (
-            <View style={styles.loadingWrap}><ActivityIndicator color={COLORS.primary} /></View>
-          ) : scanRecipes.length === 0 ? (
-            <View style={styles.emptyTab}>
-              <View style={styles.emptyTabIcon}>
-                <Ionicons name="star-outline" size={32} color={COLORS.primary} />
-              </View>
-              <Text style={styles.emptyTabText}>{p.wantToCookEmpty}</Text>
-              <Text style={[styles.emptyTabText, { fontSize: 12, marginTop: 4 }]}>{p.wantToCookEmptySub}</Text>
-            </View>
-          ) : (
-            <View style={{ paddingHorizontal: 12, paddingTop: 8, gap: 12 }}>
-              {scanRecipes.map((scanR) => {
-                const totalTime = (scanR.prep_time ?? 0) + (scanR.cook_time ?? 0);
-                return (
-                  <View key={scanR.id} style={styles.scanCard}>
-                    {scanR.image && (
-                      <Image source={{ uri: scanR.image }} style={styles.scanCardImage} resizeMode="cover" />
-                    )}
-                    <View style={styles.scanCardBody}>
-                      <Text style={styles.scanCardTitle} numberOfLines={2}>{scanR.title}</Text>
-                      <View style={styles.scanCardMeta}>
-                        {totalTime > 0 && (
-                          <View style={styles.metaChip}>
-                            <Ionicons name="time-outline" size={12} color={COLORS.text3} />
-                            <Text style={styles.metaChipText}>{totalTime} min</Text>
-                          </View>
-                        )}
-                        {scanR.difficulty && (
-                          <View style={styles.metaChip}>
-                            <Text style={styles.metaChipText}>{scanR.difficulty}</Text>
-                          </View>
-                        )}
-                      </View>
-                      <View style={styles.scanCardActions}>
-                        <TouchableOpacity
-                          style={styles.publishBtn}
-                          onPress={() => router.push({ pathname: '/(tabs)/add', params: { scanData: JSON.stringify({ title: scanR.title, ingredients: scanR.ingredients, steps: scanR.steps, prep_time: scanR.prep_time, cook_time: scanR.cook_time, servings: scanR.servings, difficulty: scanR.difficulty, cuisine: scanR.cuisine }) } } as any)}
-                        >
-                          <Text style={styles.publishBtnText}>{p.publishWithPhoto}</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => handleDeleteScanRecipe(scanR.id)} style={styles.deleteChipBtn}>
-                          <Ionicons name="trash-outline" size={18} color={COLORS.text3} />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-          )
-        )}
-
         {/* Grid */}
-        {activeTab !== 'wantcook' && (loadingRecipes ? (
+        {loadingRecipes ? (
           <View style={styles.loadingWrap}>
             <ActivityIndicator color={COLORS.primary} />
           </View>
@@ -531,7 +499,7 @@ export default function ProfileScreen() {
             columnWrapperStyle={styles.gridRow}
             contentContainerStyle={styles.gridContent}
           />
-        ))}
+        )}
 
         <View style={{ height: 60 }} />
       </ScrollView>
@@ -882,6 +850,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.star,
     fontFamily: FONTS.bodyBold,
+  },
+  gridAiBadge: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  gridAiBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#fff',
+    fontFamily: FONTS.bodyBold,
+    letterSpacing: 0.5,
   },
   gridPhoto: {
     width: '100%',
