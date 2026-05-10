@@ -1252,9 +1252,12 @@ app.post('/api/ai/scan', auth, aiLimiter, async (req, res) => {
       }
     }
 
-    const limit = plan === 'weekly' ? 10 : 5;
+    if (plan !== 'weekly') {
+      return res.status(403).json({ error: 'O Scanner IA é exclusivo para subscritores. Subscreve por €0.99/semana.', scansUsed, limit: 10, aiPlan: plan });
+    }
+    const limit = 10;
     if (scansUsed >= limit) {
-      return res.status(403).json({ error: `Limite de análises atingido (${scansUsed}/${limit}). Subscreve o plano semanal por €0.99.`, scansUsed, limit, aiPlan: plan });
+      return res.status(403).json({ error: `Limite de análises atingido (${scansUsed}/${limit}). A tua semana renova em breve.`, scansUsed, limit, aiPlan: plan });
     }
 
     const response = await anthropic.messages.create({

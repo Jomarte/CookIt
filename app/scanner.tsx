@@ -49,7 +49,7 @@ export default function ScannerScreen() {
       setPhase('result');
     } catch (err: any) {
       const msg = err.message ?? '';
-      if (msg.includes('Limite') || msg.includes('upgrade')) {
+      if (msg.includes('Limite') || msg.includes('exclusivo') || msg.includes('upgrade')) {
         Alert.alert(s.quotaTitle, s.quotaMsg, [{ text: t.common.ok, onPress: () => router.back() }]);
       } else {
         Alert.alert(t.common.error, s.analyzeError);
@@ -133,7 +133,7 @@ export default function ScannerScreen() {
     router.push({ pathname: '/(tabs)/add', params: { scanData: JSON.stringify(recipe) } } as any);
   };
 
-  const limit = aiPlan === 'weekly' ? 10 : 5;
+  const limit = 10;
 
   if (phase === 'loading') {
     return (

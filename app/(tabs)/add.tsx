@@ -126,7 +126,7 @@ export default function AddScreen() {
       }
     } catch (err: any) {
       const msg = err.message ?? '';
-      if (msg.includes('Limite') || msg.includes('upgrade')) {
+      if (msg.includes('Limite') || msg.includes('exclusivo') || msg.includes('upgrade')) {
         Alert.alert(t.scanner.quotaTitle, t.scanner.quotaMsg);
       } else {
         Alert.alert(t.common.error, t.scanner.analyzeError);
