@@ -51,6 +51,8 @@ export default function ScannerScreen() {
       const msg = err.message ?? '';
       if (msg.includes('Limite') || msg.includes('exclusivo') || msg.includes('upgrade')) {
         Alert.alert(s.quotaTitle, s.quotaMsg, [{ text: t.common.ok, onPress: () => router.back() }]);
+      } else if (msg.includes('não parece ser comida')) {
+        Alert.alert(s.notFoodTitle, s.notFoodMsg, [{ text: t.common.ok, onPress: () => router.back() }]);
       } else {
         Alert.alert(t.common.error, s.analyzeError);
         router.back();

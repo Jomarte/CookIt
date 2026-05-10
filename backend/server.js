@@ -1197,10 +1197,13 @@ const aiLimiter = rateLimit({
 
 const SCAN_PROMPT = `Analisa esta imagem. Pode ser uma receita escrita (livro, revista, ecrã) ou um prato de comida num restaurante ou em casa.
 
+Se a imagem NÃO mostrar comida, ingredientes, pratos ou receitas (por exemplo: pessoas, paisagens, animais, objetos), responde APENAS com este JSON e nada mais:
+{"error":"not_food"}
+
 Se for uma receita escrita, extrai os dados exatos.
 Se for um prato de comida, cria uma receita provável para esse prato.
 
-Responde APENAS com JSON válido, sem texto adicional:
+Caso contrário, responde APENAS com JSON válido, sem texto adicional:
 {
   "title": "Nome da receita",
   "ingredients": [
@@ -1281,6 +1284,10 @@ app.post('/api/ai/scan', auth, aiLimiter, async (req, res) => {
       recipe = JSON.parse(text);
     } catch {
       return res.status(500).json({ error: 'A IA devolveu uma resposta inválida. Tenta com outra foto.' });
+    }
+
+    if (recipe.error === 'not_food') {
+      return res.status(422).json({ error: 'A imagem não parece ser comida ou uma receita. Tenta com outra foto.' });
     }
 
     const newScansUsed = scansUsed + 1;
