@@ -1290,6 +1290,16 @@ app.post('/api/ai/scan', auth, aiLimiter, async (req, res) => {
       return res.status(422).json({ error: 'A imagem não parece ser comida ou uma receita. Tenta com outra foto.' });
     }
 
+    // Validate required fields — don't count scan if Claude returned garbage
+    const hasTitle = typeof recipe.title === 'string' && recipe.title.trim().length > 0;
+    const hasIngredients = Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0;
+    const hasSteps = Array.isArray(recipe.steps) && recipe.steps.length > 0;
+    const hasTimes = typeof recipe.prep_time === 'number' && typeof recipe.cook_time === 'number';
+    const hasDifficulty = ['Fácil', 'Médio', 'Difícil'].includes(recipe.difficulty);
+    if (!hasTitle || !hasIngredients || !hasSteps || !hasTimes || !hasDifficulty) {
+      return res.status(500).json({ error: 'A IA não conseguiu extrair a receita completa. Tenta com outra foto.' });
+    }
+
     const newScansUsed = scansUsed + 1;
     await db.run('UPDATE users SET ai_scans_used = ? WHERE id = ?', [newScansUsed, userId]);
 
