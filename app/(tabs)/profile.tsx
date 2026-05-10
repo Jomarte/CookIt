@@ -25,6 +25,7 @@ import { translateNationality } from '../../constants/Countries';
 const TABS = [
   { key: 'recipes', icon: 'chef-hat', lib: 'mci' },
   { key: 'saved', icon: 'bookmark-outline', lib: 'ion' },
+  { key: 'wantcook', icon: 'star-outline', lib: 'ion' },
   { key: 'cooked', icon: 'pot-steam-outline', lib: 'mci' },
 ];
 
@@ -64,6 +65,8 @@ export default function ProfileScreen() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [hoveredBadge, setHoveredBadge] = useState<Badge | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [scanRecipes, setScanRecipes] = useState<any[]>([]);
+  const [loadingScan, setLoadingScan] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -96,7 +99,8 @@ export default function ProfileScreen() {
   const displayList =
     activeTab === 'recipes' ? myRecipes :
     activeTab === 'saved' ? savedList :
-    cookedList;
+    activeTab === 'cooked' ? cookedList :
+    [];
 
   // Streak
   const streak = computeStreak(cookedLogs);
@@ -161,6 +165,32 @@ export default function ProfileScreen() {
     }
     prevStreakRef.current = streak;
   }, [streak]);
+
+  useEffect(() => {
+    if (activeTab !== 'wantcook' || !token) return;
+    setLoadingScan(true);
+    api.getScanRecipes(token)
+      .then(setScanRecipes)
+      .catch(() => {})
+      .finally(() => setLoadingScan(false));
+  }, [activeTab, token]);
+
+  const handleDeleteScanRecipe = (id: number) => {
+    if (!token) return;
+    Alert.alert(p.tabWantToCook, t.common.delete + '?', [
+      { text: t.common.cancel, style: 'cancel' },
+      {
+        text: t.common.delete,
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await api.deleteScanRecipe(token, id);
+            setScanRecipes((prev) => prev.filter((r) => r.id !== id));
+          } catch {}
+        },
+      },
+    ]);
+  };
 
   async function handleDelete(id: number) {
     const doDelete = async () => {
@@ -420,8 +450,63 @@ export default function ProfileScreen() {
           ))}
         </View>
 
+        {/* Quero Cozinhar tab */}
+        {activeTab === 'wantcook' && (
+          loadingScan ? (
+            <View style={styles.loadingWrap}><ActivityIndicator color={COLORS.primary} /></View>
+          ) : scanRecipes.length === 0 ? (
+            <View style={styles.emptyTab}>
+              <View style={styles.emptyTabIcon}>
+                <Ionicons name="star-outline" size={32} color={COLORS.primary} />
+              </View>
+              <Text style={styles.emptyTabText}>{p.wantToCookEmpty}</Text>
+              <Text style={[styles.emptyTabText, { fontSize: 12, marginTop: 4 }]}>{p.wantToCookEmptySub}</Text>
+            </View>
+          ) : (
+            <View style={{ paddingHorizontal: 12, paddingTop: 8, gap: 12 }}>
+              {scanRecipes.map((scanR) => {
+                const totalTime = (scanR.prep_time ?? 0) + (scanR.cook_time ?? 0);
+                return (
+                  <View key={scanR.id} style={styles.scanCard}>
+                    {scanR.image && (
+                      <Image source={{ uri: scanR.image }} style={styles.scanCardImage} resizeMode="cover" />
+                    )}
+                    <View style={styles.scanCardBody}>
+                      <Text style={styles.scanCardTitle} numberOfLines={2}>{scanR.title}</Text>
+                      <View style={styles.scanCardMeta}>
+                        {totalTime > 0 && (
+                          <View style={styles.metaChip}>
+                            <Ionicons name="time-outline" size={12} color={COLORS.text3} />
+                            <Text style={styles.metaChipText}>{totalTime} min</Text>
+                          </View>
+                        )}
+                        {scanR.difficulty && (
+                          <View style={styles.metaChip}>
+                            <Text style={styles.metaChipText}>{scanR.difficulty}</Text>
+                          </View>
+                        )}
+                      </View>
+                      <View style={styles.scanCardActions}>
+                        <TouchableOpacity
+                          style={styles.publishBtn}
+                          onPress={() => router.push({ pathname: '/(tabs)/add', params: { scanData: JSON.stringify({ title: scanR.title, ingredients: scanR.ingredients, steps: scanR.steps, prep_time: scanR.prep_time, cook_time: scanR.cook_time, servings: scanR.servings, difficulty: scanR.difficulty, cuisine: scanR.cuisine }) } } as any)}
+                        >
+                          <Text style={styles.publishBtnText}>{p.publishWithPhoto}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => handleDeleteScanRecipe(scanR.id)} style={styles.deleteChipBtn}>
+                          <Ionicons name="trash-outline" size={18} color={COLORS.text3} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          )
+        )}
+
         {/* Grid */}
-        {loadingRecipes ? (
+        {activeTab !== 'wantcook' && (loadingRecipes ? (
           <View style={styles.loadingWrap}>
             <ActivityIndicator color={COLORS.primary} />
           </View>
@@ -446,7 +531,7 @@ export default function ProfileScreen() {
             columnWrapperStyle={styles.gridRow}
             contentContainerStyle={styles.gridContent}
           />
-        )}
+        ))}
 
         <View style={{ height: 60 }} />
       </ScrollView>
@@ -825,4 +910,33 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
   },
   emptyTabText: { fontSize: 14, color: COLORS.text2, textAlign: 'center', paddingHorizontal: 40, fontFamily: FONTS.body },
+
+  scanCard: {
+    backgroundColor: COLORS.surface1,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: 'hidden' as const,
+    marginBottom: 4,
+  },
+  scanCardImage: { width: '100%' as const, height: 160 },
+  scanCardBody: { padding: 12, gap: 8 },
+  scanCardTitle: { fontSize: 16, fontWeight: '700' as const, color: COLORS.text1, fontFamily: FONTS.titleBold, lineHeight: 22 },
+  scanCardMeta: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 6 },
+  metaChip: {
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 4,
+    backgroundColor: COLORS.surface2, borderWidth: 1, borderColor: COLORS.border,
+    borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3,
+  },
+  metaChipText: { fontSize: 11, color: COLORS.text2, fontFamily: FONTS.body, fontWeight: '600' as const },
+  scanCardActions: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8, marginTop: 4 },
+  publishBtn: {
+    flex: 1, backgroundColor: COLORS.primary, borderRadius: 12,
+    paddingVertical: 10, alignItems: 'center' as const,
+  },
+  publishBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' as const, fontFamily: FONTS.bodyBold },
+  deleteChipBtn: {
+    width: 38, height: 38, alignItems: 'center' as const, justifyContent: 'center' as const,
+    backgroundColor: COLORS.surface2, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border,
+  },
 });
