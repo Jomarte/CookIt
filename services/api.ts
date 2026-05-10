@@ -153,4 +153,19 @@ export const api = {
     request(`/discover?page=${page}&pageSize=${pageSize}`, { headers: authHeader(token) }),
 
   health: () => request('/health'),
+
+  scanRecipe: (token: string, image: string): Promise<{ recipe: any; scansUsed: number; aiPlan: 'free' | 'pro' }> =>
+    request('/ai/scan', { method: 'POST', headers: authHeader(token), body: JSON.stringify({ image }) }),
+
+  getScanRecipes: (token: string): Promise<any[]> =>
+    request('/ai/scan-recipes', { headers: authHeader(token) }),
+
+  saveScanRecipe: (token: string, body: {
+    image?: string | null; title: string; ingredients: any[]; steps: string[];
+    prep_time: number; cook_time: number; servings: number; difficulty: string; cuisine: string;
+  }) =>
+    request('/ai/scan-recipes', { method: 'POST', headers: authHeader(token), body: JSON.stringify(body) }),
+
+  deleteScanRecipe: (token: string, id: number) =>
+    request(`/ai/scan-recipes/${id}`, { method: 'DELETE', headers: authHeader(token) }),
 };
