@@ -129,6 +129,10 @@ interface AppState {
   recipes: any[];
   setRecipes: (recipes: any[]) => void;
 
+  aiScansUsed: number;
+  aiPlan: 'free' | 'pro';
+  setAiData: (used: number, plan: 'free' | 'pro') => void;
+
   addToShoppingList: (recipeId: string, ingredients: Ingredient[], recipeTitle?: string) => void;
   toggleShoppingItem: (itemId: string) => void;
   removeShoppingItem: (itemId: string) => void;
@@ -165,6 +169,8 @@ export const useStore = create<AppState>()((set, get) => ({
     likedRecipes: [],
     shoppingList: [],
     userRatings: {},
+    aiScansUsed: 0,
+    aiPlan: 'free',
   }),
 
   // App
@@ -253,6 +259,10 @@ export const useStore = create<AppState>()((set, get) => ({
   },
 
   setRecipes: (recipes) => set({ recipes }),
+
+  aiScansUsed: 0,
+  aiPlan: 'free' as 'free' | 'pro',
+  setAiData: (used, plan) => set({ aiScansUsed: used, aiPlan: plan }),
 
   toggleSaved: (recipeId) => {
     const { token, savedRecipes } = get();
