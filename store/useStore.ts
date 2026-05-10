@@ -129,7 +129,7 @@ interface AppState {
   recipes: any[];
   setRecipes: (recipes: any[]) => void;
 
-  addToShoppingList: (recipeId: string, ingredients: Ingredient[], recipeTitle?: string, recipeImage?: string) => void;
+  addToShoppingList: (recipeId: string, ingredients: Ingredient[], recipeTitle?: string) => void;
   toggleShoppingItem: (itemId: string) => void;
   removeShoppingItem: (itemId: string) => void;
   removeRecipeFromList: (recipeId: string) => void;
@@ -193,7 +193,7 @@ export const useStore = create<AppState>()((set, get) => ({
   setEarnedBadgeIds: (ids) => set({ earnedBadgeIds: ids }),
   setPinnedBadgeIds: (ids) => set({ pinnedBadgeIds: ids }),
 
-  addToShoppingList: (recipeId, ingredients, recipeTitle = '', recipeImage) => {
+  addToShoppingList: (recipeId, ingredients, recipeTitle = '') => {
     const { token, shoppingList } = get();
     const existingIds = new Set(shoppingList.map((i) => i.itemId));
     const newItems: ShoppingItem[] = ingredients.map((ing) => ({
@@ -201,7 +201,6 @@ export const useStore = create<AppState>()((set, get) => ({
       itemId: `${recipeId}-${ing.id ?? ing.name}`,
       recipeId,
       recipeTitle,
-      recipeImage,
       checked: false,
     }));
     const toAdd = newItems.filter((i) => !existingIds.has(i.itemId));

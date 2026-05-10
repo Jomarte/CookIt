@@ -196,6 +196,9 @@ async function init() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT DEFAULT NULL`);
   await pool.query(`ALTER TABLE users ALTER COLUMN password DROP NOT NULL`);
 
+  // Remove stored recipe images from shopping list — fetched via JOIN with recipes now
+  await pool.query(`ALTER TABLE shopping_list DROP COLUMN IF EXISTS recipe_image`);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS email_verification_tokens (
       id         SERIAL PRIMARY KEY,

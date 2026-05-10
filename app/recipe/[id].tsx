@@ -484,7 +484,7 @@ export default function RecipeDetailScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.bottomBtnList, isInList && styles.bottomBtnListActive]}
-          onPress={() => addToShoppingList(String(recipe.id), recipe.ingredients ?? [], recipe.title, recipe.image)}
+          onPress={() => addToShoppingList(String(recipe.id), recipe.ingredients ?? [], recipe.title)}
         >
           <Ionicons name={isInList ? 'cart' : 'cart-outline'} size={20} color={isInList ? COLORS.primary : COLORS.bg} />
           <Text style={[styles.bottomBtnListText, isInList && styles.bottomBtnListTextActive]}>

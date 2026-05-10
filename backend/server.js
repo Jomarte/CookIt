@@ -671,7 +671,15 @@ app.delete('/api/users/:id/follow', auth, async (req, res) => {
 
 app.get('/api/users/me/shopping', auth, async (req, res) => {
   try {
-    const rows = await db.all('SELECT * FROM shopping_list WHERE user_id = ? ORDER BY created_at ASC', [req.user.id]);
+    const rows = await db.all(
+      `SELECT s.item_id, s.recipe_id, s.recipe_title, r.image AS recipe_image,
+              s.name, s.amount, s.unit, s.category, s.checked
+       FROM shopping_list s
+       LEFT JOIN recipes r ON r.id::text = s.recipe_id
+       WHERE s.user_id = ?
+       ORDER BY s.created_at ASC`,
+      [req.user.id]
+    );
     res.json(rows.map(r => ({
       itemId: r.item_id,
       recipeId: r.recipe_id,
@@ -691,10 +699,10 @@ app.post('/api/users/me/shopping', auth, async (req, res) => {
     const items = req.body?.items ?? [];
     for (const item of items) {
       await db.run(
-        `INSERT INTO shopping_list (item_id, user_id, recipe_id, recipe_title, recipe_image, name, amount, unit, category, checked)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO shopping_list (item_id, user_id, recipe_id, recipe_title, name, amount, unit, category, checked)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (user_id, item_id) DO NOTHING`,
-        [item.itemId, req.user.id, item.recipeId, item.recipeTitle ?? '', item.recipeImage ?? null,
+        [item.itemId, req.user.id, item.recipeId, item.recipeTitle ?? '',
          item.name, item.amount ?? '', item.unit ?? '', item.category ?? 'Outros', false]
       );
     }
