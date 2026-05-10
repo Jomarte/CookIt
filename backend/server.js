@@ -1180,6 +1180,164 @@ app.get('/delete-account', (_, res) => {
 app.get('/api/health', (_, res) => res.json({ ok: true, db: 'postgresql', time: new Date().toISOString() }));
 
 // ── 404 e erros — sempre JSON ────────────────────────────────────────────────
+// ── AI SCAN ─────────────────────────────────────────────────────────────────
+
+const Anthropic = require('@anthropic-ai/sdk');
+const anthropic = process.env.ANTHROPIC_API_KEY
+  ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  : null;
+
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiadas análises. Aguarda um momento.' },
+});
+
+const SCAN_PROMPT = `Analisa esta imagem. Pode ser uma receita escrita (livro, revista, ecrã) ou um prato de comida num restaurante ou em casa.
+
+Se for uma receita escrita, extrai os dados exatos.
+Se for um prato de comida, cria uma receita provável para esse prato.
+
+Responde APENAS com JSON válido, sem texto adicional:
+{
+  "title": "Nome da receita",
+  "ingredients": [
+    {"name": "ingrediente", "amount": "100", "unit": "g"}
+  ],
+  "steps": ["Passo 1...", "Passo 2..."],
+  "prep_time": 15,
+  "cook_time": 20,
+  "servings": 4,
+  "difficulty": "Fácil",
+  "cuisine": "Portuguesa"
+}
+
+Para "unit" usa sempre: g, kg, ml, L, c.s., c.c., un., fatia, dente, ramo, q.b., pitada
+Para "difficulty" usa sempre: Fácil, Médio, ou Difícil`;
+
+app.post('/api/ai/scan', auth, aiLimiter, async (req, res) => {
+  try {
+    if (!anthropic) return res.status(503).json({ error: 'Serviço de IA não configurado' });
+
+    const { image } = req.body;
+    if (!image || typeof image !== 'string') {
+      return res.status(400).json({ error: 'Imagem em falta' });
+    }
+    const base64Match = image.match(/^data:image\/(\w+);base64,(.+)$/);
+    if (!base64Match) return res.status(400).json({ error: 'Formato de imagem inválido (deve ser data URL base64)' });
+    const mediaType = `image/${base64Match[1]}`;
+    const base64Data = base64Match[2];
+
+    const userId = req.user.id;
+    const user = await db.get('SELECT ai_plan, ai_scans_used, ai_scans_reset_at FROM users WHERE id = ?', [userId]);
+    if (!user) return res.status(404).json({ error: 'Utilizador não encontrado' });
+
+    // Monthly reset
+    const today = new Date().toISOString().slice(0, 10);
+    let scansUsed = user.ai_scans_used ?? 0;
+    const resetAt = user.ai_scans_reset_at;
+    if (!resetAt) {
+      await db.run('UPDATE users SET ai_scans_reset_at = ? WHERE id = ?', [today, userId]);
+    } else {
+      const daysDiff = (new Date() - new Date(resetAt)) / (1000 * 60 * 60 * 24);
+      if (daysDiff >= 30) {
+        scansUsed = 0;
+        await db.run('UPDATE users SET ai_scans_used = 0, ai_scans_reset_at = ? WHERE id = ?', [today, userId]);
+      }
+    }
+
+    const plan = user.ai_plan ?? 'free';
+    const limit = plan === 'pro' ? 30 : 3;
+    if (scansUsed >= limit) {
+      return res.status(403).json({ error: `Limite de análises atingido (${scansUsed}/${limit}). Faz upgrade para Pro.`, scansUsed, limit, aiPlan: plan });
+    }
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1024,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data } },
+          { type: 'text', text: SCAN_PROMPT },
+        ],
+      }],
+    });
+
+    const text = response.content[0]?.text ?? '';
+    let recipe;
+    try {
+      recipe = JSON.parse(text);
+    } catch {
+      return res.status(500).json({ error: 'A IA devolveu uma resposta inválida. Tenta com outra foto.' });
+    }
+
+    const newScansUsed = scansUsed + 1;
+    await db.run('UPDATE users SET ai_scans_used = ? WHERE id = ?', [newScansUsed, userId]);
+
+    res.json({ recipe, scansUsed: newScansUsed, aiPlan: plan });
+  } catch (err) {
+    serverError(res, err);
+  }
+});
+
+app.get('/api/ai/scan-recipes', auth, async (req, res) => {
+  try {
+    const rows = await db.all(
+      'SELECT id, image, title, ingredients, steps, prep_time, cook_time, servings, difficulty, cuisine, created_at FROM scan_recipes WHERE user_id = ? ORDER BY created_at DESC',
+      [req.user.id]
+    );
+    const recipes = rows.map((r) => ({
+      ...r,
+      ingredients: JSON.parse(r.ingredients ?? '[]'),
+      steps: JSON.parse(r.steps ?? '[]'),
+    }));
+    res.json(recipes);
+  } catch (err) {
+    serverError(res, err);
+  }
+});
+
+app.post('/api/ai/scan-recipes', auth, async (req, res) => {
+  try {
+    const { image, title, ingredients, steps, prep_time, cook_time, servings, difficulty, cuisine } = req.body;
+    if (!title) return res.status(400).json({ error: 'Título em falta' });
+    const result = await db.run(
+      'INSERT INTO scan_recipes (user_id, image, title, ingredients, steps, prep_time, cook_time, servings, difficulty, cuisine) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        req.user.id,
+        image ?? null,
+        sanitizeStr(title, 200),
+        JSON.stringify(Array.isArray(ingredients) ? ingredients : []),
+        JSON.stringify(Array.isArray(steps) ? steps : []),
+        parseInt(prep_time) || 0,
+        parseInt(cook_time) || 0,
+        parseInt(servings) || 2,
+        ['Fácil', 'Médio', 'Difícil'].includes(difficulty) ? difficulty : 'Fácil',
+        sanitizeStr(cuisine ?? 'Internacional', 100),
+      ]
+    );
+    res.status(201).json({ id: result.lastInsertRowid });
+  } catch (err) {
+    serverError(res, err);
+  }
+});
+
+app.delete('/api/ai/scan-recipes/:id', auth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (!id) return res.status(400).json({ error: 'ID inválido' });
+    const row = await db.get('SELECT id FROM scan_recipes WHERE id = ? AND user_id = ?', [id, req.user.id]);
+    if (!row) return res.status(404).json({ error: 'Receita não encontrada' });
+    await db.run('DELETE FROM scan_recipes WHERE id = ?', [id]);
+    res.json({ ok: true });
+  } catch (err) {
+    serverError(res, err);
+  }
+});
+
 app.use((req, res) => {
   res.status(404).json({ error: 'Rota não encontrada' });
 });
