@@ -2,7 +2,7 @@
   "expo": {
     "name": "CookIt",
     "slug": "cookit",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo-new.png",
     "scheme": "cookit",
@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "android": {
       "package": "com.leitaonatario.cookit",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo-new.png",
         "backgroundColor": "#FBF5EF"
