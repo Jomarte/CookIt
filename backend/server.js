@@ -1234,24 +1234,27 @@ app.post('/api/ai/scan', auth, aiLimiter, async (req, res) => {
     const user = await db.get('SELECT ai_plan, ai_scans_used, ai_scans_reset_at FROM users WHERE id = ?', [userId]);
     if (!user) return res.status(404).json({ error: 'Utilizador não encontrado' });
 
-    // Monthly reset
     const today = new Date().toISOString().slice(0, 10);
     let scansUsed = user.ai_scans_used ?? 0;
+    const plan = user.ai_plan ?? 'free';
     const resetAt = user.ai_scans_reset_at;
-    if (!resetAt) {
-      await db.run('UPDATE users SET ai_scans_reset_at = ? WHERE id = ?', [today, userId]);
-    } else {
-      const daysDiff = (new Date() - new Date(resetAt)) / (1000 * 60 * 60 * 24);
-      if (daysDiff >= 30) {
-        scansUsed = 0;
-        await db.run('UPDATE users SET ai_scans_used = 0, ai_scans_reset_at = ? WHERE id = ?', [today, userId]);
+
+    if (plan === 'weekly') {
+      // Reset every 7 days
+      if (!resetAt) {
+        await db.run('UPDATE users SET ai_scans_reset_at = ? WHERE id = ?', [today, userId]);
+      } else {
+        const daysDiff = (new Date() - new Date(resetAt)) / (1000 * 60 * 60 * 24);
+        if (daysDiff >= 7) {
+          scansUsed = 0;
+          await db.run('UPDATE users SET ai_scans_used = 0, ai_scans_reset_at = ? WHERE id = ?', [today, userId]);
+        }
       }
     }
 
-    const plan = user.ai_plan ?? 'free';
-    const limit = plan === 'pro' ? 30 : 3;
+    const limit = plan === 'weekly' ? 10 : 5;
     if (scansUsed >= limit) {
-      return res.status(403).json({ error: `Limite de análises atingido (${scansUsed}/${limit}). Faz upgrade para Pro.`, scansUsed, limit, aiPlan: plan });
+      return res.status(403).json({ error: `Limite de análises atingido (${scansUsed}/${limit}). Subscreve o plano semanal por €0.99.`, scansUsed, limit, aiPlan: plan });
     }
 
     const response = await anthropic.messages.create({

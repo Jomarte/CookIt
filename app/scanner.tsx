@@ -133,7 +133,7 @@ export default function ScannerScreen() {
     router.push({ pathname: '/(tabs)/add', params: { scanData: JSON.stringify(recipe) } } as any);
   };
 
-  const limit = aiPlan === 'pro' ? 30 : 3;
+  const limit = aiPlan === 'weekly' ? 10 : 5;
 
   if (phase === 'loading') {
     return (

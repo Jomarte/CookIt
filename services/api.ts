@@ -154,7 +154,7 @@ export const api = {
 
   health: () => request('/health'),
 
-  scanRecipe: (token: string, image: string): Promise<{ recipe: any; scansUsed: number; aiPlan: 'free' | 'pro' }> =>
+  scanRecipe: (token: string, image: string): Promise<{ recipe: any; scansUsed: number; aiPlan: 'free' | 'weekly' }> =>
     request('/ai/scan', { method: 'POST', headers: authHeader(token), body: JSON.stringify({ image }) }),
 
   getScanRecipes: (token: string): Promise<any[]> =>

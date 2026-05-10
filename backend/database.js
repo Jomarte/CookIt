@@ -200,7 +200,7 @@ async function init() {
   await pool.query(`ALTER TABLE shopping_list DROP COLUMN IF EXISTS recipe_image`);
 
   // AI scan quota columns on users
-  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_plan TEXT DEFAULT 'free'`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_plan TEXT DEFAULT 'free'`); // 'free' | 'weekly'
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_scans_used INTEGER DEFAULT 0`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_scans_reset_at DATE DEFAULT NULL`);
 

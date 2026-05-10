@@ -61,13 +61,13 @@
   `);
   ```
 
-- [ ] **Step 2: Restart backend to apply schema**
+- [x] **Step 2: Restart backend to apply schema**
 
   Run: `cd backend && node server.js`
 
   Expected: server starts without errors, logs connection success.
 
-- [ ] **Step 3: Verify columns exist**
+- [x] **Step 3: Verify columns exist**
 
   Run (in psql or any DB client):
   ```sql
@@ -76,7 +76,7 @@
   ```
   Expected: both queries succeed.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
   ```bash
   git add backend/database.js
