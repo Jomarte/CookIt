@@ -11,7 +11,9 @@
       "Bash(git commit *)",
       "Bash(node *)",
       "Bash(git push *)",
-      "Bash(python3 *~)"
+      "Bash(python3 *~)",
+      "Bash(bash *)",
+      "Bash(xargs cat *)"
     ]
   }
 }
