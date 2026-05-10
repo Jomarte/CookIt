@@ -1195,30 +1195,37 @@ const aiLimiter = rateLimit({
   message: { error: 'Demasiadas análises. Aguarda um momento.' },
 });
 
-const SCAN_PROMPT = `Analisa esta imagem. Pode ser uma receita escrita (livro, revista, ecrã) ou um prato de comida num restaurante ou em casa.
+const SCAN_PROMPT = `És um assistente especializado em extrair receitas de imagens. Responde SEMPRE com JSON puro, sem markdown, sem texto adicional, sem blocos de código.
 
-Se a imagem NÃO mostrar comida, ingredientes, pratos ou receitas (por exemplo: pessoas, paisagens, animais, objetos), responde APENAS com este JSON e nada mais:
+REGRA 1 — Se a imagem NÃO mostrar comida, pratos, ingredientes ou receitas escritas (ex: pessoas, animais, paisagens, objetos, texto sem relação com comida), responde EXATAMENTE com isto e nada mais:
 {"error":"not_food"}
 
-Se for uma receita escrita, extrai os dados exatos.
-Se for um prato de comida, cria uma receita provável para esse prato.
-
-Caso contrário, responde APENAS com JSON válido, sem texto adicional:
+REGRA 2 — Para QUALQUER imagem de comida ou receita, devolve OBRIGATORIAMENTE este JSON com TODOS os campos preenchidos:
 {
-  "title": "Nome da receita",
+  "title": "Nome do prato em português",
   "ingredients": [
-    {"name": "ingrediente", "amount": "100", "unit": "g"}
+    {"name": "nome do ingrediente", "amount": "quantidade", "unit": "unidade"}
   ],
-  "steps": ["Passo 1...", "Passo 2..."],
+  "steps": ["Passo 1 detalhado.", "Passo 2 detalhado."],
   "prep_time": 15,
-  "cook_time": 20,
+  "cook_time": 25,
   "servings": 4,
   "difficulty": "Fácil",
   "cuisine": "Portuguesa"
 }
 
-Para "unit" usa sempre: g, kg, ml, L, c.s., c.c., un., fatia, dente, ramo, q.b., pitada
-Para "difficulty" usa sempre: Fácil, Médio, ou Difícil`;
+INSTRUÇÕES OBRIGATÓRIAS:
+- "title": nome real do prato, nunca vazio
+- "ingredients": mínimo 2 ingredientes; se não conseguires ler todos, usa os que vês e estima os restantes
+- "steps": mínimo 3 passos claros e concretos; se for prato numa foto, descreve como cozinhares esse prato
+- "prep_time" e "cook_time": números inteiros em minutos; se não souberes usa 10 e 20 respetivamente
+- "servings": número inteiro; se não souberes usa 4
+- "difficulty": EXATAMENTE uma destas: Fácil, Médio, Difícil
+- "cuisine": tipo de cozinha (ex: Portuguesa, Italiana, Asiática, Internacional)
+- "amount": sempre string (ex: "100", "2", "1/2"); se não tiveres quantidade usa "q.b."
+- "unit": EXATAMENTE uma destas: g, kg, ml, L, c.s., c.c., un., fatia, dente, ramo, q.b., pitada
+
+NUNCA omitas um campo. NUNCA uses null. NUNCA adiciones texto fora do JSON.`;
 
 app.post('/api/ai/scan', auth, aiLimiter, async (req, res) => {
   try {
@@ -1281,24 +1288,27 @@ app.post('/api/ai/scan', auth, aiLimiter, async (req, res) => {
     const text = response.content[0]?.text ?? '';
     let recipe;
     try {
-      recipe = JSON.parse(text);
+      recipe = JSON.parse(text.trim());
     } catch {
-      return res.status(500).json({ error: 'A IA devolveu uma resposta inválida. Tenta com outra foto.' });
+      // API was called and paid for — count the scan
+      const newScansUsed = scansUsed + 1;
+      await db.run('UPDATE users SET ai_scans_used = ? WHERE id = ?', [newScansUsed, userId]);
+      return res.status(422).json({ error: 'A IA não conseguiu interpretar a imagem. Tenta com uma foto mais nítida.', scansUsed: newScansUsed, aiPlan: plan });
     }
 
     if (recipe.error === 'not_food') {
       return res.status(422).json({ error: 'A imagem não parece ser comida ou uma receita. Tenta com outra foto.' });
     }
 
-    // Validate required fields — don't count scan if Claude returned garbage
-    const hasTitle = typeof recipe.title === 'string' && recipe.title.trim().length > 0;
-    const hasIngredients = Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0;
-    const hasSteps = Array.isArray(recipe.steps) && recipe.steps.length > 0;
-    const hasTimes = typeof recipe.prep_time === 'number' && typeof recipe.cook_time === 'number';
-    const hasDifficulty = ['Fácil', 'Médio', 'Difícil'].includes(recipe.difficulty);
-    if (!hasTitle || !hasIngredients || !hasSteps || !hasTimes || !hasDifficulty) {
-      return res.status(500).json({ error: 'A IA não conseguiu extrair a receita completa. Tenta com outra foto.' });
-    }
+    // Normalize fields — apply defaults for anything missing (scan is always counted after this point)
+    recipe.title = (typeof recipe.title === 'string' && recipe.title.trim()) || 'Receita sem nome';
+    recipe.prep_time = Number.isFinite(recipe.prep_time) ? Math.round(recipe.prep_time) : 10;
+    recipe.cook_time = Number.isFinite(recipe.cook_time) ? Math.round(recipe.cook_time) : 20;
+    recipe.servings = Number.isFinite(recipe.servings) && recipe.servings > 0 ? Math.round(recipe.servings) : 4;
+    recipe.difficulty = ['Fácil', 'Médio', 'Difícil'].includes(recipe.difficulty) ? recipe.difficulty : 'Fácil';
+    recipe.cuisine = (typeof recipe.cuisine === 'string' && recipe.cuisine.trim()) || 'Internacional';
+    recipe.ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+    recipe.steps = Array.isArray(recipe.steps) ? recipe.steps.map(String) : [];
 
     const newScansUsed = scansUsed + 1;
     await db.run('UPDATE users SET ai_scans_used = ? WHERE id = ?', [newScansUsed, userId]);
