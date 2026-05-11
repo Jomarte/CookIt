@@ -41,16 +41,24 @@ export default function FeedScreen() {
   const localUnread = notifications.filter((n) => !n.read).length;
   const unreadCount = localUnread + serverUnread;
 
-  const openScanner = () => {
-    if (aiPlan !== 'weekly') {
-      Alert.alert(
-        t.scanner.quotaTitle,
-        t.scanner.quotaMsg,
-        [{ text: t.common.ok }]
-      );
+  const openScanner = async () => {
+    if (aiPlan === 'weekly') {
+      router.push('/scanner' as any);
       return;
     }
-    router.push('/scanner' as any);
+    // Store may not have synced yet — verify from server before blocking
+    if (token) {
+      try {
+        const me = await api.me(token);
+        const plan = me.ai_plan ?? 'free';
+        if (plan === 'weekly') {
+          useStore.getState().setAiData(me.ai_scans_used ?? 0, 'weekly');
+          router.push('/scanner' as any);
+          return;
+        }
+      } catch {}
+    }
+    Alert.alert(t.scanner.quotaTitle, t.scanner.quotaMsg, [{ text: t.common.ok }]);
   };
 
   const swipeResponder = useRef(

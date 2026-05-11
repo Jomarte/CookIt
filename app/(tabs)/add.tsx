@@ -103,8 +103,18 @@ export default function AddScreen() {
   const handleAnalyzeWithAI = async () => {
     if (!photo || !token) return;
     if (aiPlan !== 'weekly') {
-      Alert.alert(t.scanner.quotaTitle, t.scanner.quotaMsg);
-      return;
+      try {
+        const me = await api.me(token);
+        const plan = me.ai_plan ?? 'free';
+        if (plan !== 'weekly') {
+          Alert.alert(t.scanner.quotaTitle, t.scanner.quotaMsg);
+          return;
+        }
+        useStore.getState().setAiData(me.ai_scans_used ?? 0, 'weekly');
+      } catch {
+        Alert.alert(t.scanner.quotaTitle, t.scanner.quotaMsg);
+        return;
+      }
     }
     setAnalyzingAI(true);
     try {
