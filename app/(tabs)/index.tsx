@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   Modal,
@@ -36,16 +37,28 @@ export default function FeedScreen() {
   const [menuRecipe, setMenuRecipe] = useState<any | null>(null);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const [serverUnread, setServerUnread] = useState(0);
-  const { savedRecipes, toggleSaved, likedRecipes, toggleLiked, notifications, token, recipes, setRecipes } = useStore();
+  const { savedRecipes, toggleSaved, likedRecipes, toggleLiked, notifications, token, recipes, setRecipes, aiPlan } = useStore();
   const localUnread = notifications.filter((n) => !n.read).length;
   const unreadCount = localUnread + serverUnread;
+
+  const openScanner = () => {
+    if (aiPlan !== 'weekly') {
+      Alert.alert(
+        t.scanner.quotaTitle,
+        t.scanner.quotaMsg,
+        [{ text: t.common.ok }]
+      );
+      return;
+    }
+    router.push('/scanner' as any);
+  };
 
   const swipeResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, { dx, dy }) =>
         Math.abs(dx) > 20 && Math.abs(dx) > Math.abs(dy) * 1.5,
       onPanResponderRelease: (_, { dx }) => {
-        if (dx > 60) router.push('/scanner' as any);
+        if (dx > 60) openScanner();
       },
     })
   ).current;
@@ -217,7 +230,7 @@ export default function FeedScreen() {
         </View>
 
         <View style={{ flex: 1 }} />
-        <TouchableOpacity style={styles.notifBtn} onPress={() => router.push('/scanner' as any)}>
+        <TouchableOpacity style={styles.notifBtn} onPress={openScanner}>
           <Ionicons name="camera-outline" size={22} color={COLORS.text2} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.notifBtn} onPress={() => router.push('/rankings')}>

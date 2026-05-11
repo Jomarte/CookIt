@@ -198,11 +198,14 @@ app.get('/api/auth/me', auth, async (req, res) => {
   try {
     const user = await db.get(
       `SELECT id, name, first_name, last_name, username, email, avatar, bio, cooking_type,
-              nationality, followers, following, recipes_count, email_verified, created_at
+              nationality, followers, following, recipes_count, email_verified, created_at,
+              ai_plan, ai_scans_used
        FROM users WHERE id = ?`,
       [req.user.id]
     );
     if (!user) return res.status(404).json({ error: 'Utilizador não encontrado' });
+    // Dev account always gets weekly plan
+    if (user.email === 'jmgpcl@gmail.com') user.ai_plan = 'weekly';
     res.json(user);
   } catch (e) {
     serverError(res, e);

@@ -50,7 +50,7 @@ export default function AddScreen() {
   const router = useRouter();
   const t = useT();
   const a = t.add;
-  const { token, addNotification, language } = useStore();
+  const { token, addNotification, language, aiPlan } = useStore();
   const fileInputRef = useRef<any>(null);
   const [photo, setPhoto] = useState<string | null>(null);
   const [title, setTitle] = useState('');
@@ -102,6 +102,10 @@ export default function AddScreen() {
 
   const handleAnalyzeWithAI = async () => {
     if (!photo || !token) return;
+    if (aiPlan !== 'weekly') {
+      Alert.alert(t.scanner.quotaTitle, t.scanner.quotaMsg);
+      return;
+    }
     setAnalyzingAI(true);
     try {
       const data = await api.scanRecipe(token, photo);
