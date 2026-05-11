@@ -54,7 +54,7 @@ export default function ScannerScreen() {
       } else if (msg.includes('não parece ser comida')) {
         Alert.alert(s.notFoodTitle, s.notFoodMsg, [{ text: t.common.ok, onPress: () => router.back() }]);
       } else {
-        Alert.alert(t.common.error, s.analyzeError);
+        Alert.alert(t.common.error, msg || s.analyzeError);
         router.back();
       }
     }

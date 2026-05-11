@@ -10,6 +10,10 @@ const fs = require('fs');
 
 const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
+const Anthropic = require('@anthropic-ai/sdk');
+const anthropic = process.env.ANTHROPIC_API_KEY
+  ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  : null;
 
 const googleClient = process.env.GOOGLE_CLIENT_ID
   ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
@@ -1182,11 +1186,6 @@ app.get('/api/health', (_, res) => res.json({ ok: true, db: 'postgresql', time: 
 // ── 404 e erros — sempre JSON ────────────────────────────────────────────────
 // ── AI SCAN ─────────────────────────────────────────────────────────────────
 
-const Anthropic = require('@anthropic-ai/sdk');
-const anthropic = process.env.ANTHROPIC_API_KEY
-  ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-  : null;
-
 const aiLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 5,
@@ -1238,10 +1237,15 @@ app.post('/api/ai/scan', auth, aiLimiter, async (req, res) => {
     if (image.length > 2_800_000) {
       return res.status(413).json({ error: 'Imagem demasiado grande. Usa uma foto com menor resolução.' });
     }
-    const base64Match = image.match(/^data:image\/(jpeg|jpg|png|webp|gif);base64,([A-Za-z0-9+/=]+)$/);
-    if (!base64Match) return res.status(400).json({ error: 'Formato de imagem inválido (deve ser data URL base64)' });
-    const mediaType = `image/${base64Match[1]}`;
-    const base64Data = base64Match[2];
+    // Split on first comma only — avoids strict base64 char validation that rejects valid images
+    const commaIdx = image.indexOf(',');
+    if (commaIdx === -1) return res.status(400).json({ error: 'Formato de imagem inválido' });
+    const header = image.slice(0, commaIdx);
+    const base64Data = image.slice(commaIdx + 1).replace(/\s/g, '');
+    const mimeMatch = header.match(/^data:image\/(jpeg|jpg|png|webp|gif);base64$/i);
+    if (!mimeMatch) return res.status(400).json({ error: 'Tipo de imagem não suportado. Usa JPEG, PNG ou WebP.' });
+    // Anthropic requires image/jpeg not image/jpg
+    const mediaType = `image/${mimeMatch[1].toLowerCase() === 'jpg' ? 'jpeg' : mimeMatch[1].toLowerCase()}`;
 
     const userId = req.user.id;
     const user = await db.get('SELECT ai_plan, ai_scans_used, ai_scans_reset_at, email FROM users WHERE id = ?', [userId]);
