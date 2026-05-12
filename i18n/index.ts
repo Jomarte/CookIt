@@ -46,6 +46,7 @@ const pt = {
     hard: 'Difícil',
     difficulty: (v: string) => ({ 'Fácil': 'Fácil', 'Médio': 'Médio', 'Difícil': 'Difícil' } as Record<string, string>)[v] ?? v,
     diet: (v: string) => v,
+    category: (v: string) => v,
   },
 
   feed: {
@@ -476,6 +477,17 @@ const en: typeof pt = {
       'Sem Glúten': 'Gluten-Free', 'Sem Lactose': 'Lactose-Free', 'Low Carb': 'Low Carb',
       'Keto': 'Keto', 'Alta Proteína': 'High Protein', 'Saudável': 'Healthy',
       'Meal Prep': 'Meal Prep', 'Comfort Food': 'Comfort Food', 'Light': 'Light',
+    } as Record<string, string>)[v] ?? v,
+    category: (v: string) => ({
+      'Alternativas Vegetais': 'Plant-Based', 'Alternativas': 'Alternatives',
+      'Base': 'Base', 'Carnes': 'Meats', 'Cereais': 'Grains',
+      'Conservas e Extras': 'Canned & Extras', 'Doces e Pastelaria': 'Sweets & Baking',
+      'Ervas': 'Herbs', 'Fermentados': 'Fermented', 'Frutas': 'Fruits',
+      'Frutos Secos e Sementes': 'Nuts & Seeds', 'Hortícolas': 'Vegetables',
+      'Laticínios': 'Dairy', 'Leguminosas': 'Legumes', 'Massas': 'Pasta',
+      'Molhos e Ácidos': 'Sauces & Acids', 'Ovos': 'Eggs',
+      'Padaria e Bases': 'Bakery & Bases', 'Peixe e Marisco': 'Fish & Seafood',
+      'Temperos': 'Spices', 'Óleos e Gorduras': 'Oils & Fats', 'Outros': 'Other',
     } as Record<string, string>)[v] ?? v,
   },
 

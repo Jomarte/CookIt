@@ -457,7 +457,7 @@ export default function DiscoverScreen() {
                       }}
                     >
                       <Text style={styles.fridgeSuggestionName}>{s.name}</Text>
-                      <Text style={styles.fridgeSuggestionCategory}>{s.category}</Text>
+                      <Text style={styles.fridgeSuggestionCategory}>{t.common.category(s.category)}</Text>
                     </TouchableOpacity>
                   ))}
                   {fridgeSuggestions.length === 0 && (

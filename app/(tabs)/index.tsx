@@ -158,7 +158,7 @@ export default function FeedScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tagsScroll}>
               {recipe.diet.map((d: string) => (
                 <View key={d} style={styles.dietTag}>
-                  <Text style={styles.dietTagText}>{d}</Text>
+                  <Text style={styles.dietTagText}>{t.common.diet(d)}</Text>
                 </View>
               ))}
             </ScrollView>

@@ -611,7 +611,7 @@ export default function AddScreen() {
                         onPress={() => selectSuggestion(i, s)}
                       >
                         <Text style={styles.suggestionName}>{s.name}</Text>
-                        <Text style={styles.suggestionCategory}>{s.category}</Text>
+                        <Text style={styles.suggestionCategory}>{t.common.category(s.category)}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>

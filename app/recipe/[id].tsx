@@ -249,7 +249,7 @@ export default function RecipeDetailScreen() {
             <View style={styles.dietRow}>
               {recipe.diet.map((d: string) => (
                 <View key={d} style={styles.dietBadge}>
-                  <Text style={styles.dietBadgeText}>{d}</Text>
+                  <Text style={styles.dietBadgeText}>{t.common.diet(d)}</Text>
                 </View>
               ))}
             </View>
